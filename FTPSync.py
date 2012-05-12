@@ -186,14 +186,13 @@ def performSync(view, file_name, config_file):
         path = getMappedPath(config['connections'][name]['root'], config['connections'][name]['file_name'], file_name)
 
         command = "STOR " + path
-        print command
 
         try:
             connections[index].storbinary(command, open(file_name))
             stored.append(name)
 
             if isDebug:
-                print "FTPSync [" + name + "] > uploaded " + os.path.basename(file_name)
+                print "FTPSync [" + name + "] > uploaded " + os.path.basename(file_name) + " ==> " + command
 
         except:
             error.append(name)
