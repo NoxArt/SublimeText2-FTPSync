@@ -1,4 +1,4 @@
-# Copyright (c) 2012 Jiří "NoxArt" Petruželka
+# Copyright (c) 2012 Jiri "NoxArt" Petruzelka
 #
 # Permission is hereby granted, free of charge, to any person
 # obtaining a copy of this software and associated documentation
@@ -120,11 +120,8 @@ def getConnection(hash, config):
         for name in config['connections']:
             properties = config['connections'][name]
 
-            port = 21
-            if properties['port'] is "auto" and properties['tsl'] is True:
-                port = 443
+            port = properties['port']
 
-            # missing FTP_TLS in 2.6 ??!
             if properties['tls'] is True:
                 connection = ftplib.FTP_TLS()
             else:

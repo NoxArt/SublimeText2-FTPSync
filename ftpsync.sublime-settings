@@ -9,7 +9,7 @@
 		"path": "/",
 
 		"tsl": false,
-		"port": "auto",
+		"port": 21,
 		"timeout": 30,
 		"constraints": [],
 		"ignore": null
