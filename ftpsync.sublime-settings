@@ -1,12 +1,17 @@
 {
 	"debug": true,
 
+	"project_defaults_name": "default",
 	"project_defaults": {
 		"username": null,
 		"root": "/",
 
 		"tsl": false,
 		"port": "auto",
-		"timeout": 30
-	}
+		"timeout": 30,
+		"constraints": [],
+		"ignore": null
+	},
+
+	"ignore": "ftpsync\\.settings|\\.gitignore|\\.git"
 }

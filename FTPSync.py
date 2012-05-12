@@ -6,11 +6,16 @@ import os
 import hashlib
 import json
 import threading
+import re
 
 
 # Init
 settings = sublime.load_settings('ftpsync.sublime-settings')
 project_defaults = settings.get('project_defaults')
+ignore = settings.get('ignore')
+
+re_ignore = re.compile(ignore)
+
 isDebug = settings.get('debug')
 configName = 'ftpsync.settings'
 connections = {}
@@ -19,6 +24,10 @@ configs = {}
 
 
 # Aux
+def statusMessage(text):
+    sublime.status_message("FTPSync > " + text)
+
+
 def getRoot(folders, current):
     for folder in folders:
         if current.find(folder) != -1:
@@ -29,7 +38,7 @@ def getConfigFile(view):
     file_name = view.file_name()
     try:
         if isDebug:
-            print "Loading config: cache hit (key: " + file_name + ")"
+            print "FTPSync > Loading config: cache hit (key: " + file_name + ")"
 
         return configs[file_name]
     except KeyError:
@@ -38,14 +47,14 @@ def getConfigFile(view):
         config = os.path.join(getRoot(folders, file_name), configName)
         if os.path.exists(config) is True:
             if isDebug:
-                print "Loaded config: " + config + " > for file: " + file_name
+                print "FTPSync > Loaded config: " + config + " > for file: " + file_name
 
             configs[file_name] = config
             return config
         else:
             if isDebug:
-                print file_name
-                print "Found no config > for file: " + file_name
+                print fFTPSync > ile_name
+                print "FTPSync > Found no config > for file: " + file_name
 
             return None
 
@@ -56,48 +65,62 @@ def getConfigHash(file_name):
 
 def loadConfig(file_name):
     config = json.load(open(file_name))
-    config['file_name'] = file_name
+    result = {}
 
-    return dict(project_defaults.items() + config.items())
+    for name in config:
+        result[name] = dict(project_defaults.items() + config[name].items())
+        result[name]['file_name'] = file_name
+
+    return dict({"ignore": ignore}.items() + {"connections": result}.items())
 
 
 def getConnection(hash, config):
     try:
         if isDebug:
-            print "Connection cache hit (key: " + hash + ")"
+            print "FTPSync > Connection cache hit (key: " + hash + ")"
 
         return connections[hash]
     except KeyError:
-        port = 21
-        if config['port'] is "auto" and config['tsl'] is True:
-            port = 443
+        connections[hash] = []
 
-        if config['tsl'] is True:
-            connection = ftplib.FTP()
-        else:
-            connection = ftplib.FTP()
+        for name in config['connections']:
+            properties = config['connections'][name]
 
-        connection.connect(config['host'], port, config['timeout'])
-        if isDebug:
-            print "Connected to: " + config['host'] + ":" + str(port) + " (timeout: " + str(config['timeout']) + ") (key: " + hash + ")"
+            port = 21
+            if properties['port'] is "auto" and properties['tsl'] is True:
+                port = 443
 
-        if config['username'] is not None:
-            connection.login(config['username'], config['password'])
+            # missing FTP_TLS in 2.6 ??!
+            if properties['tsl'] is True:
+                connection = ftplib.FTP()
+            else:
+                connection = ftplib.FTP()
+
+            connection.connect(properties['host'], port, properties['timeout'])
             if isDebug:
-                pass_present = " (using password: NO)"
-                if len(config['password']) > 0:
-                    pass_present = " (using password: YES)"
+                print "FTPSync [" + name + "] > Connected to: " + properties['host'] + ":" + str(port) + " (timeout: " + str(properties['timeout']) + ") (key: " + hash + ")"
 
-                print "Logged in as: " + config['username'] + pass_present
+            if properties['username'] is not None:
+                connection.login(properties['username'], properties['password'])
+                if isDebug:
+                    pass_present = " (using password: NO)"
+                    if len(properties['password']) > 0:
+                        pass_present = " (using password: YES)"
 
-        elif isDebug:
-            print "Anonymous connection"
+                    print "FTPSync [" + name + "] > Logged in as: " + properties['username'] + pass_present
 
-        connection.cwd(config['root'])
+            elif isDebug:
+                print "FTPSync [" + name + "] > Anonymous connection"
 
-        connections[hash] = connection
+            try:
+                connection.cwd(properties['root'])
 
-        return connection
+                connections[hash].append(connection)
+            except:
+                if isDebug:
+                    print "FTPSync [" + name + "] > Failed to set path (probably connection failed)"
+
+        return connections[hash]
 
 
 def getMappedPath(root, config, file_name):
@@ -109,12 +132,32 @@ def getMappedPath(root, config, file_name):
 # Syncing
 def performSync(view, file_name, config_file):
     config = loadConfig(config_file)
-    connection = getConnection(getConfigHash(config_file), config)
-    path = getMappedPath(config['root'], config['file_name'], file_name)
 
-    command = "STOR " + path
+    if len(ignore) > 0 and re_ignore.search(file_name) is not None:
+        return
 
-    connection.storbinary(command, open(file_name))
+    connections = getConnection(getConfigHash(config_file), config)
+    index = -1
+    stored = []
+    error = []
+
+    for name in config['connections']:
+        index += 1
+
+        if config['connections'][name]['ignore'] is not None and re.search(config['connections'][name]['ignore'], file_name):
+            break
+
+        path = getMappedPath(config['connections'][name]['root'], config['connections'][name]['file_name'], file_name)
+
+        command = "STOR " + path
+
+        try:
+            connections[index].storbinary(command, open(file_name))
+            stored.append(name)
+        except:
+            error.append(name)
+
+    #statusMessage("synchronized " + os.path.basename(file_name) + " with remotes: " + ", ".join(stored))
 
 
 # File watching

@@ -1,10 +1,12 @@
 {
+	"default": {
 
-	"host": "ftp.example.com",
-	"username": "",
-	"password": "",
-	"root": "/",
+		"host": "ftp.example.com",
+		"username": "",
+		"password": "",
+		"root": "/",
 
-	"tsl": true
+		"tsl": true
 
+	}
 }
