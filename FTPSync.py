@@ -153,7 +153,7 @@ def getConnection(hash, config):
                 print "FTPSync [" + name + "] > Anonymous connection"
 
             try:
-                connection.cwd(properties['root'])
+                connection.cwd(properties['path'])
                 connection.name = name
 
                 connections[hash].append(connection)
@@ -212,7 +212,7 @@ def performSync(view, file_name, config_file):
         if config['connections'][name]['ignore'] is not None and re.search(config['connections'][name]['ignore'], file_name):
             break
 
-        path = getMappedPath(config['connections'][name]['root'], config['connections'][name]['file_name'], file_name)
+        path = getMappedPath(config['connections'][name]['path'], config['connections'][name]['file_name'], file_name)
 
         command = "STOR " + path
 
