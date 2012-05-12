@@ -1,12 +1,28 @@
 {
+	// don't forget about commas
+
+	// your main connection
 	"default": {
 
+		// address
 		"host": "ftp.example.com",
-		"username": "",
-		"password": "",
-		"root": "/",
+		//"port": 21
 
-		"tsl": true
+		// credentials
+		"username": "your_login",
+		"password": "your_password",
+
+		// path to the folder matching the folder in which this file resides
+		"root": "/"
+
+		// true = secured connection
+		//"tsl": false,
+
+		// how long until connection closes [seconds]
+		//"timeout": 30,
+
+		// regular expression, when matches the file path of the file-to-be-uploaded, it cancels its upload
+		//"ignore": ""
 
 	}
 }
