@@ -77,19 +77,22 @@ def getConfigFile(view):
 
         return configs[file_name]
     except KeyError:
-        folders = view.window().folders()
+        try:
+            folders = view.window().folders()
 
-        config = os.path.join(getRoot(folders, file_name), configName)
-        if os.path.exists(config) is True:
-            if isDebug:
-                print "FTPSync > Loaded config: " + config + " > for file: " + file_name
+            config = os.path.join(getRoot(folders, file_name), configName)
+            if os.path.exists(config) is True:
+                if isDebug:
+                    print "FTPSync > Loaded config: " + config + " > for file: " + file_name
 
-            configs[file_name] = config
-            return config
-        else:
-            if isDebug:
-                print "FTPSync > Found no config > for file: " + file_name
+                configs[file_name] = config
+                return config
+            else:
+                if isDebug:
+                    print "FTPSync > Found no config > for file: " + file_name
 
+                return None
+        except AttributeError:
             return None
 
 
@@ -237,8 +240,10 @@ class RemoteSync(sublime_plugin.EventListener):
 
     def on_close(self, view):
         config_file = getConfigFile(view)
-        hash = getConfigHash(config_file)
-        closeConnection(hash)
+
+        if config_file is not None:
+            hash = getConfigHash(config_file)
+            closeConnection(hash)
 
 
 # Remote handling
