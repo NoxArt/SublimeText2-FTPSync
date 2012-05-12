@@ -102,14 +102,20 @@ def getConnection(hash, config):
                 port = 443
 
             # missing FTP_TLS in 2.6 ??!
-            if properties['tsl'] is True:
-                connection = ftplib.FTP()
+            if properties['tls'] is True:
+                connection = ftplib.FTP_TLS()
             else:
                 connection = ftplib.FTP()
 
             connection.connect(properties['host'], port, properties['timeout'])
             if isDebug:
                 print "FTPSync [" + name + "] > Connected to: " + properties['host'] + ":" + str(port) + " (timeout: " + str(properties['timeout']) + ") (key: " + hash + ")"
+
+            if properties['tls'] is True:
+                connection.auth()
+
+                if isDebug:
+                    print "FTPSync [" + name + "] > Authentication processed"
 
             if properties['username'] is not None:
                 connection.login(properties['username'], properties['password'])
