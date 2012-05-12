@@ -1,5 +1,7 @@
 {
 	"debug": true,
+	"debug_verbose": true,
+	"connection_timeout": 180,
 
 	"project_defaults_name": "default",
 	"project_defaults": {

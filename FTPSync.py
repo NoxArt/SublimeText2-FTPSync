@@ -13,19 +13,31 @@ import re
 settings = sublime.load_settings('ftpsync.sublime-settings')
 project_defaults = settings.get('project_defaults')
 ignore = settings.get('ignore')
+coreConfig = {
+    'ignore': ignore,
+    'connection_timeout': settings.get('connection_timeout')
+}
 
 re_ignore = re.compile(ignore)
 
 isDebug = settings.get('debug')
+isDebugVerbose = settings.get('debug_verbose')
 configName = 'ftpsync.settings'
 connections = {}
 threads = []
 configs = {}
+messages = []
 
 
 # Aux
 def statusMessage(text):
-    sublime.status_message("FTPSync > " + text)
+    sublime.status_message(text)
+
+
+def dumpMessages():
+    for message in messages:
+        statusMessage(message)
+        messages.remove(message)
 
 
 def getRoot(folders, current):
@@ -37,7 +49,7 @@ def getRoot(folders, current):
 def getConfigFile(view):
     file_name = view.file_name()
     try:
-        if isDebug:
+        if configs[file_name] and isDebug and isDebugVerbose:
             print "FTPSync > Loading config: cache hit (key: " + file_name + ")"
 
         return configs[file_name]
@@ -53,7 +65,6 @@ def getConfigFile(view):
             return config
         else:
             if isDebug:
-                print fFTPSync > ile_name
                 print "FTPSync > Found no config > for file: " + file_name
 
             return None
@@ -71,12 +82,12 @@ def loadConfig(file_name):
         result[name] = dict(project_defaults.items() + config[name].items())
         result[name]['file_name'] = file_name
 
-    return dict({"ignore": ignore}.items() + {"connections": result}.items())
+    return dict(coreConfig.items() + {"connections": result}.items())
 
 
 def getConnection(hash, config):
     try:
-        if isDebug:
+        if connections[hash] and isDebug and isDebugVerbose:
             print "FTPSync > Connection cache hit (key: " + hash + ")"
 
         return connections[hash]
@@ -114,13 +125,38 @@ def getConnection(hash, config):
 
             try:
                 connection.cwd(properties['root'])
+                connection.name = name
 
                 connections[hash].append(connection)
             except:
                 if isDebug:
                     print "FTPSync [" + name + "] > Failed to set path (probably connection failed)"
 
+        def closeThisConnection():
+            closeConnection(hash)
+
+        sublime.set_timeout(closeThisConnection, config['connection_timeout'] * 1000)
         return connections[hash]
+
+
+def closeConnection(hash):
+    try:
+        for connection in connections[hash]:
+            try:
+                connection.quit()
+            except:
+                connections.close()
+            finally:
+                if isDebug:
+                    print "FTPSync [" + connection.name + "] > closed"
+
+                connections[hash].remove(connection)
+
+        if len(connections[hash]) == 0:
+            connections.pop(hash)
+
+    except:
+        return
 
 
 def getMappedPath(root, config, file_name):
@@ -154,10 +190,16 @@ def performSync(view, file_name, config_file):
         try:
             connections[index].storbinary(command, open(file_name))
             stored.append(name)
+
+            if isDebug:
+                print "FTPSync [" + name + "] > uploaded " + os.path.basename(file_name)
+
         except:
             error.append(name)
 
-    #statusMessage("synchronized " + os.path.basename(file_name) + " with remotes: " + ", ".join(stored))
+    messages.append("FTPSync [remotes: " + ",".join(stored) + "] > uploaded " + os.path.basename(file_name))
+
+    sublime.set_timeout(dumpMessages, 4)
 
 
 # File watching
@@ -166,6 +208,11 @@ class RemoteSync(sublime_plugin.EventListener):
         thread = RemoteSyncCall(view, view.file_name(), getConfigFile(view))
         threads.append(thread)
         thread.start()
+
+    def on_close(self, view):
+        config_file = getConfigFile(view)
+        hash = getConfigHash(config_file)
+        closeConnection(hash)
 
 
 # Remote handling
