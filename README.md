@@ -14,15 +14,15 @@ To mark a folder and descendants for upload, insert *ftpsync.settings* file in f
     	<connection_name>: {
     		host: {string},
 
-    		username: {null|string=null},
+    		username: {null|string=null}, // null means anonymous manipulation
     		password: {null|string=""},
 
-    		path: {string="/"},
+    		path: {string="/"}, // remote root for these files
 
     		port: {int=21},
-    		tls: {bool=false},
-    		timeout: {int=30},
-    		ignore: {null|string},
+    		tls: {bool=false}, // use secured transfer
+    		timeout: {int=30}, // seconds to invalidate the cached connection
+    		ignore: {null|string}, // regular expression, matched against file path
     		constrains: {list=[]} // not implemented yet
     	}
     }
