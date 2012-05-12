@@ -15,7 +15,7 @@ To mark a folder and descendants for upload, insert *ftpsync.settings* file in f
     		host: {string},
 
     		username: {null|string=null},
-    		password: {null|string},
+    		password: {null|string=""},
 
     		path: {string="/"},
 

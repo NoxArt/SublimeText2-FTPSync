@@ -6,6 +6,7 @@
 	"project_defaults_name": "default",
 	"project_defaults": {
 		"username": null,
+		"password": "",
 		"path": "/",
 
 		"tsl": false,
