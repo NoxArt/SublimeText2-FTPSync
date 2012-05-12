@@ -162,7 +162,7 @@ def closeConnection(hash):
 def getMappedPath(root, config, file_name):
     config = os.path.dirname(config)
     fragment = os.path.relpath(file_name, config)
-    return os.path.join(root, fragment)
+    return os.path.join(root, fragment).replace('\\', '/')
 
 
 # Syncing
@@ -186,6 +186,7 @@ def performSync(view, file_name, config_file):
         path = getMappedPath(config['connections'][name]['root'], config['connections'][name]['file_name'], file_name)
 
         command = "STOR " + path
+        print command
 
         try:
             connections[index].storbinary(command, open(file_name))
