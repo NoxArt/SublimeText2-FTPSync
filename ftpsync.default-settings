@@ -1,0 +1,10 @@
+{
+
+	"host": "ftp.example.com",
+	"username": "",
+	"password": "",
+	"root": "/",
+
+	"tsl": true
+
+}
