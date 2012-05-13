@@ -1,0 +1,7 @@
+[
+    {
+        "caption": "FTPSync: Setup FTPSync in this folder",
+        "command": "new_ftp_sync",
+        "args": {"dirs": []}
+    }
+]

@@ -23,11 +23,12 @@ To mark a folder and descendants for upload, insert *ftpsync.settings* file in f
     		tls: {bool=false}, // use secured transfer
     		timeout: {int=30}, // seconds to invalidate the cached connection
     		ignore: {null|string}, // regular expression, matched against file path
-    		constrains: {list=[]} // not implemented yet
+
+    		constrains: {list=[]} // * not implemented yet *
     	}
     }
 
-You can create such file using *Preferences > Package Settings > FTPSync > Setup FTPSync in this folder*.
+You can create such file using *Preferences > Package Settings > FTPSync > Setup FTPSync in this folder* or using context menu in Side bar or using Control/CMD+Shift+P.
 
 Files are automatically uploaded on save.
 

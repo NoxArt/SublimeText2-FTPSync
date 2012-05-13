@@ -27,7 +27,8 @@
                             },
                             {
                                 "command": "new_ftp_sync",
-                                "caption": "Setup FTPSync in this folder"
+                                "caption": "Setup FTPSync in this folder",
+                                "args": {"dirs": []}
                             },
                             { "caption": "-" }
                         ]

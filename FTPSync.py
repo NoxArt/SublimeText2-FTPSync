@@ -125,7 +125,15 @@ def loadConfig(file_name):
         if line.find('//') is -1:
             contents += line
 
-    config = json.loads(contents)
+    try:
+        config = json.loads(contents)
+    except:
+        if isDebug:
+            print "FTPSync > Failed parsing configuration file: " + file_name
+
+        messages.append("FTPSync > Failed parsing configuration file " + file_name + " (commas problem?)")
+        sublime.set_timeout(dumpMessages, 4)
+
     result = {}
 
     for name in config:
@@ -289,7 +297,7 @@ class RemoteSync(sublime_plugin.EventListener):
     def on_close(self, view):
         config_file = getConfigFile(view)
 
-        if True or config_file is not None:
+        if config_file is not None:
             hash = getConfigHash(config_file)
             closeConnection(hash)
 
@@ -311,12 +319,17 @@ class RemoteSyncCall(threading.Thread):
 
 # Sets up a config file in a directory
 class NewFtpSyncCommand(sublime_plugin.TextCommand):
-    def run(self, edit):
-        default = os.path.join(sublime.packages_path(), 'FTPSync', 'ftpsync.default-settings')
-        config = os.path.join(os.path.dirname(self.view.file_name()), configName)
+    def run(self, edit, dirs):
+        if len(dirs) == 0:
+            dirs = [os.path.dirname(self.view.file_name())]
 
-        if os.path.exists(config) is True:
-            self.view.window().open_file(config)
-        else:
-            shutil.copyfile(default, config)
-            self.view.window().open_file(config)
+        default = os.path.join(sublime.packages_path(), 'FTPSync', 'ftpsync.default-settings')
+
+        for dir in dirs:
+            config = os.path.join(dir, configName)
+
+            if os.path.exists(config) is True:
+                self.view.window().open_file(config)
+            else:
+                shutil.copyfile(default, config)
+                self.view.window().open_file(config)

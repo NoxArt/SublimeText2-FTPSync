@@ -1,0 +1,10 @@
+[
+	{ "caption": "-" },
+	{
+		"caption": "FTPSync",
+		"children":
+		[
+			{ "caption": "Setup FTPSync in this folder", "command": "new_ftp_sync", "args": {"dirs": []} }
+		]
+	}
+]
