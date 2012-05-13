@@ -1,5 +1,5 @@
 {
-	"debug": true,
+	"debug": false,
 	"debug_verbose": true,
 	"connection_timeout": 300,
 
