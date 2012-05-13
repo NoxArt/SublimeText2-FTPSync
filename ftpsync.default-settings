@@ -13,7 +13,7 @@
 		"password": "your_password",
 
 		// path to the folder matching the folder in which this file resides
-		"root": "/"
+		"path": "/"
 
 		// true = secured connection
 		//"tls": false,
