@@ -9,7 +9,7 @@
 		"password": "",
 		"path": "/",
 
-		"tsl": false,
+		"tls": false,
 		"port": 21,
 		"timeout": 30,
 		"constraints": [],

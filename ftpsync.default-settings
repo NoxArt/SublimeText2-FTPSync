@@ -16,7 +16,7 @@
 		"root": "/"
 
 		// true = secured connection
-		//"tsl": false,
+		//"tls": false,
 
 		// how long until connection closes [seconds]
 		//"timeout": 30,
