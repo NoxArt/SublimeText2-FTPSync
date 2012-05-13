@@ -133,6 +133,7 @@ def loadConfig(file_name):
 
         messages.append("FTPSync > Failed parsing configuration file " + file_name + " (commas problem?)")
         sublime.set_timeout(dumpMessages, 4)
+        return None
 
     result = {}
 
