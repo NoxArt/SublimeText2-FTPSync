@@ -96,6 +96,9 @@ def getConfigFile(view):
         try:
             folders = view.window().folders()
 
+            if folders is None or len(folders) is 0:
+                return None
+
             config = os.path.join(getRoot(folders, file_name), configName)
             if os.path.exists(config) is True:
                 if isDebug:
