@@ -46,6 +46,7 @@ Tips
 
 * **You can upload different language versions to different servers of paths**
 
+
     {
         <connection_name>: {
             host: "ftp.host.en.com",
