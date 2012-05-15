@@ -44,7 +44,7 @@ Feel free to add issues, ideas, pull requests...
 Tips
 ----
 
-* **You can upload different language versions to different servers of paths **
+* **You can upload different language versions to different servers of paths**
 using configuration like:
 
     {
