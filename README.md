@@ -36,3 +36,24 @@ Released under MIT licence.
 Feel free to add issues, ideas, pull requests...
 
 **@NoxArt**
+
+
+
+- - -
+
+Tips
+----
+
+* **You can upload different language versions to different servers of paths **
+using configuration like:
+
+    {
+        <connection_name>: {
+            host: "ftp.host.en.com",
+            ignore: "/locale/(?!fr)\\w+/.*"
+        },
+        <connection2_name>: {
+            host: "ftp.host.cz.com",
+            ignore: "/locale/(?!cz)\\w+/.*"
+        }
+    }
