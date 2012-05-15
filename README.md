@@ -41,18 +41,20 @@ Feel free to add issues, ideas, pull requests...
 
 - - -
 
+
+
 Tips
 ----
 
 * **You can upload different language versions to different servers of paths**
 
-    {
-        <connection_name>: {
-            host: "ftp.host.en.com",
-            ignore: "/locale/(?!fr)\\w+/.*"
-        },
-        <connection2_name>: {
-            host: "ftp.host.cz.com",
-            ignore: "/locale/(?!cz)\\w+/.*"
+        {
+        	<connection_name>: {
+        		host: "ftp.host.en.com",
+        		ignore: "/locale/(?!fr)\\w+/.*"
+        	},
+        	<connection2_name>: {
+        		host: "ftp.host.cz.com",
+        		ignore: "/locale/(?!cz)\\w+/.*"
+        	}
         }
-    }
