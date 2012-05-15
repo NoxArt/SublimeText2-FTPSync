@@ -232,7 +232,7 @@ def closeConnection(hash):
             try:
                 connection.quit()
             except:
-                connections.close()
+                connection.close()
             finally:
                 if isDebug:
                     print "FTPSync [" + connection.name + "] > closed"
