@@ -37,22 +37,24 @@ import re
 # global config
 settings = sublime.load_settings('ftpsync.sublime-settings')
 
-isDebug = settings.get('debug')
-isDebugVerbose = settings.get('debug_verbose')
-project_defaults = settings.get('project_defaults')
+isDebug = settings.get('debug')  # print debug messages to console?
+isDebugVerbose = settings.get('debug_verbose')  # print overly informative messages?
+project_defaults = settings.get('project_defaults')  # default config for a project
+ignore = settings.get('ignore')  # global ignore pattern
 
-# global ignore pattern
-ignore = settings.get('ignore')
-
+# loaded project's config will be merged with this global one
 coreConfig = {
     'ignore': ignore,
     'connection_timeout': settings.get('connection_timeout')
 }
 
+# compiled global ignore pattern
 re_ignore = re.compile(ignore)
 
 
+# storing literals
 configName = 'ftpsync.settings'
+message_timeout = 250
 
 # connection cache pool
 connections = {}
@@ -135,7 +137,7 @@ def loadConfig(file_name):
             print "FTPSync > Failed parsing configuration file: " + file_name
 
         messages.append("FTPSync > Failed parsing configuration file " + file_name + " (commas problem?)")
-        sublime.set_timeout(dumpMessages, 4)
+        sublime.set_timeout(dumpMessages, message_timeout)
         return None
 
     result = {}
@@ -176,7 +178,7 @@ def getConnection(hash, config):
                     print "FTPSync [" + name + "] > Connection failed"
 
                 messages.append("FTPSync [" + name + "] > Connection failed")
-                sublime.set_timeout(dumpMessages, 4)
+                sublime.set_timeout(dumpMessages, message_timeout)
 
                 try:
                     connection.quit()
@@ -288,7 +290,7 @@ def performSync(view, file_name, config_file):
     if len(stored) > 0:
         messages.append("FTPSync [remotes: " + ",".join(stored) + "] > uploaded " + os.path.basename(file_name))
 
-        sublime.set_timeout(dumpMessages, 4)
+        sublime.set_timeout(dumpMessages, message_timeout)
 
 
 # File watching
