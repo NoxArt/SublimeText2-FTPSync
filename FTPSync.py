@@ -84,6 +84,14 @@ def getRoot(folders, current):
             return folder
 
 
+# Invalidates all config cache entries belonging to a certain directory
+# as long as they're empty or less nested in the filesystem
+def invalidateConfigCache(config_dir_name):
+    for file_name in configs:
+        if file_name.startswith(config_dir_name) and (configs[file_name] is None or config_dir_name.startswith(configs[file_name])):
+            configs.remove(configs[file_name])
+
+
 # Returns configuration file for a given file
 def getConfigFile(view):
     file_name = view.file_name()
@@ -333,6 +341,8 @@ class NewFtpSyncCommand(sublime_plugin.TextCommand):
 
         for dir in dirs:
             config = os.path.join(dir, configName)
+
+            invalidateConfigCache(dir)
 
             if os.path.exists(config) is True:
                 self.view.window().open_file(config)
