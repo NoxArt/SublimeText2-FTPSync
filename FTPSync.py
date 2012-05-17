@@ -39,7 +39,7 @@ settings = sublime.load_settings('ftpsync.sublime-settings')
 
 isDebug = settings.get('debug')  # print debug messages to console?
 isDebugVerbose = settings.get('debug_verbose')  # print overly informative messages?
-projectDefaults = settings.get('projectDefaults')  # default config for a project
+projectDefaults = settings.get('project_defaults')  # default config for a project
 ignore = settings.get('ignore')  # global ignore pattern
 
 # loaded project's config will be merged with this global one
@@ -125,7 +125,7 @@ def invalidateConfigCache(config_dir_name):
 
 # Finds a config file in given folders
 def findConfigFile(folders):
-    return findFile(configName)
+    return findFile(folders, configName)
 
 
 # Returns configuration file for a given file
