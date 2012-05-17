@@ -39,7 +39,7 @@ settings = sublime.load_settings('ftpsync.sublime-settings')
 
 isDebug = settings.get('debug')  # print debug messages to console?
 isDebugVerbose = settings.get('debug_verbose')  # print overly informative messages?
-project_defaults = settings.get('project_defaults')  # default config for a project
+projectDefaults = settings.get('projectDefaults')  # default config for a project
 ignore = settings.get('ignore')  # global ignore pattern
 
 # loaded project's config will be merged with this global one
@@ -71,7 +71,7 @@ configs = {}
 messages = []
 
 
-# Messaging
+# ==== Messaging ===========================================================================
 def statusMessage(text):
     sublime.status_message(text)
 
@@ -83,13 +83,7 @@ def dumpMessages():
         messages.remove(message)
 
 
-# Invalidates all config cache entries belonging to a certain directory
-# as long as they're empty or less nested in the filesystem
-def invalidateConfigCache(config_dir_name):
-    for file_name in configs:
-        if file_name.startswith(config_dir_name) and (configs[file_name] is None or config_dir_name.startswith(configs[file_name])):
-            configs.remove(configs[file_name])
-
+# ==== File&folders ========================================================================
 
 def getFolders(viewOrFilename):
     if type(viewOrFilename) == str or type(viewOrFilename) == unicode:
@@ -111,12 +105,27 @@ def getFolders(viewOrFilename):
         return viewOrFilename.window().folders()
 
 
-def findConfigFile(folders):
+def findFile(folders, file_name):
     for folder in folders:
-        if os.path.exists(os.path.join(folder, configName)) is True:
+        if os.path.exists(os.path.join(folder, file_name)) is True:
             return folder
 
     return None
+
+
+# ==== Config =============================================================================
+
+# Invalidates all config cache entries belonging to a certain directory
+# as long as they're empty or less nested in the filesystem
+def invalidateConfigCache(config_dir_name):
+    for file_name in configs:
+        if file_name.startswith(config_dir_name) and (configs[file_name] is None or config_dir_name.startswith(configs[file_name])):
+            configs.remove(configs[file_name])
+
+
+# Finds a config file in given folders
+def findConfigFile(folders):
+    return findFile(configName)
 
 
 # Returns configuration file for a given file
@@ -176,7 +185,7 @@ def loadConfig(file_name):
     result = {}
 
     for name in config:
-        result[name] = dict(project_defaults.items() + config[name].items())
+        result[name] = dict(projectDefaults.items() + config[name].items())
         result[name]['file_name'] = file_name
 
     final = dict(coreConfig.items() + {"connections": result}.items())
