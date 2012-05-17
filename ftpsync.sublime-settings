@@ -7,6 +7,8 @@
 	"project_defaults": {
 		"username": null,
 		"password": "",
+		"private_key": null,
+		"private_key_pass": null,
 		"path": "/",
 
 		"tls": false,
