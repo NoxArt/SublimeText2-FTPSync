@@ -4,6 +4,7 @@
 		"caption": "FTPSync",
 		"children":
 		[
+			{ "caption": "Upload", "command": "ftp_sync_target", "args": {"paths": []} },
 			{ "caption": "Setup FTPSync in this folder", "command": "new_ftp_sync", "args": {"dirs": []} }
 		]
 	}

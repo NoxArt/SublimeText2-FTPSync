@@ -54,7 +54,12 @@ re_ignore = re.compile(ignore)
 
 # storing literals
 configName = 'ftpsync.settings'
-message_timeout = 250
+messageTimeout = 250
+nestingLimit = 30
+ftpErrors = {
+    'noFileOrDirectory': 553,
+    'cwdNoFileOrDirectory': 550
+}
 
 # connection cache pool
 connections = {}
@@ -66,6 +71,7 @@ configs = {}
 messages = []
 
 
+# Messaging
 def statusMessage(text):
     sublime.status_message(text)
 
@@ -77,13 +83,6 @@ def dumpMessages():
         messages.remove(message)
 
 
-# Finds folder among those opened to which the file belongs
-def getRoot(folders, current):
-    for folder in folders:
-        if current.find(folder) != -1:
-            return folder
-
-
 # Invalidates all config cache entries belonging to a certain directory
 # as long as they're empty or less nested in the filesystem
 def invalidateConfigCache(config_dir_name):
@@ -92,10 +91,36 @@ def invalidateConfigCache(config_dir_name):
             configs.remove(configs[file_name])
 
 
-# Returns configuration file for a given file
-def getConfigFile(view):
-    file_name = view.file_name()
+def getFolders(viewOrFilename):
+    if type(viewOrFilename) == str or type(viewOrFilename) == unicode:
+        folders = []
+        max = nestingLimit
 
+        while True:
+            split = os.path.split(viewOrFilename)
+            viewOrFilename = split[0]
+            max -= 1
+
+            if len(split[1]) == 0 or max < 0:
+                break
+
+            folders.append(split[0])
+
+        return folders
+    else:
+        return viewOrFilename.window().folders()
+
+
+def findConfigFile(folders):
+    for folder in folders:
+        if os.path.exists(os.path.join(folder, configName)) is True:
+            return folder
+
+    return None
+
+
+# Returns configuration file for a given file
+def getConfigFile(file_name):
     # try cached
     try:
         if configs[file_name] and isDebug and isDebugVerbose:
@@ -104,23 +129,23 @@ def getConfigFile(view):
         return configs[file_name]
     except KeyError:
         try:
-            folders = view.window().folders()
+            folders = getFolders(file_name)
 
-            if folders is None or len(folders) is 0:
+            if folders is None or len(folders) == 0:
                 return None
 
-            config = os.path.join(getRoot(folders, file_name), configName)
-            if os.path.exists(config) is True:
-                if isDebug:
-                    print "FTPSync > Loaded config: " + config + " > for file: " + file_name
+            configFolder = findConfigFile(folders)
 
-                configs[file_name] = config
-                return config
-            else:
+            if configFolder is None:
                 if isDebug:
                     print "FTPSync > Found no config > for file: " + file_name
 
-                return None
+                return
+
+            config = os.path.join(configFolder, configName)
+            configs[file_name] = config
+            return config
+
         except AttributeError:
             return None
 
@@ -145,7 +170,7 @@ def loadConfig(file_name):
             print "FTPSync > Failed parsing configuration file: " + file_name
 
         messages.append("FTPSync > Failed parsing configuration file " + file_name + " (commas problem?)")
-        sublime.set_timeout(dumpMessages, message_timeout)
+        sublime.set_timeout(dumpMessages, messageTimeout)
         return None
 
     result = {}
@@ -186,7 +211,7 @@ def getConnection(hash, config):
                     print "FTPSync [" + name + "] > Connection failed"
 
                 messages.append("FTPSync [" + name + "] > Connection failed")
-                sublime.set_timeout(dumpMessages, message_timeout)
+                sublime.set_timeout(dumpMessages, messageTimeout)
 
                 try:
                     connection.quit()
@@ -264,10 +289,10 @@ def getMappedPath(root, config, file_name):
 
 
 # Uploads given file
-def performSync(view, file_name, config_file):
+def performSync(file_name, config_file, disregardIgnore=False):
     config = loadConfig(config_file)
 
-    if len(ignore) > 0 and re_ignore.search(file_name) is not None:
+    if disregardIgnore is False and len(ignore) > 0 and re_ignore.search(file_name) is not None:
         return
 
     connections = getConnection(getConfigHash(config_file), config)
@@ -278,7 +303,7 @@ def performSync(view, file_name, config_file):
     for name in config['connections']:
         index += 1
 
-        if config['connections'][name]['ignore'] is not None and re.search(config['connections'][name]['ignore'], file_name):
+        if disregardIgnore is False and config['connections'][name]['ignore'] is not None and re.search(config['connections'][name]['ignore'], file_name):
             break
 
         path = getMappedPath(config['connections'][name]['path'], config['connections'][name]['file_name'], file_name)
@@ -292,24 +317,52 @@ def performSync(view, file_name, config_file):
             if isDebug:
                 print "FTPSync [" + name + "] > uploaded " + os.path.basename(file_name) + " ==> " + command
 
-        except:
+        except Exception, e:
+            if str(e)[:3] == str(ftpErrors['noFileOrDirectory']):
+                makePath(connections[index], config['connections'][name], path)
+
+                performSync(file_name, config_file, disregardIgnore)
+
             error.append(name)
 
     if len(stored) > 0:
         messages.append("FTPSync [remotes: " + ",".join(stored) + "] > uploaded " + os.path.basename(file_name))
 
-        sublime.set_timeout(dumpMessages, message_timeout)
+        sublime.set_timeout(dumpMessages, messageTimeout)
+
+
+def makePath(connection, config, path):
+    connection.cwd(config['path'])
+
+    relative = os.path.relpath(path, config['path'])
+
+    folders = relative.split("\\")
+    if type(folders) is str:
+        folders = relative.split("/")
+
+    index = 0
+    for folder in folders:
+        index += 1
+
+        try:
+            if index < len(folders):
+                connection.cwd(folder)
+        except Exception, e:
+            if str(e)[:3] == str(ftpErrors['cwdNoFileOrDirectory']):
+                connection.mkd(folder)
+                connection.cwd(folder)
 
 
 # File watching
 class RemoteSync(sublime_plugin.EventListener):
     def on_post_save(self, view):
-        thread = RemoteSyncCall(view, view.file_name(), getConfigFile(view))
+        file_name = view.file_name()
+        thread = RemoteSyncCall(file_name, getConfigFile(file_name))
         threads.append(thread)
         thread.start()
 
     def on_close(self, view):
-        config_file = getConfigFile(view)
+        config_file = getConfigFile(view.file_name())
 
         if config_file is not None:
             hash = getConfigHash(config_file)
@@ -318,17 +371,17 @@ class RemoteSync(sublime_plugin.EventListener):
 
 # Remote handling
 class RemoteSyncCall(threading.Thread):
-    def __init__(self, view, file_name, config):
-        self.view = view
+    def __init__(self, file_name, config, disregardIgnore=False):
         self.file_name = file_name
         self.config = config
+        self.disregardIgnore = disregardIgnore
         threading.Thread.__init__(self)
 
     def run(self):
         if self.config is None:
             return False
 
-        performSync(self.view, self.file_name, self.config)
+        performSync(self.file_name, self.config, self.disregardIgnore)
 
 
 # Sets up a config file in a directory
@@ -349,3 +402,13 @@ class NewFtpSyncCommand(sublime_plugin.TextCommand):
             else:
                 shutil.copyfile(default, config)
                 self.view.window().open_file(config)
+
+
+# Synchronize selected file/directory
+class FtpSyncTarget(sublime_plugin.TextCommand):
+    def run(self, edit, paths):
+        for target in paths:
+            if os.path.isfile(target):
+                thread = RemoteSyncCall(target, getConfigFile(target), True)
+                threads.append(thread)
+                thread.start()
