@@ -29,7 +29,7 @@ import hashlib
 import json
 import threading
 import re
-from ftpsyncwrapper import ConnectionWrapper
+from ftpsyncwrapper import CreateConnection
 
 # Init
 
@@ -53,6 +53,7 @@ re_ignore = re.compile(ignore)
 
 # storing literals
 configName = 'ftpsync.settings'
+defaultConnectioConfigName = 'ftpsync.sublime-settings'
 messageTimeout = 250
 nestingLimit = 30
 
@@ -204,7 +205,7 @@ def getConnection(hash, config):
             properties = config['connections'][name]
 
             # 1. initialize
-            connection = ConnectionWrapper(properties, name, isDebug)
+            connection = CreateConnection(properties, name)
 
             # 2. connect
             try:
@@ -222,7 +223,8 @@ def getConnection(hash, config):
                 print "FTPSync [" + name + "] > Connected to: " + properties['host'] + ":" + str(properties['port']) + " (timeout: " + str(properties['timeout']) + ") (key: " + hash + ")"
 
             # 3. authenticate
-            connection.authenticate()
+            if connection.authenticate() and isDebug:
+                print "FTPSync [" + name + "] > Authentication processed"
 
             # 4. login
             if properties['username'] is not None:
@@ -261,36 +263,70 @@ def getConnection(hash, config):
 def closeConnection(hash, config):
     try:
         for connection in connections[hash]:
-            connection.close(connection, config, hash)
+            connection.close(connections, hash)
+
+            if isDebug:
+                print "FTPSync [" + connection.name + "] > closed"
 
         if len(connections[hash]) == 0:
             connections.pop(hash)
 
-    except:
+    except Exception, e:
+        print e
+
         return
 
 
 # Uploads given file
 def performSync(file_name, config_file, disregardIgnore=False):
     config = loadConfig(config_file)
+    basename = os.path.basename(file_name)
 
     if disregardIgnore is False and len(ignore) > 0 and re_ignore.search(file_name) is not None:
+        if isDebug and isDebugVerbose:
+            print "FTPSync > file globally ignored: " + basename
+
         return
 
     connections = getConnection(getConfigHash(config_file), config)
     index = -1
     stored = []
+    failed = False
 
     for name in config['connections']:
         index += 1
 
         if disregardIgnore is False and config['connections'][name]['ignore'] is not None and re.search(config['connections'][name]['ignore'], file_name):
+            if isDebug and isDebugVerbose:
+                print "FTPSync [" + name + "] > file ignored by rule: " + basename
+
             break
 
-        stored.append(connections[index].put(file_name))
+        try:
+            uploaded = connections[index].put(file_name)
+
+            if type(uploaded) is str or type(uploaded) is unicode:
+                stored.append(uploaded)
+
+                if isDebug:
+                    print "FTPSync [" + name + "] > uploaded " + basename
+
+            else:
+                failed = type(uploaded)
+
+        except Exception, e:
+            failed = e
+
+        if failed:
+            if isDebug:
+                print "FTPSync [" + name + "] > upload failed: (" + basename + ") " + str(failed)
+
+            messages.append("FTPSync [" + name + "] > upload failed: " + basename)
+
+            sublime.set_timeout(dumpMessages, messageTimeout)
 
     if len(stored) > 0:
-        messages.append("FTPSync [remotes: " + ",".join(stored) + "] > uploaded " + os.path.basename(file_name))
+        messages.append("FTPSync [remotes: " + ",".join(stored) + "] > uploaded " + basename)
 
         sublime.set_timeout(dumpMessages, messageTimeout)
 
@@ -332,7 +368,7 @@ class NewFtpSyncCommand(sublime_plugin.TextCommand):
         if len(dirs) == 0:
             dirs = [os.path.dirname(self.view.file_name())]
 
-        default = os.path.join(sublime.packages_path(), 'FTPSync', 'ftpsync.default-settings')
+        default = os.path.join(sublime.packages_path(), 'FTPSync', defaultConnectioConfigName)
 
         for dir in dirs:
             config = os.path.join(dir, configName)

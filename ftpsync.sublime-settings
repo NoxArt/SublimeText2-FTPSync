@@ -1,7 +1,7 @@
 {
 	"debug": true,
 	"debug_verbose": true,
-	"connection_timeout": 300,
+	"connection_timeout": 100,
 
 	"project_defaults_name": "default",
 	"project_defaults": {
@@ -18,5 +18,5 @@
 		"ignore": null
 	},
 
-	"ignore": "ftpsync\\.settings|\\.gitignore|\\.git"
+	"ignore": "ftpsync\\.settings|\\.gitignore|\\.git|Sublime Text 2/Packages"
 }

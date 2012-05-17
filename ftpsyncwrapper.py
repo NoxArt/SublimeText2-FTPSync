@@ -30,47 +30,14 @@ ftpErrors = {
 }
 
 
-class ConnectionWrapper:
+def CreateConnection(config, name):
+    if 'ssh' in config or ('private_key' in config and config['private_key'] is not None):
+        return None
+    else:
+        return CommonConnection(config, name)
 
-    def __init__(self, config, name, isDebug):
-        self.config = config
-        self.isDebug = isDebug
 
-        if self.isConnectionSSH():
-            return
-        else:
-            if self.config['tls'] is True:
-                self.connection = ftplib.FTP_TLS()
-            else:
-                self.connection = ftplib.FTP()
-
-        self.connection.name = name
-
-    def isConnectionSSH(self):
-        return 'ssh' in self.config or ('private_key' in self.config and self.config['private_key'] is not None)
-
-    def connect(self):
-        if self.isConnectionSSH():
-            return True
-        else:
-            return self.connection.connect(self.config['host'], self.config['port'], self.config['timeout'])
-
-    def authenticate(self):
-        if self.isConnectionSSH():
-            return True
-        elif self.config['tls'] is True:
-            self.connection.auth()
-
-            if self.isDebug:
-                print "FTPSync [" + self.connection.name + "] > Authentication processed"
-
-        return False
-
-    def login(self):
-        if self.isConnectionSSH():
-            return True
-        else:
-            self.connection.login(self.config['username'], self.config['password'])
+class AbstractConnection:
 
     # Return server path for the uploaded file relative to specified path
     def getMappedPath(self, file_name):
@@ -78,7 +45,67 @@ class ConnectionWrapper:
         fragment = os.path.relpath(file_name, config)
         return os.path.join(self.config['path'], fragment).replace('\\', '/')
 
-    def makePath(self, path):
+
+# TODO - turn some methods private
+class CommonConnection(AbstractConnection):
+
+    def __init__(self, config, name):
+        self.config = config
+        self.name = name
+
+        if self.config['tls'] is True:
+            self.connection = ftplib.FTP_TLS()
+        else:
+            self.connection = ftplib.FTP()
+
+    def connect(self):
+        return self.connection.connect(self.config['host'], self.config['port'], self.config['timeout'])
+
+    def authenticate(self):
+        if self.config['tls'] is True:
+            self.connection.auth()
+            return True
+
+        return False
+
+    def login(self):
+        self.connection.login(self.config['username'], self.config['password'])
+
+    def put(self, file_path):
+        path = self.getMappedPath(file_path)
+
+        command = "STOR " + path
+
+        try:
+            self.connection.storbinary(command, open(file_path))
+
+            return self.name
+
+        except Exception, e:
+            if str(e)[:3] == str(ftpErrors['noFileOrDirectory']):
+                self.__makePath(path)
+
+                self.connectionPut(file_path)
+
+                return self.name
+            else:
+                print e
+
+    def cwd(self, path):
+        self.connection.cwd(path)
+
+    def close(self, connections, hash):
+        try:
+            self.connection.quit()
+        except:
+            self.connection.close()
+
+        try:
+            connections[hash].remove(self)
+        except ValueError:
+            return
+
+    def __makePath(self, path):
         self.connection.cwd(self.config['path'])
 
         relative = os.path.relpath(path, self.config['path'])
@@ -99,47 +126,5 @@ class ConnectionWrapper:
                     self.connection.mkd(folder)
                     self.connection.cwd(folder)
 
-    def put(self, file_path):
-        path = self.getMappedPath(file_path)
 
-        if self.isConnectionSSH():
-            return
-        else:
-            command = "STOR " + path
-
-            try:
-                self.connection.storbinary(command, open(file_path))
-
-                if self.isDebug:
-                    print "FTPSync [" + self.connection.name + "] > uploaded " + os.path.basename(file_path) + " ==> " + command
-
-                return self.connection.name
-
-            except Exception, e:
-                if str(e)[:3] == str(ftpErrors['noFileOrDirectory']):
-                    self.makePath(path)
-
-                    self.connectionPut(file_path)
-
-    def cwd(self, path):
-        if self.isConnectionSSH():
-            return
-        else:
-            self.connection.cwd(path)
-
-    def close(self, connections, hash):
-        if self.isConnectionSSH():
-            return
-        else:
-            try:
-                self.connection.quit()
-            except:
-                self.connection.close()
-
-        if self.isDebug and hasattr(self.connection, 'name'):
-            print "FTPSync [" + self.connection.name + "] > closed"
-
-        try:
-            connections[hash].remove(self.connection)
-        except ValueError:
-            return
+#class SshConnection():
