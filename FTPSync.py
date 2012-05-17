@@ -39,7 +39,7 @@ settings = sublime.load_settings('ftpsync.sublime-settings')
 
 isDebug = settings.get('debug')  # print debug messages to console?
 isDebugVerbose = settings.get('debug_verbose')  # print overly informative messages?
-project_defaults = settings.get('project_defaults')  # default config for a project
+projectDefaults = settings.get('projectDefaults')  # default config for a project
 ignore = settings.get('ignore')  # global ignore pattern
 
 # loaded project's config will be merged with this global one
@@ -71,7 +71,7 @@ configs = {}
 messages = []
 
 
-# Messaging
+# ==== Messaging ===========================================================================
 def statusMessage(text):
     sublime.status_message(text)
 
@@ -83,13 +83,7 @@ def dumpMessages():
         messages.remove(message)
 
 
-# Invalidates all config cache entries belonging to a certain directory
-# as long as they're empty or less nested in the filesystem
-def invalidateConfigCache(config_dir_name):
-    for file_name in configs:
-        if file_name.startswith(config_dir_name) and (configs[file_name] is None or config_dir_name.startswith(configs[file_name])):
-            configs.remove(configs[file_name])
-
+# ==== File&folders ========================================================================
 
 def getFolders(viewOrFilename):
     if type(viewOrFilename) == str or type(viewOrFilename) == unicode:
@@ -111,12 +105,27 @@ def getFolders(viewOrFilename):
         return viewOrFilename.window().folders()
 
 
-def findConfigFile(folders):
+def findFile(folders, file_name):
     for folder in folders:
-        if os.path.exists(os.path.join(folder, configName)) is True:
+        if os.path.exists(os.path.join(folder, file_name)) is True:
             return folder
 
     return None
+
+
+# ==== Config =============================================================================
+
+# Invalidates all config cache entries belonging to a certain directory
+# as long as they're empty or less nested in the filesystem
+def invalidateConfigCache(config_dir_name):
+    for file_name in configs:
+        if file_name.startswith(config_dir_name) and (configs[file_name] is None or config_dir_name.startswith(configs[file_name])):
+            configs.remove(configs[file_name])
+
+
+# Finds a config file in given folders
+def findConfigFile(folders):
+    return findFile(folders, configName)
 
 
 # Returns configuration file for a given file
@@ -176,12 +185,67 @@ def loadConfig(file_name):
     result = {}
 
     for name in config:
-        result[name] = dict(project_defaults.items() + config[name].items())
+        result[name] = dict(projectDefaults.items() + config[name].items())
         result[name]['file_name'] = file_name
 
     final = dict(coreConfig.items() + {"connections": result}.items())
 
     return final
+
+
+# ==== Remote =============================================================================
+
+def isConnectionSSH(config):
+    return 'ssh' in config or ('private_key' in config and config['private_key'] is not None)
+
+
+def connectionInitialize(config):
+    if isConnectionSSH(config):
+        return
+    else:
+        if config['tls'] is True:
+            return ftplib.FTP_TLS()
+        else:
+            return ftplib.FTP()
+
+
+def connectionConnect(connection, config):
+    if isConnectionSSH(connection):
+        return True
+    else:
+        return connection.connect(config['host'], config['port'], config['timeout'])
+
+
+def connectionAuthenticate(connection, config):
+    if isConnectionSSH(connection):
+        return True
+    elif config['tls'] is True:
+        connection.auth()
+        return True
+
+    return False
+
+
+def connectionLogin(connection, config):
+    if isConnectionSSH(connection):
+        return True
+    else:
+        connection.login(config['username'], config['password'])
+
+
+def connectionClose(connection, config, hash):
+    if isConnectionSSH(config):
+        return
+    else:
+        try:
+            connection.quit()
+        except:
+            connection.close()
+
+    if isDebug:
+        print "FTPSync [" + connection.name + "] > closed"
+
+    connections[hash].remove(connection)
 
 
 # Returns connection, connects if needed
@@ -197,15 +261,10 @@ def getConnection(hash, config):
         for name in config['connections']:
             properties = config['connections'][name]
 
-            port = properties['port']
-
-            if properties['tls'] is True:
-                connection = ftplib.FTP_TLS()
-            else:
-                connection = ftplib.FTP()
+            connection = connectionInitialize(properties)
 
             try:
-                connection.connect(properties['host'], port, properties['timeout'])
+                connectionConnect(connection, properties)
             except:
                 if isDebug:
                     print "FTPSync [" + name + "] > Connection failed"
@@ -213,24 +272,17 @@ def getConnection(hash, config):
                 messages.append("FTPSync [" + name + "] > Connection failed")
                 sublime.set_timeout(dumpMessages, messageTimeout)
 
-                try:
-                    connection.quit()
-                except:
-                    connection.close()
-
-                return
+                connectionClose(connection, config, hash)
 
             if isDebug:
-                print "FTPSync [" + name + "] > Connected to: " + properties['host'] + ":" + str(port) + " (timeout: " + str(properties['timeout']) + ") (key: " + hash + ")"
+                print "FTPSync [" + name + "] > Connected to: " + properties['host'] + ":" + str(properties['port']) + " (timeout: " + str(properties['timeout']) + ") (key: " + hash + ")"
 
-            if properties['tls'] is True:
-                connection.auth()
-
-                if isDebug:
-                    print "FTPSync [" + name + "] > Authentication processed"
+            if connectionAuthenticate(connection, properties) and isDebug:
+                print "FTPSync [" + name + "] > Authentication processed"
 
             if properties['username'] is not None:
-                connection.login(properties['username'], properties['password'])
+                connectionLogin(connection, properties)
+
                 if isDebug:
                     pass_present = " (using password: NO)"
                     if len(properties['password']) > 0:
@@ -252,7 +304,7 @@ def getConnection(hash, config):
 
         # schedule connection timeout
         def closeThisConnection():
-            closeConnection(hash)
+            closeConnection(hash, config)
 
         sublime.set_timeout(closeThisConnection, config['connection_timeout'] * 1000)
 
@@ -261,18 +313,10 @@ def getConnection(hash, config):
 
 
 # Close all connections for a given config file
-def closeConnection(hash):
+def closeConnection(hash, config):
     try:
         for connection in connections[hash]:
-            try:
-                connection.quit()
-            except:
-                connection.close()
-            finally:
-                if isDebug:
-                    print "FTPSync [" + connection.name + "] > closed"
-
-                connections[hash].remove(connection)
+            connectionClose(connection, config, hash)
 
         if len(connections[hash]) == 0:
             connections.pop(hash)
