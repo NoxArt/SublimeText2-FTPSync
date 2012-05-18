@@ -281,6 +281,9 @@ def closeConnection(hash, config):
 # Uploads given file
 def performSync(file_name, config_file, disregardIgnore=False):
     config = loadConfig(config_file)
+    if config is None:
+        return
+
     basename = os.path.basename(file_name)
 
     if disregardIgnore is False and len(ignore) > 0 and re_ignore.search(file_name) is not None:
