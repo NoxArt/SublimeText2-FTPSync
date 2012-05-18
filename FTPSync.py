@@ -53,7 +53,7 @@ re_ignore = re.compile(ignore)
 
 # storing literals
 configName = 'ftpsync.settings'
-defaultConnectioConfigName = 'ftpsync.sublime-settings'
+defaultConnectioConfigName = 'ftpsync.default-settings'
 messageTimeout = 250
 nestingLimit = 30
 
