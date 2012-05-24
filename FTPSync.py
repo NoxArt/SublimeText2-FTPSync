@@ -23,14 +23,13 @@
 
 import sublime
 import sublime_plugin
-import ftplib
 import shutil
 import os
 import hashlib
 import json
 import threading
 import re
-
+from ftpsyncwrapper import CreateConnection
 
 # Init
 
@@ -54,12 +53,9 @@ re_ignore = re.compile(ignore)
 
 # storing literals
 configName = 'ftpsync.settings'
+defaultConnectioConfigName = 'ftpsync.sublime-settings'
 messageTimeout = 250
 nestingLimit = 30
-ftpErrors = {
-    'noFileOrDirectory': 553,
-    'cwdNoFileOrDirectory': 550
-}
 
 # connection cache pool
 connections = {}
@@ -81,6 +77,23 @@ def dumpMessages():
     for message in messages:
         statusMessage(message)
         messages.remove(message)
+
+
+def printMessage(text, name=None, onlyVerbose=False, status=False):
+    message = "FTPSync"
+
+    if name is not None:
+        message += " [" + name + "]"
+
+    message += " > "
+    message += text
+
+    if isDebug and (onlyVerbose is False or isDebugVerbose is True):
+        print message
+
+    if status:
+        messages.append(message)
+        sublime.set_timeout(dumpMessages, messageTimeout)
 
 
 # ==== File&folders ========================================================================
@@ -132,8 +145,8 @@ def findConfigFile(folders):
 def getConfigFile(file_name):
     # try cached
     try:
-        if configs[file_name] and isDebug and isDebugVerbose:
-            print "FTPSync > Loading config: cache hit (key: " + file_name + ")"
+        if configs[file_name]:
+            printMessage("Loading config: cache hit (key: " + file_name + ")")
 
         return configs[file_name]
     except KeyError:
@@ -146,10 +159,7 @@ def getConfigFile(file_name):
             configFolder = findConfigFile(folders)
 
             if configFolder is None:
-                if isDebug:
-                    print "FTPSync > Found no config > for file: " + file_name
-
-                return
+                return printMessage("Found no config > for file: " + file_name)
 
             config = os.path.join(configFolder, configName)
             configs[file_name] = config
@@ -175,11 +185,7 @@ def loadConfig(file_name):
     try:
         config = json.loads(contents)
     except:
-        if isDebug:
-            print "FTPSync > Failed parsing configuration file: " + file_name
-
-        messages.append("FTPSync > Failed parsing configuration file " + file_name + " (commas problem?)")
-        sublime.set_timeout(dumpMessages, messageTimeout)
+        printMessage("Failed parsing configuration file: " + file_name + " (commas problem?)", status=True)
         return None
 
     result = {}
@@ -193,11 +199,13 @@ def loadConfig(file_name):
     return final
 
 
+# ==== Remote =============================================================================
+
 # Returns connection, connects if needed
 def getConnection(hash, config):
     try:
-        if connections[hash] and isDebug and isDebugVerbose:
-            print "FTPSync > Connection cache hit (key: " + hash + ")"
+        if connections[hash]:
+            printMessage("Connection cache hit (key: " + hash + ")", None, True)
 
         return connections[hash]
     except KeyError:
@@ -206,62 +214,47 @@ def getConnection(hash, config):
         for name in config['connections']:
             properties = config['connections'][name]
 
-            port = properties['port']
+            # 1. initialize
+            connection = CreateConnection(properties, name)
 
-            if properties['tls'] is True:
-                connection = ftplib.FTP_TLS()
-            else:
-                connection = ftplib.FTP()
-
+            # 2. connect
             try:
-                connection.connect(properties['host'], port, properties['timeout'])
+                connection.connect()
             except:
-                if isDebug:
-                    print "FTPSync [" + name + "] > Connection failed"
+                printMessage("Connection failed", name, status=True)
+                connection.close(hash)
 
-                messages.append("FTPSync [" + name + "] > Connection failed")
-                sublime.set_timeout(dumpMessages, messageTimeout)
+            printMessage("Connected to: " + properties['host'] + ":" + str(properties['port']) + " (timeout: " + str(properties['timeout']) + ") (key: " + hash + ")", name)
 
-                try:
-                    connection.quit()
-                except:
-                    connection.close()
+            # 3. authenticate
+            if connection.authenticate():
+                printMessage("Authentication processed", name)
 
-                return
-
-            if isDebug:
-                print "FTPSync [" + name + "] > Connected to: " + properties['host'] + ":" + str(port) + " (timeout: " + str(properties['timeout']) + ") (key: " + hash + ")"
-
-            if properties['tls'] is True:
-                connection.auth()
-
-                if isDebug:
-                    print "FTPSync [" + name + "] > Authentication processed"
-
+            # 4. login
             if properties['username'] is not None:
-                connection.login(properties['username'], properties['password'])
+                connection.login()
+
                 if isDebug:
                     pass_present = " (using password: NO)"
                     if len(properties['password']) > 0:
                         pass_present = " (using password: YES)"
 
-                    print "FTPSync [" + name + "] > Logged in as: " + properties['username'] + pass_present
+                    printMessage("Logged in as: " + properties['username'] + pass_present, name)
 
             elif isDebug:
-                print "FTPSync [" + name + "] > Anonymous connection"
+                printMessage("Anonymous connection", name)
 
+            # 5. set initial directory, set name, store connection
             try:
                 connection.cwd(properties['path'])
-                connection.name = name
 
                 connections[hash].append(connection)
             except:
-                if isDebug:
-                    print "FTPSync [" + name + "] > Failed to set path (probably connection failed)"
+                printMessage("Failed to set path (probably connection failed)", name)
 
         # schedule connection timeout
         def closeThisConnection():
-            closeConnection(hash)
+            closeConnection(hash, config)
 
         sublime.set_timeout(closeThisConnection, config['connection_timeout'] * 1000)
 
@@ -270,96 +263,61 @@ def getConnection(hash, config):
 
 
 # Close all connections for a given config file
-def closeConnection(hash):
+def closeConnection(hash, config):
     try:
         for connection in connections[hash]:
-            try:
-                connection.quit()
-            except:
-                connection.close()
-            finally:
-                if isDebug:
-                    print "FTPSync [" + connection.name + "] > closed"
-
-                connections[hash].remove(connection)
+            connection.close(connections, hash)
+            printMessage("closed", connection.name)
 
         if len(connections[hash]) == 0:
             connections.pop(hash)
 
-    except:
+    except Exception, e:
+        print e
+
         return
-
-
-# Return server path for the uploaded file relative to specified path
-def getMappedPath(root, config, file_name):
-    config = os.path.dirname(config)
-    fragment = os.path.relpath(file_name, config)
-    return os.path.join(root, fragment).replace('\\', '/')
 
 
 # Uploads given file
 def performSync(file_name, config_file, disregardIgnore=False):
     config = loadConfig(config_file)
+    basename = os.path.basename(file_name)
 
     if disregardIgnore is False and len(ignore) > 0 and re_ignore.search(file_name) is not None:
-        return
+        return printMessage("file globally ignored: " + basename, onlyVerbose=True)
 
     connections = getConnection(getConfigHash(config_file), config)
     index = -1
     stored = []
-    error = []
+    failed = False
 
     for name in config['connections']:
         index += 1
 
         if disregardIgnore is False and config['connections'][name]['ignore'] is not None and re.search(config['connections'][name]['ignore'], file_name):
+            printMessage("file ignored by rule: " + basename, name, True)
             break
 
-        path = getMappedPath(config['connections'][name]['path'], config['connections'][name]['file_name'], file_name)
-
-        command = "STOR " + path
-
         try:
-            connections[index].storbinary(command, open(file_name))
-            stored.append(name)
+            uploaded = connections[index].put(file_name)
 
-            if isDebug:
-                print "FTPSync [" + name + "] > uploaded " + os.path.basename(file_name) + " ==> " + command
+            if type(uploaded) is str or type(uploaded) is unicode:
+                stored.append(uploaded)
+                printMessage("uploaded " + basename, name)
+
+            else:
+                failed = type(uploaded)
 
         except Exception, e:
-            if str(e)[:3] == str(ftpErrors['noFileOrDirectory']):
-                makePath(connections[index], config['connections'][name], path)
+            failed = e
 
-                performSync(file_name, config_file, disregardIgnore)
-
-            error.append(name)
+        if failed:
+            printMessage("upload failed: (" + basename + ") ", name, False, True)
 
     if len(stored) > 0:
-        messages.append("FTPSync [remotes: " + ",".join(stored) + "] > uploaded " + os.path.basename(file_name))
+        messages.append("FTPSync [remotes: " + ",".join(stored) + "] > uploaded " + basename)
 
         sublime.set_timeout(dumpMessages, messageTimeout)
-
-
-def makePath(connection, config, path):
-    connection.cwd(config['path'])
-
-    relative = os.path.relpath(path, config['path'])
-
-    folders = relative.split("\\")
-    if type(folders) is str:
-        folders = relative.split("/")
-
-    index = 0
-    for folder in folders:
-        index += 1
-
-        try:
-            if index < len(folders):
-                connection.cwd(folder)
-        except Exception, e:
-            if str(e)[:3] == str(ftpErrors['cwdNoFileOrDirectory']):
-                connection.mkd(folder)
-                connection.cwd(folder)
 
 
 # File watching
@@ -399,7 +357,7 @@ class NewFtpSyncCommand(sublime_plugin.TextCommand):
         if len(dirs) == 0:
             dirs = [os.path.dirname(self.view.file_name())]
 
-        default = os.path.join(sublime.packages_path(), 'FTPSync', 'ftpsync.default-settings')
+        default = os.path.join(sublime.packages_path(), 'FTPSync', defaultConnectioConfigName)
 
         for dir in dirs:
             config = os.path.join(dir, configName)

@@ -6,7 +6,7 @@
 
 		// address
 		"host": "ftp.example.com",
-		//"port": 21
+		//"port": 21 // use 22 for SFTP
 
 		// credentials
 		"username": "your_login",
@@ -15,8 +15,10 @@
 		// path to the folder matching the folder in which this file resides
 		"path": "/"
 
-		// true = secured connection
+		// true = secured FTP connection
 		//"tls": false,
+
+		// "private_key":
 
 		// how long until connection closes [seconds]
 		//"timeout": 30,
