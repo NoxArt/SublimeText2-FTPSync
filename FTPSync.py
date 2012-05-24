@@ -29,6 +29,7 @@ import hashlib
 import json
 import threading
 import re
+from math import ceil
 from ftpsyncwrapper import CreateConnection
 
 # Init
@@ -59,6 +60,7 @@ nestingLimit = 30
 
 # connection cache pool
 connections = {}
+usingConnections = []
 # threads pool
 threads = []
 # individual folder configs, file => config path
@@ -204,8 +206,11 @@ def loadConfig(file_name):
 # Returns connection, connects if needed
 def getConnection(hash, config):
     try:
-        if connections[hash]:
+        if connections[hash] and len(connections[hash]) > 0:
             printMessage("Connection cache hit (key: " + hash + ")", None, True)
+
+        if len(connections[hash]) == 0:
+            raise KeyError
 
         return connections[hash]
     except KeyError:
@@ -248,13 +253,22 @@ def getConnection(hash, config):
             try:
                 connection.cwd(properties['path'])
 
-                connections[hash].append(connection)
+                present = False
+                for con in connections[hash]:
+                    if con.name == connection.name:
+                        present = True
+
+                if present is False:
+                    connections[hash].append(connection)
             except:
                 printMessage("Failed to set path (probably connection failed)", name)
 
         # schedule connection timeout
         def closeThisConnection():
-            closeConnection(hash, config)
+            if hash not in usingConnections:
+                closeConnection(hash, config)
+            else:
+                sublime.set_timeout(closeThisConnection, config['connection_timeout'] * 1000)
 
         sublime.set_timeout(closeThisConnection, config['connection_timeout'] * 1000)
 
@@ -279,7 +293,7 @@ def closeConnection(hash, config):
 
 
 # Uploads given file
-def performSync(file_name, config_file, disregardIgnore=False):
+def performSync(file_name, config_file, disregardIgnore=False, progress=None):
     config = loadConfig(config_file)
     if config is None:
         return
@@ -289,13 +303,22 @@ def performSync(file_name, config_file, disregardIgnore=False):
     if disregardIgnore is False and len(ignore) > 0 and re_ignore.search(file_name) is not None:
         return printMessage("file globally ignored: " + basename, onlyVerbose=True)
 
-    connections = getConnection(getConfigHash(config_file), config)
+    config_hash = getConfigHash(config_file)
+    connections = getConnection(config_hash, config)
+
+    usingConnections.append(config_hash)
+
     index = -1
     stored = []
     failed = False
 
     for name in config['connections']:
         index += 1
+
+        try:
+            connections[index]
+        except IndexError:
+            continue
 
         if disregardIgnore is False and config['connections'][name]['ignore'] is not None and re.search(config['connections'][name]['ignore'], file_name):
             printMessage("file ignored by rule: " + basename, name, True)
@@ -314,13 +337,34 @@ def performSync(file_name, config_file, disregardIgnore=False):
         except Exception, e:
             failed = e
 
+            print e
+
         if failed:
             printMessage("upload failed: (" + basename + ") ", name, False, True)
 
     if len(stored) > 0:
-        messages.append("FTPSync [remotes: " + ",".join(stored) + "] > uploaded " + basename)
+        base = "FTPSync [remotes: " + ",".join(stored) + "] "
+        action = "> uploaded "
+
+        if progress is not None:
+            base += " ["
+
+            percent = int(ceil(float(progress[0]) / float(progress[1]) * 100))
+            percent = ceil(percent / 10)
+
+            for i in range(0, percent):
+                base += "="
+            for i in range(percent, 10):
+                base += "--"
+
+            base += " " + str(progress[0]) + "/" + str(progress[1]) + "] "
+
+        messages.append(base + action + basename)
 
         sublime.set_timeout(dumpMessages, messageTimeout)
+
+    if config_hash in usingConnections:
+        usingConnections.remove(config_hash)
 
 
 # File watching
@@ -348,10 +392,21 @@ class RemoteSyncCall(threading.Thread):
         threading.Thread.__init__(self)
 
     def run(self):
-        if self.config is None:
+        target = self.file_name
+
+        if type(target) is str and self.config is None:
             return False
 
-        performSync(self.file_name, self.config, self.disregardIgnore)
+        if type(target) is str:
+            performSync(target, self.config, self.disregardIgnore)
+        else:
+            total = len(target)
+            uploaded = 0
+
+            for file, config in target:
+                uploaded += 1
+
+                performSync(file, config, self.disregardIgnore, [uploaded, total])
 
 
 # Sets up a config file in a directory
@@ -377,8 +432,21 @@ class NewFtpSyncCommand(sublime_plugin.TextCommand):
 # Synchronize selected file/directory
 class FtpSyncTarget(sublime_plugin.TextCommand):
     def run(self, edit, paths):
+        syncFiles = []
+        fileNames = []
+
+        # gather files
         for target in paths:
             if os.path.isfile(target):
-                thread = RemoteSyncCall(target, getConfigFile(target), True)
-                threads.append(thread)
-                thread.start()
+                if target not in fileNames:
+                    syncFiles.append([target, getConfigFile(target)])
+            elif os.path.isdir(target):
+                for root, dirs, files in os.walk(target):
+                    for file in files:
+                        if file not in fileNames:
+                            syncFiles.append([root + "\\" + file, getConfigFile(root + "\\" + file)])
+
+        # sync
+        thread = RemoteSyncCall(syncFiles, None)
+        threads.append(thread)
+        thread.start()
