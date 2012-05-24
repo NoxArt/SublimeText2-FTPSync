@@ -85,7 +85,7 @@ class CommonConnection(AbstractConnection):
             if str(e)[:3] == str(ftpErrors['noFileOrDirectory']):
                 self.__makePath(path)
 
-                self.connectionPut(file_path)
+                self.put(file_path)
 
                 return self.name
             else:
