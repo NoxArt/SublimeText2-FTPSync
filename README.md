@@ -6,6 +6,7 @@ Simple and free plugin for FTP syncing.
 Supports:
 * Multiple named upload targets
 * Ignored file regex patterns
+* Manual multiple file & folder uploading (sidebar context menu)
 * Secured transfer using TLS
 
 To mark a folder and descendants for upload, insert *ftpsync.settings* file in format:
