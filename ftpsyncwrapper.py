@@ -23,6 +23,9 @@
 
 import ftplib
 import os
+import re
+
+dirSplitter = re.compile("^([d-])[rxw-]{9}\s+\d+\s+\d+\s+\d+\s+\d+\s+\w{1,3}\s+\d+\s+\d+:\d+\s+(.*?)$", re.M | re.I | re.U | re.L)
 
 ftpErrors = {
     'noFileOrDirectory': 553,
@@ -91,8 +94,48 @@ class CommonConnection(AbstractConnection):
             else:
                 print e
 
+    def get(self, file_path):
+        path = self.getMappedPath(file_path)
+
+        command = "RETR " + path
+
+        try:
+            with open(file_path, 'wb') as f:
+
+                self.connection.retrbinary(command, lambda data: f.write(data))
+
+                return self.name
+
+        except Exception, e:
+            if str(e)[:3] == str(ftpErrors['noFileOrDirectory']):
+                self.__makePath(path)
+
+                self.put(file_path)
+
+                return self.name
+            else:
+                print e
+
     def cwd(self, path):
         self.connection.cwd(path)
+
+    def list(self, path):
+        path = str(self.getMappedPath(path))
+        contents = []
+        result = []
+        self.connection.dir(path, lambda data: contents.append(data))
+
+        for content in contents:
+            split = dirSplitter.search(content)
+            isDir = split.group(1) == 'd'
+            name = split.group(2)
+
+            content = {'name': name, 'isDir': isDir}
+
+            if name != "." and name != "..":
+                result.append(content)
+
+        return result
 
     def close(self, connections, hash):
         try:

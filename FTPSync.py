@@ -81,6 +81,11 @@ def dumpMessages():
         messages.remove(message)
 
 
+def clearMessages():
+    for message in messages:
+        messages.remove(message)
+
+
 def printMessage(text, name=None, onlyVerbose=False, status=False):
     message = "FTPSync"
 
@@ -102,7 +107,7 @@ def printMessage(text, name=None, onlyVerbose=False, status=False):
 
 def getFolders(viewOrFilename):
     if type(viewOrFilename) == str or type(viewOrFilename) == unicode:
-        folders = []
+        folders = [viewOrFilename]
         max = nestingLimit
 
         while True:
@@ -266,7 +271,7 @@ def getConnection(hash, config):
         # schedule connection timeout
         def closeThisConnection():
             if hash not in usingConnections:
-                closeConnection(hash, config)
+                closeConnection(hash)
             else:
                 sublime.set_timeout(closeThisConnection, config['connection_timeout'] * 1000)
 
@@ -277,7 +282,7 @@ def getConnection(hash, config):
 
 
 # Close all connections for a given config file
-def closeConnection(hash, config):
+def closeConnection(hash):
     try:
         for connection in connections[hash]:
             connection.close(connections, hash)
@@ -286,9 +291,7 @@ def closeConnection(hash, config):
         if len(connections[hash]) == 0:
             connections.pop(hash)
 
-    except Exception, e:
-        print e
-
+    except:
         return
 
 
@@ -346,16 +349,110 @@ def performSync(file_name, config_file, disregardIgnore=False, progress=None):
         if progress is not None:
             base += " ["
 
-            percent = int(ceil(float(progress[0]) / float(progress[1]) * 100))
-            percent = ceil(percent / 10)
+            progress.progress()
+            percent = progress.getPercent()
 
-            for i in range(0, percent):
+            for i in range(0, int(percent)):
                 base += "="
-            for i in range(percent, 10):
+            for i in range(int(percent), 10):
                 base += "--"
 
-            base += " " + str(progress[0]) + "/" + str(progress[1]) + "] "
+            base += " " + str(progress.current) + "/" + str(progress.total) + "] "
 
+        clearMessages()
+        messages.append(base + action + basename)
+
+        sublime.set_timeout(dumpMessages, messageTimeout)
+
+    if config_hash in usingConnections:
+        usingConnections.remove(config_hash)
+
+
+# Downloads given file
+# DRY, man, DRY ... :/
+def performSyncDown(file_name, config_file, disregardIgnore=False, progress=None, isDir=None):
+    config = loadConfig(config_file)
+    basename = os.path.basename(file_name)
+
+    if disregardIgnore is False and len(ignore) > 0 and re_ignore.search(file_name) is not None:
+        return printMessage("file globally ignored: " + basename, onlyVerbose=True)
+
+    config_hash = getConfigHash(config_file)
+    connections = getConnection(config_hash, config)
+
+    usingConnections.append(config_hash)
+
+    index = -1
+    stored = []
+    failed = False
+
+    for name in config['connections']:
+        index += 1
+
+        try:
+            connections[index]
+        except IndexError:
+            continue
+
+        if disregardIgnore is False and config['connections'][name]['ignore'] is not None and re.search(config['connections'][name]['ignore'], file_name):
+            printMessage("file ignored by rule: " + basename, name, True)
+            break
+
+        try:
+
+            contents = connections[index].list(file_name)
+
+            if isDir or os.path.isdir(file_name):
+                if os.path.exists(file_name) is False:
+                    os.mkdir(file_name)
+
+                for entry in contents:
+                    if entry['isDir'] is False:
+                        progress.add([entry['name']])
+
+                for entry in contents:
+                    if entry['isDir'] is True:
+                        performSyncDown(os.path.join(file_name, entry['name']), config_file, disregardIgnore, progress, True)
+                    else:
+                        performSyncDown(os.path.join(file_name, entry['name']), config_file, disregardIgnore, progress)
+
+                return
+            else:
+                downloaded = connections[index].get(file_name)
+
+            if type(downloaded) is str or type(downloaded) is unicode:
+                stored.append(downloaded)
+                printMessage("downloaded " + basename, name)
+
+            else:
+                failed = type(downloaded)
+
+        except Exception, e:
+            failed = e
+
+            print file_name + " => " + str(e)
+
+        if failed:
+            printMessage("download failed: (" + basename + ") ", name, False, True)
+
+    if len(stored) > 0:
+        base = "FTPSync [remotes: " + ",".join(stored) + "] "
+        action = "> downloaded "
+
+        if progress is not None:
+            base += " ["
+
+            progress.progress()
+            percent = progress.getPercent()
+
+            for i in range(0, int(percent)):
+                base += "="
+            for i in range(int(percent), 10):
+                base += "--"
+
+            base += " " + str(progress.current) + "/" + str(progress.getTotal()) + "] "
+
+        clearMessages()
         messages.append(base + action + basename)
 
         sublime.set_timeout(dumpMessages, messageTimeout)
@@ -391,19 +488,45 @@ class RemoteSyncCall(threading.Thread):
     def run(self):
         target = self.file_name
 
-        if type(target) is str and self.config is None:
+        if (type(target) is str or type(target) is unicode) and self.config is None:
             return False
 
-        if type(target) is str:
+        if type(target) is str or type(target) is unicode:
             performSync(target, self.config, self.disregardIgnore)
-        else:
+        elif type(target) is list:
             total = len(target)
-            uploaded = 0
+            progress = Progress(total)
 
             for file, config in target:
-                uploaded += 1
+                performSync(file, config, self.disregardIgnore, progress)
 
-                performSync(file, config, self.disregardIgnore, [uploaded, total])
+
+# Remote handling
+class RemoteSyncDownCall(threading.Thread):
+    def __init__(self, file_name, config, disregardIgnore=False):
+        self.file_name = file_name
+        self.config = config
+        self.disregardIgnore = disregardIgnore
+        threading.Thread.__init__(self)
+
+    def run(self):
+        target = self.file_name
+
+        if (type(target) is str or type(target) is unicode) and self.config is None:
+            return False
+
+        clearMessages()
+
+        if type(target) is str or type(target) is unicode:
+            performSyncDown(target, self.config, self.disregardIgnore)
+        else:
+            total = len(target)
+            progress = Progress(total)
+
+            for file, config in target:
+                progress.add([file])
+
+                performSyncDown(file, config, self.disregardIgnore, progress)
 
 
 # Sets up a config file in a directory
@@ -426,7 +549,7 @@ class NewFtpSyncCommand(sublime_plugin.TextCommand):
                 self.view.window().open_file(config)
 
 
-# Synchronize selected file/directory
+# Synchronize up selected file/directory
 class FtpSyncTarget(sublime_plugin.TextCommand):
     def run(self, edit, paths):
         syncFiles = []
@@ -447,3 +570,57 @@ class FtpSyncTarget(sublime_plugin.TextCommand):
         thread = RemoteSyncCall(syncFiles, None)
         threads.append(thread)
         thread.start()
+
+
+# Synchronize down selected file/directory
+class FtpSyncDownTarget(sublime_plugin.TextCommand):
+    def run(self, edit, paths):
+        syncFiles = []
+        fileNames = []
+
+        # gather files
+        for target in paths:
+            # TODO - also check whether the file is not already in an added directory
+            if target not in fileNames:
+                syncFiles.append([target, getConfigFile(target)])
+
+        # sync
+        thread = RemoteSyncDownCall(syncFiles, None)
+        threads.append(thread)
+        thread.start()
+
+
+class Progress:
+    def __init__(self, total, current=0):
+        self.total = total
+        self.current = 0
+        self.entries = None
+
+    def expand(self, count):
+        self.total += count
+
+    def add(self, entries):
+        if self.entries is None:
+            self.entries = []
+
+        for entry in entries:
+            if entry not in self.entries:
+                self.entries.append(entry)
+
+    def getTotal(self):
+        if self.entries is None:
+            return self.total
+        else:
+            return len(self.entries)
+
+    def progress(self, by=1):
+        self.current += int(by)
+
+        if self.current > self.getTotal():
+            self.current = self.getTotal()
+
+    def getPercent(self, division=10):
+        percent = int(ceil(float(self.current) / float(self.getTotal()) * 100))
+        percent = ceil(percent / division)
+
+        return percent
