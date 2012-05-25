@@ -3,12 +3,17 @@ SublimeText2-FTPSync
 
 Simple and free plugin for FTP syncing.
 
+*On 25th May 18:40UTC were published important bugfixes, restart SublimeText2 for PackageManager to update it automatically.*
+
 Supports:
 * Multiple named upload targets
 * Ignored file regex patterns
 * Secured transfer using TLS
 * **NEW**  Manual multiple file & folder uploading (sidebar context menu)
 * **NEW**  Manual multiple file & folder downloading (sidebar context menu)
+
+Current focus:
+* SFTP support
 
 To mark a folder and descendants for upload, insert *ftpsync.settings* file in format:
 
