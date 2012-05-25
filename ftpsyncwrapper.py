@@ -21,6 +21,10 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
+# @author Jiri "NoxArt" Petruzelka | petruzelka@noxart.cz | @NoxArt
+# @copyright (c) 2012 Jiri "NoxArt" Petruzelka
+# @link https://github.com/NoxArt/SublimeText2-FTPSync
+
 import ftplib
 import os
 import re
