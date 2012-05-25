@@ -297,6 +297,7 @@ def closeConnection(hash):
 
 # Uploads given file
 def performSync(file_name, config_file, disregardIgnore=False, progress=None):
+    progress.progress()
     config = loadConfig(config_file)
     basename = os.path.basename(file_name)
 
@@ -349,7 +350,6 @@ def performSync(file_name, config_file, disregardIgnore=False, progress=None):
         if progress is not None:
             base += " ["
 
-            progress.progress()
             percent = progress.getPercent()
 
             for i in range(0, int(percent)):
@@ -357,7 +357,7 @@ def performSync(file_name, config_file, disregardIgnore=False, progress=None):
             for i in range(int(percent), 10):
                 base += "--"
 
-            base += " " + str(progress.current) + "/" + str(progress.total) + "] "
+            base += " " + str(progress.current) + "/" + str(progress.getTotal()) + "] "
 
         clearMessages()
         messages.append(base + action + basename)
