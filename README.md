@@ -5,6 +5,10 @@ Simple and free plugin for FTP syncing.
 
 *On 25th May 18:40UTC were published important bugfixes, restart SublimeText2 for PackageManager to update it automatically.*
 
+Just added:
+* It is now possible to disable automatic syncing and let you be in control
+* Added command pallet and context menu commands for uploading and downloading
+
 Supports:
 * Multiple named upload targets
 * Ignored file regex patterns
@@ -26,6 +30,8 @@ To mark a folder and descendants for upload, insert *ftpsync.settings* file in f
 
     		path: {string="/"}, // remote root for these files
 
+            upload_on_save: true, // whether upload on save or manually
+
     		port: {int=21},
     		tls: {bool=false}, // use secured transfer
     		timeout: {int=30}, // seconds to invalidate the cached connection
@@ -46,7 +52,8 @@ Feel free to add issues, ideas, pull requests...
 
 
 
-- - -
+
+
 
 
 

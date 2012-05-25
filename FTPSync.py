@@ -300,7 +300,7 @@ def closeConnection(hash):
 
 
 # Uploads given file
-def performSync(file_name, config_file, disregardIgnore=False, progress=None):
+def performSync(file_name, config_file, onSave, disregardIgnore=False, progress=None):
     if progress is not None:
         progress.progress()
 
@@ -326,6 +326,10 @@ def performSync(file_name, config_file, disregardIgnore=False, progress=None):
             connections[index]
         except IndexError:
             continue
+
+           # legacy check
+        if 'upload_on_save' in config['connections'][name] and config['connections'][name]['upload_on_save'] is False and onSave is True:
+            return
 
         if disregardIgnore is False and config['connections'][name]['ignore'] is not None and re.search(config['connections'][name]['ignore'], file_name):
             printMessage("file ignored by rule: " + basename, name, True)
@@ -471,7 +475,7 @@ def performSyncDown(file_name, config_file, disregardIgnore=False, progress=None
 class RemoteSync(sublime_plugin.EventListener):
     def on_post_save(self, view):
         file_name = view.file_name()
-        thread = RemoteSyncCall(file_name, getConfigFile(file_name))
+        thread = RemoteSyncCall(file_name, getConfigFile(file_name), True)
         threads.append(thread)
         thread.start()
 
@@ -485,9 +489,10 @@ class RemoteSync(sublime_plugin.EventListener):
 
 # Remote handling
 class RemoteSyncCall(threading.Thread):
-    def __init__(self, file_name, config, disregardIgnore=False):
+    def __init__(self, file_name, config, onSave, disregardIgnore=False):
         self.file_name = file_name
         self.config = config
+        self.onSave = onSave
         self.disregardIgnore = disregardIgnore
         threading.Thread.__init__(self)
 
@@ -498,13 +503,13 @@ class RemoteSyncCall(threading.Thread):
             return False
 
         if type(target) is str or type(target) is unicode:
-            performSync(target, self.config, self.disregardIgnore)
+            performSync(target, self.config, self.onSave, self.disregardIgnore)
         elif type(target) is list:
             total = len(target)
             progress = Progress(total)
 
             for file, config in target:
-                performSync(file, config, self.disregardIgnore, progress)
+                performSync(file, config, self.onSave, self.disregardIgnore, progress)
 
 
 # Remote handling
@@ -573,7 +578,27 @@ class FtpSyncTarget(sublime_plugin.TextCommand):
                             syncFiles.append([root + "\\" + file, getConfigFile(root + "\\" + file)])
 
         # sync
-        thread = RemoteSyncCall(syncFiles, None)
+        thread = RemoteSyncCall(syncFiles, None, False)
+        threads.append(thread)
+        thread.start()
+
+
+# Synchronize up current file
+class SyncCurrent(sublime_plugin.TextCommand):
+    def run(self, edit):
+        file_name = sublime.active_window().active_view().file_name()
+
+        thread = RemoteSyncCall(file_name, getConfigFile(file_name), False)
+        threads.append(thread)
+        thread.start()
+
+
+# Synchronize down current file
+class SyncDownCurrent(sublime_plugin.TextCommand):
+    def run(self, edit):
+        file_name = sublime.active_window().active_view().file_name()
+
+        thread = RemoteSyncDownCall(file_name, getConfigFile(file_name), False)
         threads.append(thread)
         thread.start()
 

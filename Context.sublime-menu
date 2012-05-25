@@ -1,0 +1,12 @@
+[
+   { "caption": "-" },
+   {
+        "caption": "Upload this file",
+        "command": "sync_current"
+    },
+    {
+        "caption": "Download this file",
+        "command": "sync_down_current"
+    },
+    { "caption": "-" }
+]

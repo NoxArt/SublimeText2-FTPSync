@@ -18,6 +18,9 @@
 		// true = secured FTP connection
 		//"tls": false,
 
+		// true = upload on save, false = upload only manually
+		// "upload_on_save": true,
+
 		// "private_key":
 
 		// how long until connection closes [seconds]

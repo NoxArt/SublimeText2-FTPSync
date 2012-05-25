@@ -3,5 +3,13 @@
         "caption": "FTPSync: Setup FTPSync in this folder",
         "command": "new_ftp_sync",
         "args": {"dirs": []}
+    },
+    {
+        "caption": "FTPSync: Upload current file",
+        "command": "sync_current"
+    },
+    {
+        "caption": "FTPSync: Download current file",
+        "command": "sync_down_current"
     }
 ]
