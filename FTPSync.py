@@ -297,7 +297,9 @@ def closeConnection(hash):
 
 # Uploads given file
 def performSync(file_name, config_file, disregardIgnore=False, progress=None):
-    progress.progress()
+    if progress is not None:
+        progress.progress()
+
     config = loadConfig(config_file)
     basename = os.path.basename(file_name)
 
