@@ -80,7 +80,11 @@ class CommonConnection(AbstractConnection):
         command = "STOR " + path
 
         try:
-            self.connection.storbinary(command, open(file_path))
+            uploaded = open(file_path, "rb")
+
+            self.connection.storbinary(command, uploaded)
+
+            uploaded.close()
 
             return self.name
 
