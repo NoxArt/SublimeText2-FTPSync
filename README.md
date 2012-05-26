@@ -7,7 +7,7 @@ Simple and free plugin for FTP syncing.
 
 Just added:
 * It is now possible to disable automatic syncing and let you be in control
-* Added command pallet and context menu commands for uploading and downloading
+* Added command palette and context menu commands for uploading and downloading
 
 Supports:
 * Multiple named upload targets
