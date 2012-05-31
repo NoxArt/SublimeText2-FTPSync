@@ -238,15 +238,27 @@ def getConnection(hash, config):
                 printMessage("Connection failed", name, status=True)
                 connection.close(hash)
 
+                continue
+
             printMessage("Connected to: " + properties['host'] + ":" + str(properties['port']) + " (timeout: " + str(properties['timeout']) + ") (key: " + hash + ")", name)
 
             # 3. authenticate
-            if connection.authenticate():
-                printMessage("Authentication processed", name)
+            try:
+                if connection.authenticate():
+                    printMessage("Authentication processed", name)
+            except:
+                printMessage("Authentication failed", name, status=True)
+
+                continue
 
             # 4. login
             if properties['username'] is not None:
-                connection.login()
+                try:
+                    connection.login()
+                except:
+                    printMessage("Login failed", name, status=True)
+
+                    continue
 
                 if isDebug:
                     pass_present = " (using password: NO)"
@@ -271,6 +283,8 @@ def getConnection(hash, config):
                     connections[hash].append(connection)
             except:
                 printMessage("Failed to set path (probably connection failed)", name)
+
+                continue
 
         # schedule connection timeout
         def closeThisConnection():
@@ -301,6 +315,8 @@ def closeConnection(hash):
 
 # Uploads given file
 def performSync(file_name, config_file, onSave, disregardIgnore=False, progress=None):
+    printMessage("Uploading " + file_name + "...", status=True)
+
     if progress is not None:
         progress.progress()
 
