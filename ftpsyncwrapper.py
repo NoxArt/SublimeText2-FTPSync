@@ -135,6 +135,10 @@ class CommonConnection(AbstractConnection):
 
         for content in contents:
             split = dirSplitter.search(content)
+
+            if split is None:
+                continue
+
             isDir = split.group(1) == 'd'
             name = split.group(2)
 

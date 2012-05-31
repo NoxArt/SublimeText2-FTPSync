@@ -438,6 +438,8 @@ def performSyncDown(file_name, config_file, disregardIgnore=False, progress=None
                 failed = type(downloaded)
 
         except Exception, e:
+            raise e
+
             failed = e
 
             print file_name + " => " + str(e)
@@ -535,7 +537,8 @@ class RemoteSyncDownCall(threading.Thread):
             progress = Progress(total)
 
             for file, config in target:
-                progress.add([file])
+                if os.path.isfile(file):
+                    progress.add([file])
 
                 performSyncDown(file, config, self.disregardIgnore, progress)
 
