@@ -78,6 +78,13 @@ def statusMessage(text):
     sublime.status_message(text)
 
 
+def dumpMessage(text):
+    clearMessages()
+    messages.append(text)
+
+    sublime.set_timeout(dumpMessages, messageTimeout)
+
+
 def dumpMessages():
     messages.reverse()
     for message in messages:
@@ -234,8 +241,8 @@ def getConnection(hash, config):
             # 2. connect
             try:
                 connection.connect()
-            except:
-                printMessage("Connection failed", name, status=True)
+            except Exception, e:
+                printMessage("Connection failed <Exception: " + str(e) + ">", name, status=True)
                 connection.close(hash)
 
                 continue
@@ -246,8 +253,8 @@ def getConnection(hash, config):
             try:
                 if connection.authenticate():
                     printMessage("Authentication processed", name)
-            except:
-                printMessage("Authentication failed", name, status=True)
+            except Exception, e:
+                printMessage("Authentication failed <Exception: " + str(e) + ">", name, status=True)
 
                 continue
 
@@ -255,8 +262,8 @@ def getConnection(hash, config):
             if properties['username'] is not None:
                 try:
                     connection.login()
-                except:
-                    printMessage("Login failed", name, status=True)
+                except Exception, e:
+                    printMessage("Login failed <Exception: " + str(e) + ">", name, status=True)
 
                     continue
 
@@ -281,8 +288,8 @@ def getConnection(hash, config):
 
                 if present is False:
                     connections[hash].append(connection)
-            except:
-                printMessage("Failed to set path (probably connection failed)", name)
+            except Exception, e:
+                printMessage("Failed to set path (probably connection failed) <Exception: " + str(e) + ">", name)
 
                 continue
 
@@ -313,9 +320,28 @@ def closeConnection(hash):
         return
 
 
+def getProgressMessage(stored, progress, action, basename):
+    base = "FTPSync [remotes: " + ",".join(stored) + "] "
+    action = "> " + action + " "
+
+    if progress is not None:
+        base += " ["
+
+        percent = progress.getPercent()
+
+        for i in range(0, int(percent)):
+            base += "="
+        for i in range(int(percent), 20):
+            base += "--"
+
+        base += " " + str(progress.current) + "/" + str(progress.getTotal()) + "] "
+
+    return base + action + basename
+
+
 # Uploads given file
 def performSync(file_name, config_file, onSave, disregardIgnore=False, progress=None):
-    printMessage("Uploading " + file_name + "...", status=True)
+    printMessage("Uploading [" + file_name + "] ...", status=True)
 
     if progress is not None:
         progress.progress()
@@ -367,28 +393,15 @@ def performSync(file_name, config_file, onSave, disregardIgnore=False, progress=
             print e
 
         if failed:
-            printMessage("upload failed: (" + basename + ") ", name, False, True)
+            message = "upload failed: (" + basename + ")"
+
+            if type(failed) is Exception:
+                message += "<Exception: " + str(failed) + ">"
+
+            printMessage(message, name, False, True)
 
     if len(stored) > 0:
-        base = "FTPSync [remotes: " + ",".join(stored) + "] "
-        action = "> uploaded "
-
-        if progress is not None:
-            base += " ["
-
-            percent = progress.getPercent()
-
-            for i in range(0, int(percent)):
-                base += "="
-            for i in range(int(percent), 10):
-                base += "--"
-
-            base += " " + str(progress.current) + "/" + str(progress.getTotal()) + "] "
-
-        clearMessages()
-        messages.append(base + action + basename)
-
-        sublime.set_timeout(dumpMessages, messageTimeout)
+        dumpMessage(getProgressMessage(stored, progress, "uploaded", basename))
 
     if config_hash in usingConnections:
         usingConnections.remove(config_hash)
@@ -461,29 +474,15 @@ def performSyncDown(file_name, config_file, disregardIgnore=False, progress=None
             print file_name + " => " + str(e)
 
         if failed:
-            printMessage("download failed: (" + basename + ") ", name, False, True)
+            message = "download failed: (" + basename + ")"
+
+            if type(failed) is Exception:
+                message += "<Exception: " + str(failed) + ">"
+
+            printMessage(message, name, False, True)
 
     if len(stored) > 0:
-        base = "FTPSync [remotes: " + ",".join(stored) + "] "
-        action = "> downloaded "
-
-        if progress is not None:
-            base += " ["
-
-            progress.progress()
-            percent = progress.getPercent()
-
-            for i in range(0, int(percent)):
-                base += "="
-            for i in range(int(percent), 10):
-                base += "--"
-
-            base += " " + str(progress.current) + "/" + str(progress.getTotal()) + "] "
-
-        clearMessages()
-        messages.append(base + action + basename)
-
-        sublime.set_timeout(dumpMessages, messageTimeout)
+        dumpMessage(getProgressMessage(stored, progress, "downloaded", basename))
 
     if config_hash in usingConnections:
         usingConnections.remove(config_hash)
@@ -669,7 +668,7 @@ class Progress:
         if self.current > self.getTotal():
             self.current = self.getTotal()
 
-    def getPercent(self, division=10):
+    def getPercent(self, division=5):
         percent = int(ceil(float(self.current) / float(self.getTotal()) * 100))
         percent = ceil(percent / division)
 
