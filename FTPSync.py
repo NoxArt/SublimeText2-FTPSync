@@ -410,6 +410,11 @@ def performSync(file_name, config_file, onSave, disregardIgnore=False, progress=
 # Downloads given file
 # DRY, man, DRY ... :/
 def performSyncDown(file_name, config_file, disregardIgnore=False, progress=None, isDir=None):
+    printMessage("Uploading [" + file_name + "] ...", status=True)
+
+    if progress is not None and isDir is not True:
+        progress.progress()
+
     config = loadConfig(config_file)
     basename = os.path.basename(file_name)
 
@@ -435,7 +440,7 @@ def performSyncDown(file_name, config_file, disregardIgnore=False, progress=None
 
         if disregardIgnore is False and config['connections'][name]['ignore'] is not None and re.search(config['connections'][name]['ignore'], file_name):
             printMessage("file ignored by rule: " + basename, name, True)
-            break
+            continue
 
         try:
 

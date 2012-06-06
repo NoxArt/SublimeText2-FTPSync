@@ -29,7 +29,7 @@ import ftplib
 import os
 import re
 
-dirSplitter = re.compile("^([d-])[rxw-]{9}\s+\d+\s+\d+\s+\d+\s+\d+\s+\w{1,3}\s+\d+\s+\d+:\d+\s+(.*?)$", re.M | re.I | re.U | re.L)
+dirSplitter = re.compile("^([d-])[rxw-]{9}\s+\d+\s+\d+\s+\d+\s+\d+\s+\w{1,3}\s+\d+\s+(?:\d+:\d+|\d{2,4})\s+(.*?)$", re.M | re.I | re.U | re.L)
 
 ftpErrors = {
     'noFileOrDirectory': 553,
@@ -77,6 +77,11 @@ class CommonConnection(AbstractConnection):
 
     def login(self):
         self.connection.login(self.config['username'], self.config['password'])
+
+    #def compareTime(self, file_path):
+    #    path = self.getMappedPath(file_path)
+#
+    #    command =
 
     def put(self, file_path):
         path = self.getMappedPath(file_path)

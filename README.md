@@ -4,18 +4,18 @@ SublimeText2-FTPSync
 Simple and free plugin for FTP syncing.
 
 Recent:
-* Fixed wrong source for configuration skeleton (result of "Setup FTPSync in this folder")
-* Added possibility to disable automatic syncing and let you be in control
-* Added command palette and context menu commands for uploading and downloading
+* Fixed remote folder contents listing (for getting items for download)
+* Fixed downloading progress bar
 
 Supports:
 * Multiple named upload targets
 * Ignored file regex patterns
 * Secure transfer using TLS
-* **NEW**  Manual multiple file & folder uploading (sidebar context menu)
-* **NEW**  Manual multiple file & folder downloading (sidebar context menu)
+* Manual multiple file & folder uploading (sidebar context menu)
+* Manual multiple file & folder downloading (sidebar context menu)
 
 Current focus:
+* Remote vs local file _last\_updated_ detection
 * SFTP support
 
 To mark a folder and descendants for upload insert *ftpsync.settings* file in following format. Don't worry - the skeleton can be simply inserted using *Preferences > Package Settings > FTPSync > Setup FTPSync in this folder* or using context menu in Side bar or using Control/CMD+Shift+P.
@@ -47,11 +47,6 @@ Released under MIT licence.
 Feel free to add issues, ideas, pull requests...
 
 **@NoxArt**
-
-
-
-
-
 
 
 
