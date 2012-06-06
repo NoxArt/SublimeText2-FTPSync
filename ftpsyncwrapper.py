@@ -78,11 +78,6 @@ class CommonConnection(AbstractConnection):
     def login(self):
         self.connection.login(self.config['username'], self.config['password'])
 
-    #def compareTime(self, file_path):
-    #    path = self.getMappedPath(file_path)
-#
-    #    command =
-
     def put(self, file_path):
         path = self.getMappedPath(file_path)
 
