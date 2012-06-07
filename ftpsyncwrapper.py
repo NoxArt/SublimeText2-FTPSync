@@ -82,7 +82,7 @@ class CommonConnection(AbstractConnection):
         path = self.getMappedPath(file_path)
 
         listing = None
-        command = self.connection.dir(path, lambda data: listing = data)
+        #command = self.connection.dir(path, lambda data: listing = data)
 
 
     def put(self, file_path):

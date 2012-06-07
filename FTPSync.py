@@ -410,7 +410,7 @@ def performSync(file_name, config_file, onSave, disregardIgnore=False, progress=
 # Downloads given file
 # DRY, man, DRY ... :/
 def performSyncDown(file_name, config_file, disregardIgnore=False, progress=None, isDir=None):
-    printMessage("Uploading [" + file_name + "] ...", status=True)
+    printMessage("Downloading [" + file_name + "] ...", status=True)
 
     if progress is not None and isDir is not True:
         progress.progress()
