@@ -27,7 +27,10 @@
 		//"timeout": 30,
 
 		// regular expression, when matches the file path of the file-to-be-uploaded, it cancels its upload
-		//"ignore": ""
+		//"ignore": "",
+
+		// whether to check 'last updated' of the target file on server
+		//"check_time": true
 
 	}
 }

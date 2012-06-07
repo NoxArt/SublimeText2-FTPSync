@@ -16,7 +16,8 @@
 		"port": 21,
 		"timeout": 30,
 		"constraints": [],
-		"ignore": null
+		"ignore": null,
+		"check_time": true
 	},
 
 	"ignore": "ftpsync\\.settings|\\.gitignore|\\.git|Sublime Text 2/Packages"
