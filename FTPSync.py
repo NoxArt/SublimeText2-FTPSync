@@ -33,8 +33,11 @@ import hashlib
 import json
 import threading
 import re
-from math import ceil
+
+# Own
 from ftpsyncwrapper import CreateConnection
+from ftpsyncprogress import Progress
+
 
 # Init
 
@@ -58,9 +61,10 @@ re_ignore = re.compile(ignore)
 
 # storing literals
 configName = 'ftpsync.settings'
-defaultConnectioConfigName = 'ftpsync.default-settings'
+connectionDefaultsFilename = 'ftpsync.default-settings'
 messageTimeout = 250
 nestingLimit = 30
+timeDifferenceTolerance = 2
 
 # connection cache pool
 connections = {}
@@ -144,6 +148,17 @@ def findFile(folders, file_name):
     return None
 
 
+def getFiles(paths):
+    files = []
+    fileNames = []
+
+    for target in paths:
+        if target not in fileNames:
+            files.append([target, getConfigFile(target)])
+
+    return files
+
+
 # ==== Config =============================================================================
 
 # Invalidates all config cache entries belonging to a certain directory
@@ -191,6 +206,56 @@ def getConfigHash(file_name):
     return hashlib.md5(file_name).hexdigest()
 
 
+def verifyConfig(config):
+    if type(config) is not dict:
+        return "Config is not a {dict} structure"
+
+    keys = ["username", "password", "private_key", "private_key_pass", "path", "tls", "upload_on_save", "port", "timeout", "ignore", "check_time", "download_on_open"]
+
+    for key in keys:
+        if key not in config:
+            return "Config is missing a {" + key + "} key"
+
+    if config['username'] is not None and type(config['username']) is not str and type(config['username']) is not unicode:
+        return "Username must be null or string"
+
+    if config['password'] is not None and type(config['password']) is not str and type(config['password']) is not unicode:
+        return "Password must be null or string"
+
+    if config['private_key'] is not None and type(config['private_key']) is not str and type(config['private_key']) is not unicode:
+        return "Private_key must be null or string"
+
+    if config['private_key_pass'] is not None and type(config['private_key_pass']) is not str and type(config['private_key_pass']) is not unicode:
+        return "Private_key_pass must be null or string"
+
+    if config['ignore'] is not None and type(config['ignore']) is not str and type(config['ignore']) is not unicode:
+        return "Ignore must be null or string"
+
+    if type(config['path']) is not str and type(config['path']) is not unicode:
+        return "Path must be a string"
+
+    if type(config['tls']) is not bool:
+        return "Tls must be bool"
+
+    if type(config['upload_on_save']) is not bool:
+        return "Upload_on_save must be bool"
+
+    if type(config['check_time']) is not bool:
+        return "Check_time must be bool"
+
+    if type(config['download_on_open']) is not bool:
+        return "Download_on_open must be bool"
+
+    if type(config['port']) is not int:
+        return "Port must be an integer"
+
+    if type(config['timeout']) is not int:
+        return "Timeout must be an integer"
+
+    return True
+
+
+
 # Parses given config and adds default values to each connection entry
 def loadConfig(file_name):
     file = open(file_name)
@@ -211,6 +276,11 @@ def loadConfig(file_name):
     for name in config:
         result[name] = dict(projectDefaults.items() + config[name].items())
         result[name]['file_name'] = file_name
+
+        verification_result = verifyConfig(result[name])
+
+        if verification_result is not True:
+            printMessage("Invalid configuration loaded: <" + verification_result + ">",status=True)
 
     final = dict(coreConfig.items() + {"connections": result}.items())
 
@@ -243,7 +313,7 @@ def getConnection(hash, config):
                 connection.connect()
             except Exception, e:
                 printMessage("Connection failed <Exception: " + str(e) + ">", name, status=True)
-                connection.close(hash)
+                connection.close(connection, hash)
 
                 continue
 
@@ -295,6 +365,9 @@ def getConnection(hash, config):
 
         # schedule connection timeout
         def closeThisConnection():
+            if usingConnections is None:
+                return
+
             if hash not in usingConnections:
                 closeConnection(hash)
             else:
@@ -341,8 +414,6 @@ def getProgressMessage(stored, progress, action, basename):
 
 # Uploads given file
 def performSync(file_name, config_file, onSave, disregardIgnore=False, progress=None):
-    printMessage("Uploading [" + file_name + "] ...", status=True)
-
     if progress is not None:
         progress.progress()
 
@@ -409,8 +480,8 @@ def performSync(file_name, config_file, onSave, disregardIgnore=False, progress=
 
 # Downloads given file
 # DRY, man, DRY ... :/
-def performSyncDown(file_name, config_file, disregardIgnore=False, progress=None, isDir=None):
-    printMessage("Downloading [" + file_name + "] ...", status=True)
+def performSyncDown(file_name, config_file, disregardIgnore=False, progress=None, isDir=None,forced=False,skip=False):
+    print file_name
 
     if progress is not None and isDir is not True:
         progress.progress()
@@ -458,11 +529,19 @@ def performSyncDown(file_name, config_file, disregardIgnore=False, progress=None
                     if entry['isDir'] is True:
                         performSyncDown(os.path.join(file_name, entry['name']), config_file, disregardIgnore, progress, True)
                     else:
-                        performSyncDown(os.path.join(file_name, entry['name']), config_file, disregardIgnore, progress)
+                        completed = False
+
+                        if not forced and compareFilesDirect(os.path.join(file_name, entry['name']), entry, True, True) is False:
+                            completed = True
+
+                        performSyncDown(os.path.join(file_name, entry['name']), config_file, disregardIgnore, progress, skip=completed)
 
                 return
             else:
-                downloaded = connections[index].get(file_name)
+                if skip:
+                    downloaded = name
+                else:
+                    downloaded = connections[index].get(file_name)
 
             if type(downloaded) is str or type(downloaded) is unicode:
                 stored.append(downloaded)
@@ -472,8 +551,6 @@ def performSyncDown(file_name, config_file, disregardIgnore=False, progress=None
                 failed = type(downloaded)
 
         except Exception, e:
-            raise e
-
             failed = e
 
             print file_name + " => " + str(e)
@@ -485,12 +562,36 @@ def performSyncDown(file_name, config_file, disregardIgnore=False, progress=None
                 message += "<Exception: " + str(failed) + ">"
 
             printMessage(message, name, False, True)
+        else:
+            break
 
     if len(stored) > 0:
         dumpMessage(getProgressMessage(stored, progress, "downloaded", basename))
 
     if config_hash in usingConnections:
         usingConnections.remove(config_hash)
+
+
+def compareFilesDirect(file_name, properties, newer, larger, both=False):
+    if os.path.exists(file_name) is False:
+        return True
+
+    lastModified = os.path.getmtime(file_name)
+    filesize = os.path.getsize(file_name)
+
+    isNewer = lastModified - properties['lastModified'] < timeDifferenceTolerance
+    isLarger = properties['filesize'] != filesize
+
+    if both and isNewer and isLarger:
+        return True
+
+    if not both and newer and isNewer:
+        return True
+
+    if not both and larger and isLarger:
+        return True
+
+    return False
 
 
 # File watching
@@ -536,10 +637,11 @@ class RemoteSyncCall(threading.Thread):
 
 # Remote handling
 class RemoteSyncDownCall(threading.Thread):
-    def __init__(self, file_name, config, disregardIgnore=False):
+    def __init__(self, file_name, config, disregardIgnore=False,forced=False):
         self.file_name = file_name
         self.config = config
         self.disregardIgnore = disregardIgnore
+        self.forced = forced
         threading.Thread.__init__(self)
 
     def run(self):
@@ -551,7 +653,7 @@ class RemoteSyncDownCall(threading.Thread):
         clearMessages()
 
         if type(target) is str or type(target) is unicode:
-            performSyncDown(target, self.config, self.disregardIgnore)
+            performSyncDown(target, self.config, self.disregardIgnore, forced=self.forced)
         else:
             total = len(target)
             progress = Progress(total)
@@ -560,7 +662,7 @@ class RemoteSyncDownCall(threading.Thread):
                 if os.path.isfile(file):
                     progress.add([file])
 
-                performSyncDown(file, config, self.disregardIgnore, progress)
+                performSyncDown(file, config, self.disregardIgnore, progress, self.forced)
 
 
 # Sets up a config file in a directory
@@ -569,7 +671,7 @@ class NewFtpSyncCommand(sublime_plugin.TextCommand):
         if len(dirs) == 0:
             dirs = [os.path.dirname(self.view.file_name())]
 
-        default = os.path.join(sublime.packages_path(), 'FTPSync', defaultConnectioConfigName)
+        default = os.path.join(sublime.packages_path(), 'FTPSync', connectionDefaultsFilename)
 
         for dir in dirs:
             config = os.path.join(dir, configName)
@@ -621,7 +723,7 @@ class SyncDownCurrent(sublime_plugin.TextCommand):
     def run(self, edit):
         file_name = sublime.active_window().active_view().file_name()
 
-        thread = RemoteSyncDownCall(file_name, getConfigFile(file_name), False)
+        thread = RemoteSyncDownCall(file_name, getConfigFile(file_name), False, True)
         threads.append(thread)
         thread.start()
 
@@ -629,52 +731,14 @@ class SyncDownCurrent(sublime_plugin.TextCommand):
 # Synchronize down selected file/directory
 class FtpSyncDownTarget(sublime_plugin.TextCommand):
     def run(self, edit, paths):
-        syncFiles = []
-        fileNames = []
-
-        # gather files
-        for target in paths:
-            # TODO - also check whether the file is not already in an added directory
-            if target not in fileNames:
-                syncFiles.append([target, getConfigFile(target)])
-
-        # sync
-        thread = RemoteSyncDownCall(syncFiles, None)
+        thread = RemoteSyncDownCall(getFiles(paths), None)
         threads.append(thread)
         thread.start()
 
 
-class Progress:
-    def __init__(self, total, current=0):
-        self.total = total
-        self.current = 0
-        self.entries = None
-
-    def expand(self, count):
-        self.total += count
-
-    def add(self, entries):
-        if self.entries is None:
-            self.entries = []
-
-        for entry in entries:
-            if entry not in self.entries:
-                self.entries.append(entry)
-
-    def getTotal(self):
-        if self.entries is None:
-            return self.total
-        else:
-            return len(self.entries)
-
-    def progress(self, by=1):
-        self.current += int(by)
-
-        if self.current > self.getTotal():
-            self.current = self.getTotal()
-
-    def getPercent(self, division=5):
-        percent = int(ceil(float(self.current) / float(self.getTotal()) * 100))
-        percent = ceil(percent / division)
-
-        return percent
+# Synchronize down selected file/directory
+class FtpSyncDownTargetForced(sublime_plugin.TextCommand):
+    def run(self, edit, paths):
+        thread = RemoteSyncDownCall(getFiles(paths), None, forced=True)
+        threads.append(thread)
+        thread.start()

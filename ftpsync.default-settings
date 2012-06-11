@@ -32,5 +32,8 @@
 		// whether to check 'last updated' of the target file on server
 		//"check_time": true
 
+		// if set to true it will download the file from server on opening, but only if it's newer than the current file
+		//"download_on_open": false
+
 	}
 }

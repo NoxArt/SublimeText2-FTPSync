@@ -28,13 +28,17 @@
 import ftplib
 import os
 import re
+import time
 
-dirSplitter = re.compile("^([d-])[rxw-]{9}\s+\d+\s+\d+\s+\d+\s+\d+\s+\w{1,3}\s+\d+\s+(?:\d+:\d+|\d{2,4})\s+(.*?)$", re.M | re.I | re.U | re.L)
+# http://stackoverflow.com/questions/2443007/ftp-list-format
+dirSplitter = re.compile("^([d-])[rxw-]{9}\s+\d+\s+\d+\s+\d+\s+(\d+)\s+(\w{1,3}\s+\d+\s+(?:\d+:\d+|\d{2,4}))\s+(.*?)$", re.M | re.I | re.U | re.L)
 
 ftpErrors = {
     'noFileOrDirectory': 553,
     'cwdNoFileOrDirectory': 550
 }
+
+currentYear = int(time.strftime("%Y", time.gmtime()))
 
 
 def CreateConnection(config, name):
@@ -53,7 +57,6 @@ class AbstractConnection:
         return os.path.join(self.config['path'], fragment).replace('\\', '/')
 
 
-# TODO - turn some methods private
 class CommonConnection(AbstractConnection):
 
     def __init__(self, config, name):
@@ -77,12 +80,6 @@ class CommonConnection(AbstractConnection):
 
     def login(self):
         self.connection.login(self.config['username'], self.config['password'])
-
-    def compareTime(self, local_time, file_path):
-        path = self.getMappedPath(file_path)
-
-        listing = None
-        #command = self.connection.dir(path, lambda data: listing = data)
 
 
     def put(self, file_path):
@@ -134,6 +131,15 @@ class CommonConnection(AbstractConnection):
     def cwd(self, path):
         self.connection.cwd(path)
 
+    def parseTime(self, time_val):
+        if time_val.find(':') is -1:
+            struct = time.strptime(time_val + str(" 00:00"), "%b %d %Y %H:%M")
+        else:
+            struct = time.strptime(str(currentYear) + " " + time_val, "%Y %b %d %H:%M")
+
+        return time.mktime(struct)
+
+
     def list(self, path):
         path = str(self.getMappedPath(path))
         contents = []
@@ -147,9 +153,16 @@ class CommonConnection(AbstractConnection):
                 continue
 
             isDir = split.group(1) == 'd'
-            name = split.group(2)
+            filesize = split.group(2)
+            lastModified = split.group(3)
+            name = split.group(4)
 
-            content = {'name': name, 'isDir': isDir}
+            content = {
+                'name': name,
+                'filesize': int(filesize),
+                'lastModified': self.parseTime(lastModified),
+                'isDir': isDir
+            }
 
             if name != "." and name != "..":
                 result.append(content)

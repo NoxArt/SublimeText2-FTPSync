@@ -3,9 +3,12 @@ SublimeText2-FTPSync
 
 Simple and free plugin for FTP syncing.
 
+Todo:
+* Need to solve multiple connections when downloading, uses the first successful one for the moment
+
 Recent:
-* Fixed remote folder contents listing (for getting items for download)
-* Fixed downloading progress bar
+* Added loaded config verification
+* Download only downloads new content or with different filesize, added _forced_ variant
 
 Supports:
 * Multiple named upload targets
