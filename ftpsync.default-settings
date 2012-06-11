@@ -6,10 +6,12 @@
 
 		// address
 		"host": "ftp.example.com",
-		//"port": 21 // use 22 for SFTP
+
+		// not commented out due to MAC OS issue https://github.com/NoxArt/SublimeText2-FTPSync/issues/7
+		"port": 21, // use 22 for SFTP
 
 		// credentials
-		"username": "your_login",
+		"username": "your_login",  // or null for anonymous login
 		"password": "your_password",
 
 		// path to the folder matching the folder in which this file resides
