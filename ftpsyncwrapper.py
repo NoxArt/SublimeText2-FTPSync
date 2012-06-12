@@ -30,34 +30,65 @@ import os
 import re
 import time
 
-# http://stackoverflow.com/questions/2443007/ftp-list-format
-dirSplitter = re.compile("^([d-])[rxw-]{9}\s+\d+\s+\d+\s+\d+\s+(\d+)\s+(\w{1,3}\s+\d+\s+(?:\d+:\d+|\d{2,4}))\s+(.*?)$", re.M | re.I | re.U | re.L)
+# to extract data from FTP LIST http://stackoverflow.com/questions/2443007/ftp-list-format
+ftpListParse = re.compile("^([d-])[rxw-]{9}\s+\d+\s+\d+\s+\d+\s+(\d+)\s+(\w{1,3}\s+\d+\s+(?:\d+:\d+|\d{2,4}))\s+(.*?)$", re.M | re.I | re.U | re.L)
 
+# For FTP LIST entries with {last modified} timestamp earlier than 6 months, see http://stackoverflow.com/questions/2443007/ftp-list-format
+currentYear = int(time.strftime("%Y", time.gmtime()))
+
+# List of FTP errors of interest
 ftpErrors = {
     'noFileOrDirectory': 553,
     'cwdNoFileOrDirectory': 550
 }
 
-currentYear = int(time.strftime("%Y", time.gmtime()))
 
-
+# Factory function - returns and instance of a proper class based on the configuration
+# currently differs between FTP(S) and SFTP
+#
+# SFTP currently not implemented
+#
+# @type config: dict
+# @type name: string
+# @param name: user-defined name of a connection
+#
+# @return AbstractConnection
 def CreateConnection(config, name):
-    if 'ssh' in config or ('private_key' in config and config['private_key'] is not None):
-        return None
+    if 'private_key' in config and config['private_key'] is not None:
+        raise NotImplementedError
     else:
-        return CommonConnection(config, name)
+        return FTPSConnection(config, name)
 
 
+# Base class for all connection classes
 class AbstractConnection:
 
     # Return server path for the uploaded file relative to specified path
-    def getMappedPath(self, file_name):
-        config = os.path.dirname(self.config['file_name'])
-        fragment = os.path.relpath(file_name, config)
+    #
+    # @example:
+    #   file_path: /user/home/NoxArt/web/index.php
+    #   config['path']: /www/
+    #   config['file_path']: /user/home/NoxArt/
+    #
+    #   result: /www/web/index.php
+    #
+    # @type self: AbstractConnection
+    # @type file_path: string
+    #
+    # @return string remote file path
+    def getMappedPath(self, file_path):
+        config = os.path.dirname(self.config['file_path'])
+        fragment = os.path.relpath(file_path, config)
         return os.path.join(self.config['path'], fragment).replace('\\', '/')
 
 
-class CommonConnection(AbstractConnection):
+# FTP(S) connection
+#
+# uses Python's ftplib
+#
+# because of FTP_TLS added in v2.7 FTPSync uses imported library from v2.7.1
+# shipped with the plugin
+class FTPSConnection(AbstractConnection):
 
     def __init__(self, config, name):
         self.config = config
@@ -69,7 +100,7 @@ class CommonConnection(AbstractConnection):
             self.connection = ftplib.FTP()
 
     def connect(self):
-        return self.connection.connect(self.config['host'], self.config['port'], self.config['timeout'])
+        return self.connection.connect(self.config['host'], int(self.config['port']), int(self.config['timeout']))
 
     def authenticate(self):
         if self.config['tls'] is True:
@@ -147,7 +178,7 @@ class CommonConnection(AbstractConnection):
         self.connection.dir(path, lambda data: contents.append(data))
 
         for content in contents:
-            split = dirSplitter.search(content)
+            split = ftpListParse.search(content)
 
             if split is None:
                 continue
@@ -202,4 +233,4 @@ class CommonConnection(AbstractConnection):
                     self.connection.cwd(folder)
 
 
-#class SshConnection():
+#class SSHConnection():

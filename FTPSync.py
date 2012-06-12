@@ -25,8 +25,16 @@
 # @copyright (c) 2012 Jiri "NoxArt" Petruzelka
 # @link https://github.com/NoxArt/SublimeText2-FTPSync
 
+# Doc comment syntax inspired by http://stackoverflow.com/a/487203/387503
+
+
+# ==== Libraries ===========================================================================
+
+# Sublime API see http://www.sublimetext.com/docs/2/api_reference.html
 import sublime
 import sublime_plugin
+
+# Python's built-in libraries
 import shutil
 import os
 import hashlib
@@ -34,73 +42,93 @@ import json
 import threading
 import re
 
-# Own
+# FTPSync libraries
 from ftpsyncwrapper import CreateConnection
 from ftpsyncprogress import Progress
 
 
-# Init
+# ==== Initialization and optimization =====================================================
 
 # global config
 settings = sublime.load_settings('ftpsync.sublime-settings')
 
-isDebug = settings.get('debug')  # print debug messages to console?
-isDebugVerbose = settings.get('debug_verbose')  # print overly informative messages?
-projectDefaults = settings.get('project_defaults')  # default config for a project
-ignore = settings.get('ignore')  # global ignore pattern
+
+# print debug messages to console?
+isDebug = settings.get('debug')
+# print overly informative messages?
+isDebugVerbose = settings.get('debug_verbose')
+# default config for a project
+projectDefaults = settings.get('project_defaults').items()
+# global ignore pattern
+ignore = settings.get('ignore')
+
 
 # loaded project's config will be merged with this global one
 coreConfig = {
     'ignore': ignore,
     'connection_timeout': settings.get('connection_timeout')
-}
+}.items()
 
 # compiled global ignore pattern
-re_ignore = re.compile(ignore)
+if type(ignore) is str or type(ignore) is unicode:
+    re_ignore = re.compile(ignore)
+else:
+    re_ignore = None
 
 
-# storing literals
+# name of a file to be detected in the project
 configName = 'ftpsync.settings'
+# name of a file that is a default sheet for new configs for projects
 connectionDefaultsFilename = 'ftpsync.default-settings'
+# timeout for a Sublime status bar messages [ms]
 messageTimeout = 250
+# limit for breaking down a filepath structure when looking for config files
 nestingLimit = 30
+# difference in time when comes to local vs remote {last modified} [s]
 timeDifferenceTolerance = 2
+# comment removing regexp
+removeLineComment = re.compile('//.*', re.I)
 
-# connection cache pool
+
+# connection cache pool - all connections
 connections = {}
+# connections currently marked as {in use}
 usingConnections = []
-# threads pool
-threads = []
-# individual folder configs, file => config path
+# individual folder config cache, file => config path
 configs = {}
-# messages scheduled to be dumped to status bar
-messages = []
 
 
 # ==== Messaging ===========================================================================
+
+# Shows a message into Sublime's status bar
+#
+# @type  text: string
+# @param text: message to status bar
 def statusMessage(text):
     sublime.status_message(text)
 
 
+# Schedules a single message to be logged/shown
+#
+# @type  text: string
+# @param text: message to status bar
 def dumpMessage(text):
-    clearMessages()
-    messages.append(text)
-
-    sublime.set_timeout(dumpMessages, messageTimeout)
+    sublime.set_timeout(lambda: statusMessage(text), messageTimeout)
 
 
-def dumpMessages():
-    messages.reverse()
-    for message in messages:
-        statusMessage(message)
-        messages.remove(message)
-
-
-def clearMessages():
-    for message in messages:
-        messages.remove(message)
-
-
+# Prints a special message to console and optionally to status bar
+#
+# @type  text: string
+# @param text: message to status bar
+# @type  name: string|None
+# @param name: comma-separated list of connections or other auxiliary info
+# @type  onlyVerbose: boolean
+# @param onlyVerbose: print only if config has debug_verbose enabled
+# @type  status: boolean
+# @param status: show in status bar as well = true
+#
+# @global isDebug
+# @global isDebugVerbose
 def printMessage(text, name=None, onlyVerbose=False, status=False):
     message = "FTPSync"
 
@@ -114,32 +142,52 @@ def printMessage(text, name=None, onlyVerbose=False, status=False):
         print message
 
     if status:
-        messages.append(message)
-        sublime.set_timeout(dumpMessages, messageTimeout)
+        dumpMessage(message)
 
 
 # ==== File&folders ========================================================================
 
-def getFolders(viewOrFilename):
-    if type(viewOrFilename) == str or type(viewOrFilename) == unicode:
-        folders = [viewOrFilename]
-        max = nestingLimit
+# Get all folders paths from given path upwards
+#
+# @type  file_path: string
+# @param file_path: absolute file path to return the paths from
+#
+# @return list<string> of file paths
+#
+# @global nestingLimit
+def getFolders(file_path):
+    folders = [file_path]
+    limit = nestingLimit
 
-        while True:
-            split = os.path.split(viewOrFilename)
-            viewOrFilename = split[0]
-            max -= 1
+    while True:
+        split = os.path.split(file_path)
 
-            if len(split[1]) == 0 or max < 0:
-                break
+        # nothing found
+        if len(split) == 0:
+            break
 
-            folders.append(split[0])
+        # get filepath
+        file_path = split[0]
+        limit -= 1
 
-        return folders
-    else:
-        return viewOrFilename.window().folders()
+        # nothing else remains
+        if len(split[1]) == 0 or limit < 0:
+            break
+
+        folders.append(split[0])
+
+    return folders
 
 
+# Finds a real file path among given folder paths
+# and returns the path or None
+#
+# @type  folders: list<string>
+# @param folders: list of paths to folders to look into
+# @type  file_name: string
+# @param file_name: file name to search
+#
+# @return string file path or None
 def findFile(folders, file_name):
     for folder in folders:
         if os.path.exists(os.path.join(folder, file_name)) is True:
@@ -148,6 +196,12 @@ def findFile(folders, file_name):
     return None
 
 
+# Returns unique list of file paths with corresponding config
+#
+# @type  folders: list<string>
+# @param folders: list of paths to folders to filter
+#
+# @return list<string> of file paths
 def getFiles(paths):
     files = []
     fileNames = []
@@ -163,28 +217,45 @@ def getFiles(paths):
 
 # Invalidates all config cache entries belonging to a certain directory
 # as long as they're empty or less nested in the filesystem
+#
+# @type  config_dir_name: string
+# @param config_dir_name: path to a folder of a config to be invalidated
 def invalidateConfigCache(config_dir_name):
-    for file_name in configs:
-        if file_name.startswith(config_dir_name) and (configs[file_name] is None or config_dir_name.startswith(configs[file_name])):
-            configs.remove(configs[file_name])
+    for file_path in configs:
+        if file_path.startswith(config_dir_name) and (configs[file_path] is None or config_dir_name.startswith(configs[file_path])):
+            configs.remove(configs[file_path])
 
 
 # Finds a config file in given folders
+#
+# @type  folders: list<string>
+# @param folders: list of paths to folders to filter
+#
+# @return list<string> of file paths
 def findConfigFile(folders):
     return findFile(folders, configName)
 
 
 # Returns configuration file for a given file
-def getConfigFile(file_name):
+#
+# @type  file_path: string
+# @param file_path: file_path to the file for which we try to find a config
+#
+# @return file path to the config file or None
+#
+# @global configs
+def getConfigFile(file_path):
     # try cached
     try:
-        if configs[file_name]:
-            printMessage("Loading config: cache hit (key: " + file_name + ")")
+        if configs[file_path]:
+            printMessage("Loading config: cache hit (key: " + file_path + ")")
 
-        return configs[file_name]
+        return configs[file_path]
+
+    # cache miss
     except KeyError:
         try:
-            folders = getFolders(file_name)
+            folders = getFolders(file_path)
 
             if folders is None or len(folders) == 0:
                 return None
@@ -192,23 +263,40 @@ def getConfigFile(file_name):
             configFolder = findConfigFile(folders)
 
             if configFolder is None:
-                return printMessage("Found no config > for file: " + file_name)
+                return printMessage("Found no config > for file: " + file_path)
 
             config = os.path.join(configFolder, configName)
-            configs[file_name] = config
+            configs[file_path] = config
             return config
 
         except AttributeError:
             return None
 
 
-def getConfigHash(file_name):
-    return hashlib.md5(file_name).hexdigest()
+# Returns hash of file_path
+#
+# @type  file_path: string
+# @param file_path: file path to the file of which we want the hash
+#
+# @return hash of filepath
+def getFilepathHash(file_path):
+    return hashlib.md5(file_path).hexdigest()
 
 
+# Verifies contents of a given config object
+#
+# Checks that it's an object with all needed keys of a proper type
+# Does not check semantic validity of the content
+#
+# Should be used on configs merged with the defaults
+#
+# @type  config: dict
+# @param config: config dict
+#
+# @return string verification fail reason or a boolean
 def verifyConfig(config):
     if type(config) is not dict:
-        return "Config is not a {dict} structure"
+        return "Config is not a {dict} type"
 
     keys = ["username", "password", "private_key", "private_key_pass", "path", "tls", "upload_on_save", "port", "timeout", "ignore", "check_time", "download_on_open"]
 
@@ -255,34 +343,57 @@ def verifyConfig(config):
     return True
 
 
-
-# Parses given config and adds default values to each connection entry
-def loadConfig(file_name):
-    file = open(file_name)
+# Parses JSON-type file with comments stripped out (not part of a proper JSON, see http://json.org/)
+#
+# @type  file_path: string
+#
+# @return dict
+def parseJson(file_path):
     contents = ""
+    file = open(file_path, 'r')
 
     for line in file:
-        if line.find('//') is -1:
-            contents += line
+        contents += removeLineComment.sub('', line)
 
+    file.close()
+
+    return json.loads(contents)
+
+
+# Parses given config and adds default values to each connection entry
+#
+# @type  file_path: string
+# @param file_path: file path to the file of which we want the hash
+#
+# @return config dict or None
+#
+# @global coreConfig
+# @global projectDefaults
+def loadConfig(file_path):
+    if os.path.exists(file_path) is False:
+        return None
+
+    # parse config
     try:
-        config = json.loads(contents)
-    except:
-        printMessage("Failed parsing configuration file: " + file_name + " (commas problem?)", status=True)
+        config = parseJson(file_path)
+    except Exception, e:
+        printMessage("Failed parsing configuration file: " + file_path + " (commas problem?) <Exception: " + str(e) + ">", status=True)
         return None
 
     result = {}
 
+    # merge with defaults and check
     for name in config:
-        result[name] = dict(projectDefaults.items() + config[name].items())
-        result[name]['file_name'] = file_name
+        result[name] = dict(projectDefaults + config[name].items())
+        result[name]['file_path'] = file_path
 
         verification_result = verifyConfig(result[name])
 
         if verification_result is not True:
-            printMessage("Invalid configuration loaded: <" + verification_result + ">",status=True)
+            printMessage("Invalid configuration loaded: <" + str(verification_result) + ">",status=True)
 
-    final = dict(coreConfig.items() + {"connections": result}.items())
+    # merge with generics
+    final = dict(coreConfig + {"connections": result}.items())
 
     return final
 
@@ -290,7 +401,17 @@ def loadConfig(file_name):
 # ==== Remote =============================================================================
 
 # Returns connection, connects if needed
+#
+# @type  hash: string
+# @param hash: connection cache hash (config filepath hash actually)
+# @type  config: object
+# @param config: configuration object
+#
+# @return dict of descendants of AbstractConnection (ftpsyncwrapper.py)
+#
+# @global connections
 def getConnection(hash, config):
+    # try cache
     try:
         if connections[hash] and len(connections[hash]) > 0:
             printMessage("Connection cache hit (key: " + hash + ")", None, True)
@@ -299,14 +420,22 @@ def getConnection(hash, config):
             raise KeyError
 
         return connections[hash]
+
+    # cache miss
     except KeyError:
         connections[hash] = []
 
+        # for each config
         for name in config['connections']:
             properties = config['connections'][name]
 
             # 1. initialize
-            connection = CreateConnection(properties, name)
+            try:
+                connection = CreateConnection(properties, name)
+            except Exception, e:
+                printMessage("Connection initialization failed <Exception: " + str(e) + ">", name, status=True)
+
+                continue
 
             # 2. connect
             try:
@@ -337,37 +466,34 @@ def getConnection(hash, config):
 
                     continue
 
-                if isDebug:
-                    pass_present = " (using password: NO)"
-                    if len(properties['password']) > 0:
-                        pass_present = " (using password: YES)"
+                pass_present = " (using password: NO)"
+                if len(properties['password']) > 0:
+                    pass_present = " (using password: YES)"
 
-                    printMessage("Logged in as: " + properties['username'] + pass_present, name)
-
-            elif isDebug:
+                printMessage("Logged in as: " + properties['username'] + pass_present, name)
+            else:
                 printMessage("Anonymous connection", name)
 
             # 5. set initial directory, set name, store connection
             try:
                 connection.cwd(properties['path'])
-
-                present = False
-                for con in connections[hash]:
-                    if con.name == connection.name:
-                        present = True
-
-                if present is False:
-                    connections[hash].append(connection)
             except Exception, e:
                 printMessage("Failed to set path (probably connection failed) <Exception: " + str(e) + ">", name)
 
                 continue
 
+            # 6. add to connectins list
+            present = False
+            for con in connections[hash]:
+                if con.name == connection.name:
+                    present = True
+
+            if present is False:
+                connections[hash].append(connection)
+
+
         # schedule connection timeout
         def closeThisConnection():
-            if usingConnections is None:
-                return
-
             if hash not in usingConnections:
                 closeConnection(hash)
             else:
@@ -380,7 +506,16 @@ def getConnection(hash, config):
 
 
 # Close all connections for a given config file
+#
+# @type  hash: string
+# @param hash: connection cache hash (config filepath hash actually)
+#
+# @global connections
 def closeConnection(hash):
+    if type(hash) is not str and type(hash) is not unicode:
+        printMessage("Error closing connection: connection hash must be a string, " + str(type(hash)) + " given")
+        return
+
     try:
         for connection in connections[hash]:
             connection.close(connections, hash)
@@ -389,10 +524,21 @@ def closeConnection(hash):
         if len(connections[hash]) == 0:
             connections.pop(hash)
 
-    except:
-        return
+    except Exception, e:
+        printMessage("Error when closing connection (key: " + hash + ") <Exception: " + str(e) + ">")
 
 
+# Creates a process message with progress bar (to be used in status bar)
+#
+# @type  stored: list<string>
+# @param stored: usually list of connection names
+# @type progress: Progress
+# @type action: string
+# @type action: action that the message reports about ("uploaded", "downloaded"...)
+# @type  basename: string
+# @param basename: name of a file connected with the action
+#
+# @return string message
 def getProgressMessage(stored, progress, action, basename):
     base = "FTPSync [remotes: " + ",".join(stored) + "] "
     action = "> " + action + " "
@@ -413,17 +559,17 @@ def getProgressMessage(stored, progress, action, basename):
 
 
 # Uploads given file
-def performSync(file_name, config_file, onSave, disregardIgnore=False, progress=None):
+def performSync(file_path, config_file, onSave, disregardIgnore=False, progress=None):
     if progress is not None:
         progress.progress()
 
     config = loadConfig(config_file)
-    basename = os.path.basename(file_name)
+    basename = os.path.basename(file_path)
 
-    if disregardIgnore is False and len(ignore) > 0 and re_ignore.search(file_name) is not None:
+    if disregardIgnore is False and ignore is not None and re_ignore.search(file_path) is not None:
         return printMessage("file globally ignored: " + basename, onlyVerbose=True)
 
-    config_hash = getConfigHash(config_file)
+    config_hash = getFilepathHash(config_file)
     connections = getConnection(config_hash, config)
 
     usingConnections.append(config_hash)
@@ -444,12 +590,12 @@ def performSync(file_name, config_file, onSave, disregardIgnore=False, progress=
         if 'upload_on_save' in config['connections'][name] and config['connections'][name]['upload_on_save'] is False and onSave is True:
             return
 
-        if disregardIgnore is False and config['connections'][name]['ignore'] is not None and re.search(config['connections'][name]['ignore'], file_name):
+        if disregardIgnore is False and config['connections'][name]['ignore'] is not None and re.search(config['connections'][name]['ignore'], file_path):
             printMessage("file ignored by rule: " + basename, name, True)
             break
 
         try:
-            uploaded = connections[index].put(file_name)
+            uploaded = connections[index].put(file_path)
 
             if type(uploaded) is str or type(uploaded) is unicode:
                 stored.append(uploaded)
@@ -479,20 +625,17 @@ def performSync(file_name, config_file, onSave, disregardIgnore=False, progress=
 
 
 # Downloads given file
-# DRY, man, DRY ... :/
-def performSyncDown(file_name, config_file, disregardIgnore=False, progress=None, isDir=None,forced=False,skip=False):
-    print file_name
-
+def performSyncDown(file_path, config_file, disregardIgnore=False, progress=None, isDir=None,forced=False,skip=False):
     if progress is not None and isDir is not True:
         progress.progress()
 
     config = loadConfig(config_file)
-    basename = os.path.basename(file_name)
+    basename = os.path.basename(file_path)
 
-    if disregardIgnore is False and len(ignore) > 0 and re_ignore.search(file_name) is not None:
+    if disregardIgnore is False and ignore is not None and re_ignore.search(file_path) is not None:
         return printMessage("file globally ignored: " + basename, onlyVerbose=True)
 
-    config_hash = getConfigHash(config_file)
+    config_hash = getFilepathHash(config_file)
     connections = getConnection(config_hash, config)
 
     usingConnections.append(config_hash)
@@ -509,17 +652,17 @@ def performSyncDown(file_name, config_file, disregardIgnore=False, progress=None
         except IndexError:
             continue
 
-        if disregardIgnore is False and config['connections'][name]['ignore'] is not None and re.search(config['connections'][name]['ignore'], file_name):
+        if disregardIgnore is False and config['connections'][name]['ignore'] is not None and re.search(config['connections'][name]['ignore'], file_path):
             printMessage("file ignored by rule: " + basename, name, True)
             continue
 
         try:
 
-            contents = connections[index].list(file_name)
+            contents = connections[index].list(file_path)
 
-            if isDir or os.path.isdir(file_name):
-                if os.path.exists(file_name) is False:
-                    os.mkdir(file_name)
+            if isDir or os.path.isdir(file_path):
+                if os.path.exists(file_path) is False:
+                    os.mkdir(file_path)
 
                 for entry in contents:
                     if entry['isDir'] is False:
@@ -527,21 +670,21 @@ def performSyncDown(file_name, config_file, disregardIgnore=False, progress=None
 
                 for entry in contents:
                     if entry['isDir'] is True:
-                        performSyncDown(os.path.join(file_name, entry['name']), config_file, disregardIgnore, progress, True)
+                        performSyncDown(os.path.join(file_path, entry['name']), config_file, disregardIgnore, progress, True, forced=forced)
                     else:
                         completed = False
 
-                        if not forced and compareFilesDirect(os.path.join(file_name, entry['name']), entry, True, True) is False:
+                        if not forced and compareFilesDirect(os.path.join(file_path, entry['name']), entry, True, True) is False:
                             completed = True
 
-                        performSyncDown(os.path.join(file_name, entry['name']), config_file, disregardIgnore, progress, skip=completed)
+                        performSyncDown(os.path.join(file_path, entry['name']), config_file, disregardIgnore, progress, forced=forced, skip=completed)
 
                 return
             else:
                 if skip:
                     downloaded = name
                 else:
-                    downloaded = connections[index].get(file_name)
+                    downloaded = connections[index].get(file_path)
 
             if type(downloaded) is str or type(downloaded) is unicode:
                 stored.append(downloaded)
@@ -553,7 +696,7 @@ def performSyncDown(file_name, config_file, disregardIgnore=False, progress=None
         except Exception, e:
             failed = e
 
-            print file_name + " => " + str(e)
+            print file_path + " => " + str(e)
 
         if failed:
             message = "download failed: (" + basename + ")"
@@ -572,23 +715,23 @@ def performSyncDown(file_name, config_file, disregardIgnore=False, progress=None
         usingConnections.remove(config_hash)
 
 
-def compareFilesDirect(file_name, properties, newer, larger, both=False):
-    if os.path.exists(file_name) is False:
+def compareFilesDirect(file_path, properties, newer, larger, both=False):
+    if os.path.exists(file_path) is False:
         return True
 
-    lastModified = os.path.getmtime(file_name)
-    filesize = os.path.getsize(file_name)
+    lastModified = os.path.getmtime(file_path)
+    filesize = os.path.getsize(file_path)
 
     isNewer = lastModified - properties['lastModified'] < timeDifferenceTolerance
-    isLarger = properties['filesize'] != filesize
+    isDifferentSize = properties['filesize'] != filesize
 
-    if both and isNewer and isLarger:
+    if both and isNewer and isDifferentSize:
         return True
 
     if not both and newer and isNewer:
         return True
 
-    if not both and larger and isLarger:
+    if not both and larger and isDifferentSize:
         return True
 
     return False
@@ -597,30 +740,28 @@ def compareFilesDirect(file_name, properties, newer, larger, both=False):
 # File watching
 class RemoteSync(sublime_plugin.EventListener):
     def on_post_save(self, view):
-        file_name = view.file_name()
-        thread = RemoteSyncCall(file_name, getConfigFile(file_name), True)
-        threads.append(thread)
-        thread.start()
+        file_path = view.file_name()
+        RemoteSyncCall(file_path, getConfigFile(file_path), True).start()
 
     def on_close(self, view):
         config_file = getConfigFile(view.file_name())
 
         if config_file is not None:
-            hash = getConfigHash(config_file)
+            hash = getFilepathHash(config_file)
             closeConnection(hash)
 
 
 # Remote handling
 class RemoteSyncCall(threading.Thread):
-    def __init__(self, file_name, config, onSave, disregardIgnore=False):
-        self.file_name = file_name
+    def __init__(self, file_path, config, onSave, disregardIgnore=False):
+        self.file_path = file_path
         self.config = config
         self.onSave = onSave
         self.disregardIgnore = disregardIgnore
         threading.Thread.__init__(self)
 
     def run(self):
-        target = self.file_name
+        target = self.file_path
 
         if (type(target) is str or type(target) is unicode) and self.config is None:
             return False
@@ -631,26 +772,24 @@ class RemoteSyncCall(threading.Thread):
             total = len(target)
             progress = Progress(total)
 
-            for file, config in target:
-                performSync(file, config, self.onSave, self.disregardIgnore, progress)
+            for file_path, config in target:
+                performSync(file_path, config, self.onSave, self.disregardIgnore, progress)
 
 
 # Remote handling
 class RemoteSyncDownCall(threading.Thread):
-    def __init__(self, file_name, config, disregardIgnore=False,forced=False):
-        self.file_name = file_name
+    def __init__(self, file_path, config, disregardIgnore=False,forced=False):
+        self.file_path = file_path
         self.config = config
         self.disregardIgnore = disregardIgnore
         self.forced = forced
         threading.Thread.__init__(self)
 
     def run(self):
-        target = self.file_name
+        target = self.file_path
 
         if (type(target) is str or type(target) is unicode) and self.config is None:
             return False
-
-        clearMessages()
 
         if type(target) is str or type(target) is unicode:
             performSyncDown(target, self.config, self.disregardIgnore, forced=self.forced)
@@ -658,11 +797,11 @@ class RemoteSyncDownCall(threading.Thread):
             total = len(target)
             progress = Progress(total)
 
-            for file, config in target:
-                if os.path.isfile(file):
-                    progress.add([file])
+            for file_path, config in target:
+                if os.path.isfile(file_path):
+                    progress.add([file_path])
 
-                performSyncDown(file, config, self.disregardIgnore, progress, self.forced)
+                performSyncDown(file_path, config, self.disregardIgnore, progress, forced=self.forced)
 
 
 # Sets up a config file in a directory
@@ -673,10 +812,10 @@ class NewFtpSyncCommand(sublime_plugin.TextCommand):
 
         default = os.path.join(sublime.packages_path(), 'FTPSync', connectionDefaultsFilename)
 
-        for dir in dirs:
-            config = os.path.join(dir, configName)
+        for directory in dirs:
+            config = os.path.join(directory, configName)
 
-            invalidateConfigCache(dir)
+            invalidateConfigCache(directory)
 
             if os.path.exists(config) is True:
                 self.view.window().open_file(config)
@@ -698,47 +837,31 @@ class FtpSyncTarget(sublime_plugin.TextCommand):
                     syncFiles.append([target, getConfigFile(target)])
             elif os.path.isdir(target):
                 for root, dirs, files in os.walk(target):
-                    for file in files:
-                        if file not in fileNames:
-                            syncFiles.append([root + "\\" + file, getConfigFile(root + "\\" + file)])
+                    for file_path in files:
+                        if file_path not in fileNames:
+                            syncFiles.append([root + "\\" + file_path, getConfigFile(root + "\\" + file_path)])
 
         # sync
-        thread = RemoteSyncCall(syncFiles, None, False)
-        threads.append(thread)
-        thread.start()
+        RemoteSyncCall(syncFiles, None, False).start()
 
 
 # Synchronize up current file
 class SyncCurrent(sublime_plugin.TextCommand):
     def run(self, edit):
-        file_name = sublime.active_window().active_view().file_name()
+        file_path = sublime.active_window().active_view().file_name()
 
-        thread = RemoteSyncCall(file_name, getConfigFile(file_name), False)
-        threads.append(thread)
-        thread.start()
+        RemoteSyncCall(file_path, getConfigFile(file_path), False).start()
 
 
 # Synchronize down current file
 class SyncDownCurrent(sublime_plugin.TextCommand):
     def run(self, edit):
-        file_name = sublime.active_window().active_view().file_name()
+        file_path = sublime.active_window().active_view().file_name()
 
-        thread = RemoteSyncDownCall(file_name, getConfigFile(file_name), False, True)
-        threads.append(thread)
-        thread.start()
+        RemoteSyncDownCall(file_path, getConfigFile(file_path), False, True).start()
 
 
 # Synchronize down selected file/directory
 class FtpSyncDownTarget(sublime_plugin.TextCommand):
-    def run(self, edit, paths):
-        thread = RemoteSyncDownCall(getFiles(paths), None)
-        threads.append(thread)
-        thread.start()
-
-
-# Synchronize down selected file/directory
-class FtpSyncDownTargetForced(sublime_plugin.TextCommand):
-    def run(self, edit, paths):
-        thread = RemoteSyncDownCall(getFiles(paths), None, forced=True)
-        threads.append(thread)
-        thread.start()
+    def run(self, edit, paths, forced=False):
+        RemoteSyncDownCall(getFiles(paths), None, forced=forced).start()

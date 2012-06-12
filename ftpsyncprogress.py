@@ -25,18 +25,20 @@
 # @copyright (c) 2012 Jiri "NoxArt" Petruzelka
 # @link https://github.com/NoxArt/SublimeText2-FTPSync
 
-from math import ceil
+import math
 
 
+# Class implementing logic for progress bar
 class Progress:
-    def __init__(self, total, current=0):
-        self.total = total
+    def __init__(self, current=0):
         self.current = 0
-        self.entries = None
+        self.entries = []
 
-    def expand(self, count):
-        self.total += count
-
+    # Add unfinished entries to progress bar
+    #
+    # @type  self: Progress
+    # @type  entries: list
+    # @param entries: list of unfinished entries, usually strings
     def add(self, entries):
         if self.entries is None:
             self.entries = []
@@ -45,20 +47,35 @@ class Progress:
             if entry not in self.entries:
                 self.entries.append(entry)
 
-    def getTotal(self):
-        if self.entries is None:
-            return self.total
-        else:
-            return len(self.entries)
 
+    # Return number of items in the progress
+    #
+    # @type  self: Progress
+    # @return int
+    def getTotal(self):
+        return len(self.entries)
+
+
+    # Marked a certain number of entries as finished
+    #
+    # @type  self: Progress
+    # @type  by: integer
+    # @param by: number of finished items
     def progress(self, by=1):
         self.current += int(by)
 
         if self.current > self.getTotal():
             self.current = self.getTotal()
 
+
+    # Get percentage of the progress bar, maybe rounded, see @return
+    #
+    # @type  self: Progress
+    # @type  division: integer
+    # @param division: rounding amount
+    # @return integer between 0 and 100 / division
     def getPercent(self, division=5):
-        percent = int(ceil(float(self.current) / float(self.getTotal()) * 100))
-        percent = ceil(percent / division)
+        percent = int(math.ceil(float(self.current) / float(self.getTotal()) * 100))
+        percent = math.ceil(percent / division)
 
         return percent

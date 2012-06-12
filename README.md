@@ -7,8 +7,11 @@ Todo:
 * Need to solve multiple connections when downloading, uses the first successful one for the moment
 
 Recent:
-* Added loaded config verification
+* **Fixed issue #7 (with ports and possibly usernames)**
+* Fixed forced downloading
+* More refactoring, optimizations, fixes
 * Download only downloads new content or with different filesize, added _forced_ variant
+* Added loaded config verification
 
 Supports:
 * Multiple named upload targets
@@ -19,6 +22,7 @@ Supports:
 
 Current focus:
 * Remote vs local file _last\_updated_ detection
+* Resolving downloading from more locations
 * SFTP support
 
 To mark a folder and descendants for upload insert *ftpsync.settings* file in following format. Don't worry - the skeleton can be simply inserted using *Preferences > Package Settings > FTPSync > Setup FTPSync in this folder* or using context menu in Side bar or using Control/CMD+Shift+P.
@@ -42,7 +46,6 @@ To mark a folder and descendants for upload insert *ftpsync.settings* file in fo
         // <connection2_name>: { ... }
     }
 
-
 Files are automatically uploaded on save (unless disabled by setting).
 
 Released under MIT licence.
@@ -51,6 +54,8 @@ Feel free to add issues, ideas, pull requests...
 
 **@NoxArt**
 
+
+Thanks [castus](https://github.com/castus), [tommymarshall](https://github.com/tommymarshall), [TotallyInformation](https://github.com/TotallyInformation), [saiori](https://github.com/saiori), [vnabet](https://github.com/vnabet) and [Jcrs](https://github.com/Jcrs) for reporting issues, ideas and fixing!
 
 
 Tips
