@@ -1,7 +1,7 @@
 SublimeText2-FTPSync
 ====================
 
-Simple and free plugin for FTP syncing. Just hit the _save_ and it's upped.
+Simple and free plugin for FTP syncing. Just hit the _save_ as usual and it's upped.
 
 What's there for you?
 * Multiple named upload targets
@@ -46,14 +46,14 @@ Format:
         // <connection2_name>: { ... }
     }
 
-Files are automatically uploaded on save and on close (unless disabled by _upload\_on\_save_=false setting).
+Files are automatically uploaded **on save** and **on close** (unless disabled by _upload\_on\_save_=false setting).
 
 
 
 About
 -----
 
-Done by **@NoxArt**
+Done by **@NoxArt** ~ [Twitter](https://twitter.com/#!/NoxArt)
 
 Released under MIT licence.
 
