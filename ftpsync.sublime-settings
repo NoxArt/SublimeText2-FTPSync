@@ -12,6 +12,7 @@
 		"path": "/",
 
 		"tls": false,
+		"passive": true,
 		"upload_on_save": true,
 		"port": 21,
 		"timeout": 30,

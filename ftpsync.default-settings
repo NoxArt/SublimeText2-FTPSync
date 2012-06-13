@@ -19,6 +19,9 @@
 		// true = secured FTP connection
 		//"tls": false,
 
+		// set whether the connection will be passive or active
+		//"passive": true,
+
 		// true = upload on save, false = upload only manually
 		// "upload_on_save": true,
 

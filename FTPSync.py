@@ -305,40 +305,43 @@ def verifyConfig(config):
             return "Config is missing a {" + key + "} key"
 
     if config['username'] is not None and type(config['username']) is not str and type(config['username']) is not unicode:
-        return "Username must be null or string"
+        return "Config entry 'username' must be null or string, " + type(config['username']) + " given"
 
     if config['password'] is not None and type(config['password']) is not str and type(config['password']) is not unicode:
-        return "Password must be null or string"
+        return "Config entry 'password' must be null or string, " + type(config['password']) + " given"
 
     if config['private_key'] is not None and type(config['private_key']) is not str and type(config['private_key']) is not unicode:
-        return "Private_key must be null or string"
+        return "Config entry 'private_key' must be null or string, " + type(config['private_key']) + " given"
 
     if config['private_key_pass'] is not None and type(config['private_key_pass']) is not str and type(config['private_key_pass']) is not unicode:
-        return "Private_key_pass must be null or string"
+        return "Config entry 'private_key_pass' must be null or string, " + type(config['private_key_pass']) + " given"
 
     if config['ignore'] is not None and type(config['ignore']) is not str and type(config['ignore']) is not unicode:
-        return "Ignore must be null or string"
+        return "Config entry 'ignore' must be null or string, " + type(config['ignore']) + " given"
 
     if type(config['path']) is not str and type(config['path']) is not unicode:
-        return "Path must be a string"
+        return "Config entry 'path' must be a string, " + type(config['path']) + " given"
 
     if type(config['tls']) is not bool:
-        return "Tls must be bool"
+        return "Config entry 'tls' must be true or false, " + type(config['tls']) + " given"
+
+    if type(config['passive']) is not bool:
+        return "Config entry 'passive' must be true or false, " + type(config['passive']) + " given"
 
     if type(config['upload_on_save']) is not bool:
-        return "Upload_on_save must be bool"
+        return "Config entry 'upload_on_save' must be true or false, " + type(config['upload_on_save']) + " given"
 
     if type(config['check_time']) is not bool:
-        return "Check_time must be bool"
+        return "Config entry 'check_time' must be true or false, " + type(config['check_time']) + " given"
 
     if type(config['download_on_open']) is not bool:
-        return "Download_on_open must be bool"
+        return "Config entry 'download_on_open' must be true or false, " + type(config['download_on_open']) + " given"
 
     if type(config['port']) is not int:
-        return "Port must be an integer"
+        return "Config entry 'port' must be an integer, " + type(config['port']) + " given"
 
     if type(config['timeout']) is not int:
-        return "Timeout must be an integer"
+        return "Config entry 'timeout' must be an integer, " + type(config['timeout']) + " given"
 
     return True
 

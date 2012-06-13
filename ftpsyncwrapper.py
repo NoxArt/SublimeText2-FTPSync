@@ -100,7 +100,8 @@ class FTPSConnection(AbstractConnection):
             self.connection = ftplib.FTP()
 
     def connect(self):
-        return self.connection.connect(self.config['host'], int(self.config['port']), int(self.config['timeout']))
+        self.connection.connect(self.config['host'], int(self.config['port']), int(self.config['timeout']))
+        self.connection.set_pasv(self.config['passive'])
 
     def authenticate(self):
         if self.config['tls'] is True:
