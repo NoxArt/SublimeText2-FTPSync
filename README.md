@@ -1,10 +1,9 @@
 SublimeText2-FTPSync
 ====================
 
-Simple and free plugin for FTP syncing.
+Simple and free plugin for FTP syncing. Just hit the _save_ and it's upped.
 
 What's there for you?
-* Simple save -> upload scenario
 * Multiple named upload targets
 * Ignored file regex patterns
 * Secure transfer using TLS
@@ -38,8 +37,8 @@ Format:
 
             upload_on_save: true, // whether upload on save or manually
 
-    		port: {int=21},
-    		tls: {bool=false}, // use secured transfer, recommended! (server needs to support)
+    		port: {int=21}, // remote port, pretty much always 21, unless SFTP
+    		tls: {bool=false}, // set true to use secured transfer, recommended! (server needs to support)
             passive: {bool=true}, // whether to use passive or active connection
     		timeout: {int=30}, // seconds to invalidate the cached connection
     		ignore: {null|string} // regular expression, matched against file path - not applied for downloading
@@ -47,19 +46,18 @@ Format:
         // <connection2_name>: { ... }
     }
 
-Files are automatically uploaded on save and on close (unless disabled by _upload\_on\_save_=*false* setting).
+Files are automatically uploaded on save and on close (unless disabled by _upload\_on\_save_=false setting).
 
 
 
 About
 -----
 
+Done by **@NoxArt**
+
 Released under MIT licence.
 
 Feel free to add issues, ideas, pull requests...
-
-**@NoxArt**
-
 
 Thanks to [castus](https://github.com/castus), [tommymarshall](https://github.com/tommymarshall), [TotallyInformation](https://github.com/TotallyInformation), [saiori](https://github.com/saiori), [vnabet](https://github.com/vnabet) and [Jcrs](https://github.com/Jcrs) for reporting issues, ideas and fixing!
 
