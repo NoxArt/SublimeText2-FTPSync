@@ -305,43 +305,43 @@ def verifyConfig(config):
             return "Config is missing a {" + key + "} key"
 
     if config['username'] is not None and type(config['username']) is not str and type(config['username']) is not unicode:
-        return "Config entry 'username' must be null or string, " + type(config['username']) + " given"
+        return "Config entry 'username' must be null or string, " + str(type(config['username'])) + " given"
 
     if config['password'] is not None and type(config['password']) is not str and type(config['password']) is not unicode:
-        return "Config entry 'password' must be null or string, " + type(config['password']) + " given"
+        return "Config entry 'password' must be null or string, " + str(type(config['password'])) + " given"
 
     if config['private_key'] is not None and type(config['private_key']) is not str and type(config['private_key']) is not unicode:
-        return "Config entry 'private_key' must be null or string, " + type(config['private_key']) + " given"
+        return "Config entry 'private_key' must be null or string, " + str(type(config['private_key'])) + " given"
 
     if config['private_key_pass'] is not None and type(config['private_key_pass']) is not str and type(config['private_key_pass']) is not unicode:
-        return "Config entry 'private_key_pass' must be null or string, " + type(config['private_key_pass']) + " given"
+        return "Config entry 'private_key_pass' must be null or string, " + str(type(config['private_key_pass'])) + " given"
 
     if config['ignore'] is not None and type(config['ignore']) is not str and type(config['ignore']) is not unicode:
-        return "Config entry 'ignore' must be null or string, " + type(config['ignore']) + " given"
+        return "Config entry 'ignore' must be null or string, " + str(type(config['ignore'])) + " given"
 
     if type(config['path']) is not str and type(config['path']) is not unicode:
-        return "Config entry 'path' must be a string, " + type(config['path']) + " given"
+        return "Config entry 'path' must be a string, " + str(type(config['path'])) + " given"
 
     if type(config['tls']) is not bool:
-        return "Config entry 'tls' must be true or false, " + type(config['tls']) + " given"
+        return "Config entry 'tls' must be true or false, " + str(type(config['tls'])) + " given"
 
     if type(config['passive']) is not bool:
-        return "Config entry 'passive' must be true or false, " + type(config['passive']) + " given"
+        return "Config entry 'passive' must be true or false, " + str(type(config['passive'])) + " given"
 
     if type(config['upload_on_save']) is not bool:
-        return "Config entry 'upload_on_save' must be true or false, " + type(config['upload_on_save']) + " given"
+        return "Config entry 'upload_on_save' must be true or false, " + str(type(config['upload_on_save'])) + " given"
 
     if type(config['check_time']) is not bool:
-        return "Config entry 'check_time' must be true or false, " + type(config['check_time']) + " given"
+        return "Config entry 'check_time' must be true or false, " + str(type(config['check_time'])) + " given"
 
     if type(config['download_on_open']) is not bool:
-        return "Config entry 'download_on_open' must be true or false, " + type(config['download_on_open']) + " given"
+        return "Config entry 'download_on_open' must be true or false, " + str(type(config['download_on_open'])) + " given"
 
     if type(config['port']) is not int:
-        return "Config entry 'port' must be an integer, " + type(config['port']) + " given"
+        return "Config entry 'port' must be an integer, " + str(type(config['port'])) + " given"
 
     if type(config['timeout']) is not int:
-        return "Config entry 'timeout' must be an integer, " + type(config['timeout']) + " given"
+        return "Config entry 'timeout' must be an integer, " + str(type(config['timeout'])) + " given"
 
     return True
 
@@ -627,6 +627,60 @@ def performSync(file_path, config_file, onSave, disregardIgnore=False, progress=
         usingConnections.remove(config_hash)
 
 
+# Uploads given file
+def performSyncRename(file_path, config_file, new_name):
+    config = loadConfig(config_file)
+    basename = os.path.basename(file_path)
+    dirname = os.path.dirname(file_path)
+    config_hash = getFilepathHash(config_file)
+    connections = getConnection(config_hash, config)
+
+    usingConnections.append(config_hash)
+
+    index = -1
+    stored = []
+    failed = False
+
+    for name in config['connections']:
+        index += 1
+
+        try:
+            connections[index]
+        except IndexError:
+            continue
+
+        try:
+            uploaded = connections[index].rename(file_path, new_name)
+
+            if type(uploaded) is str or type(uploaded) is unicode:
+                stored.append(uploaded)
+                printMessage("renamed " + basename + " -> " + new_name, name)
+
+            else:
+                failed = type(uploaded)
+
+            os.rename(file_path, os.path.join(dirname, new_name))
+
+        except Exception, e:
+            failed = e
+
+            print e
+
+        if failed:
+            message = "renaming failed: (" + basename + " -> " + new_name + ")"
+
+            if type(failed) is Exception:
+                message += "<Exception: " + str(failed) + ">"
+
+            printMessage(message, name, False, True)
+
+    if len(stored) > 0:
+        dumpMessage(getProgressMessage(stored, progress, "renamed", basename + " -> " + new_name))
+
+    if config_hash in usingConnections:
+        usingConnections.remove(config_hash)
+
+
 # Downloads given file
 def performSyncDown(file_path, config_file, disregardIgnore=False, progress=None, isDir=None,forced=False,skip=False):
     if progress is not None and isDir is not True:
@@ -669,7 +723,7 @@ def performSyncDown(file_path, config_file, disregardIgnore=False, progress=None
 
                 for entry in contents:
                     if entry['isDir'] is False:
-                        progress.add([entry['name']])
+                        progress.add([os.path.join(file_path, entry['name'])])
 
                 for entry in contents:
                     if entry['isDir'] is True:
@@ -807,6 +861,18 @@ class RemoteSyncDownCall(threading.Thread):
                 performSyncDown(file_path, config, self.disregardIgnore, progress, forced=self.forced)
 
 
+# Remote handling
+class RemoteSyncRename(threading.Thread):
+    def __init__(self, file_path, config, new_name):
+        self.file_path = file_path
+        self.new_name = new_name
+        self.config = config
+        threading.Thread.__init__(self)
+
+    def run(self):
+        performSyncRename(self.file_path, self.config, self.new_name)
+
+
 # Sets up a config file in a directory
 class NewFtpSyncCommand(sublime_plugin.TextCommand):
     def run(self, edit, dirs):
@@ -868,3 +934,25 @@ class SyncDownCurrent(sublime_plugin.TextCommand):
 class FtpSyncDownTarget(sublime_plugin.TextCommand):
     def run(self, edit, paths, forced=False):
         RemoteSyncDownCall(getFiles(paths), None, forced=forced).start()
+
+
+# Renames a file on disk and in folder
+class SyncRename(sublime_plugin.TextCommand):
+    def run(self, edit, paths):
+        self.original_path = paths[0]
+        self.folder = os.path.dirname(self.original_path)
+        self.original_name = os.path.basename(self.original_path)
+
+        self.view.window().show_input_panel('Enter new name', self.original_name, self.rename, None, None)
+
+    def rename(self, new_name):
+        RemoteSyncRename(self.original_path, getConfigFile(self.original_path), new_name)
+
+
+# { "caption": "Rename", "command": "sync_rename", "args": {"paths": []} },
+# { "caption": "-" },
+
+# Removes all the files in the given folder that are in the given folder but not on server
+class SyncDeleteLocal(sublime_plugin.TextCommand):
+    def run(self, edit, paths):
+        pass
