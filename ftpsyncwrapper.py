@@ -25,10 +25,19 @@
 # @copyright (c) 2012 Jiri "NoxArt" Petruzelka
 # @link https://github.com/NoxArt/SublimeText2-FTPSync
 
+# ==== Libraries ===========================================================================
+
+# Python's built-in libraries
 import ftplib
 import os
 import re
 import time
+
+# FTPSync libraries
+from ftpsyncfiles import Metafile
+
+
+# ==== Initialization and optimization =====================================================
 
 # to extract data from FTP LIST http://stackoverflow.com/questions/2443007/ftp-list-format
 ftpListParse = re.compile("^([d-])[rxws-]{9}\s+\d+\s+\d+\s+\d+\s+(\d+)\s+(\w{1,3}\s+\d+\s+(?:\d+:\d+|\d{2,4}))\s+(.*?)$", re.M | re.I | re.U | re.L)
@@ -42,6 +51,8 @@ ftpErrors = {
     'cwdNoFileOrDirectory': 550
 }
 
+
+# ==== Content =============================================================================
 
 # Factory function - returns and instance of a proper class based on the configuration
 # currently differs between FTP(S) and SFTP
@@ -200,15 +211,10 @@ class FTPSConnection(AbstractConnection):
             lastModified = split.group(3)
             name = split.group(4)
 
-            content = {
-                'name': name,
-                'filesize': int(filesize),
-                'lastModified': self.parseTime(lastModified),
-                'isDir': isDir
-            }
+            data = Metafile(name, isDir, filesize, self.parseTime(lastModified))
 
             if name != "." and name != "..":
-                result.append(content)
+                result.append(data)
 
         return result
 

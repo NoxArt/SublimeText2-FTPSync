@@ -25,6 +25,9 @@
 # @copyright (c) 2012 Jiri "NoxArt" Petruzelka
 # @link https://github.com/NoxArt/SublimeText2-FTPSync
 
+# ==== Libraries ===========================================================================
+
+# Python's built-in libraries
 import math
 
 

@@ -45,6 +45,7 @@ import re
 # FTPSync libraries
 from ftpsyncwrapper import CreateConnection
 from ftpsyncprogress import Progress
+from ftpsyncfiles import getFolders, findFile, getFiles
 
 
 # ==== Initialization and optimization =====================================================
@@ -82,10 +83,6 @@ configName = 'ftpsync.settings'
 connectionDefaultsFilename = 'ftpsync.default-settings'
 # timeout for a Sublime status bar messages [ms]
 messageTimeout = 250
-# limit for breaking down a filepath structure when looking for config files
-nestingLimit = 30
-# difference in time when comes to local vs remote {last modified} [s]
-timeDifferenceTolerance = 2
 # comment removing regexp
 removeLineComment = re.compile('//.*', re.I)
 
@@ -143,74 +140,6 @@ def printMessage(text, name=None, onlyVerbose=False, status=False):
 
     if status:
         dumpMessage(message)
-
-
-# ==== File&folders ========================================================================
-
-# Get all folders paths from given path upwards
-#
-# @type  file_path: string
-# @param file_path: absolute file path to return the paths from
-#
-# @return list<string> of file paths
-#
-# @global nestingLimit
-def getFolders(file_path):
-    folders = [file_path]
-    limit = nestingLimit
-
-    while True:
-        split = os.path.split(file_path)
-
-        # nothing found
-        if len(split) == 0:
-            break
-
-        # get filepath
-        file_path = split[0]
-        limit -= 1
-
-        # nothing else remains
-        if len(split[1]) == 0 or limit < 0:
-            break
-
-        folders.append(split[0])
-
-    return folders
-
-
-# Finds a real file path among given folder paths
-# and returns the path or None
-#
-# @type  folders: list<string>
-# @param folders: list of paths to folders to look into
-# @type  file_name: string
-# @param file_name: file name to search
-#
-# @return string file path or None
-def findFile(folders, file_name):
-    for folder in folders:
-        if os.path.exists(os.path.join(folder, file_name)) is True:
-            return folder
-
-    return None
-
-
-# Returns unique list of file paths with corresponding config
-#
-# @type  folders: list<string>
-# @param folders: list of paths to folders to filter
-#
-# @return list<string> of file paths
-def getFiles(paths):
-    files = []
-    fileNames = []
-
-    for target in paths:
-        if target not in fileNames:
-            files.append([target, getConfigFile(target)])
-
-    return files
 
 
 # ==== Config =============================================================================
@@ -519,6 +448,9 @@ def closeConnection(hash):
         printMessage("Error closing connection: connection hash must be a string, " + str(type(hash)) + " given")
         return
 
+    if hash not in connections:
+        return
+
     try:
         for connection in connections[hash]:
             connection.close(connections, hash)
@@ -562,17 +494,24 @@ def getProgressMessage(stored, progress, action, basename):
 
 
 # Uploads given file
-def performSync(file_path, config_file, onSave, disregardIgnore=False, progress=None):
+#
+# @type file_path: string
+# @type config_file_path: string
+# @type onSave: bool
+# @param onSave: whether this is a regular upload or upload on save
+# @type disregardIgnore: bool
+# @type progress: Progress
+def performSync(file_path, config_file_path, onSave, disregardIgnore=False, progress=None):
     if progress is not None:
         progress.progress()
 
-    config = loadConfig(config_file)
+    config = loadConfig(config_file_path)
     basename = os.path.basename(file_path)
 
     if disregardIgnore is False and ignore is not None and re_ignore.search(file_path) is not None:
         return printMessage("file globally ignored: " + basename, onlyVerbose=True)
 
-    config_hash = getFilepathHash(config_file)
+    config_hash = getFilepathHash(config_file_path)
     connections = getConnection(config_hash, config)
 
     usingConnections.append(config_hash)
@@ -627,7 +566,7 @@ def performSync(file_path, config_file, onSave, disregardIgnore=False, progress=
         usingConnections.remove(config_hash)
 
 
-# Uploads given file
+# Renames given file
 def performSyncRename(file_path, config_file, new_name):
     config = loadConfig(config_file)
     basename = os.path.basename(file_path)
@@ -682,17 +621,28 @@ def performSyncRename(file_path, config_file, new_name):
 
 
 # Downloads given file
-def performSyncDown(file_path, config_file, disregardIgnore=False, progress=None, isDir=None,forced=False,skip=False):
+#
+# @type file_path: string
+# @type config_file_path: string
+# @type disregardIgnore: bool
+# @type progress: Progress
+# @type isDir: bool
+# @param isDir: whether the downloaded entry is a folder
+# @type forced: bool
+# @param forced: whether it should download even if older or same size
+# @type skip: bool
+# @param skip: used with forced=False, should skip the download (the rest is needed though, for progress etc.)
+def performSyncDown(file_path, config_file_path, disregardIgnore=False, progress=None, isDir=None,forced=False,skip=False):
     if progress is not None and isDir is not True:
         progress.progress()
 
-    config = loadConfig(config_file)
+    config = loadConfig(config_file_path)
     basename = os.path.basename(file_path)
 
     if disregardIgnore is False and ignore is not None and re_ignore.search(file_path) is not None:
         return printMessage("file globally ignored: " + basename, onlyVerbose=True)
 
-    config_hash = getFilepathHash(config_file)
+    config_hash = getFilepathHash(config_file_path)
     connections = getConnection(config_hash, config)
 
     usingConnections.append(config_hash)
@@ -722,19 +672,21 @@ def performSyncDown(file_path, config_file, disregardIgnore=False, progress=None
                     os.mkdir(file_path)
 
                 for entry in contents:
-                    if entry['isDir'] is False:
-                        progress.add([os.path.join(file_path, entry['name'])])
+                    if entry.isDirectory() is False:
+                        progress.add([entry.getName()])
 
                 for entry in contents:
-                    if entry['isDir'] is True:
-                        performSyncDown(os.path.join(file_path, entry['name']), config_file, disregardIgnore, progress, True, forced=forced)
+                    full_name = os.path.join(file_path, entry.getName())
+
+                    if entry.isDirectory() is True:
+                        performSyncDown(full_name, config_file_path, disregardIgnore, progress, True, forced=forced)
                     else:
                         completed = False
 
-                        if not forced and compareFilesDirect(os.path.join(file_path, entry['name']), entry, True, True) is False:
+                        if not forced and entry.isNewerThan(full_name) is False:
                             completed = True
 
-                        performSyncDown(os.path.join(file_path, entry['name']), config_file, disregardIgnore, progress, forced=forced, skip=completed)
+                        performSyncDown(full_name, config_file_path, disregardIgnore, progress, forced=forced, skip=completed)
 
                 return
             else:
@@ -770,28 +722,6 @@ def performSyncDown(file_path, config_file, disregardIgnore=False, progress=None
 
     if config_hash in usingConnections:
         usingConnections.remove(config_hash)
-
-
-def compareFilesDirect(file_path, properties, newer, larger, both=False):
-    if os.path.exists(file_path) is False:
-        return True
-
-    lastModified = os.path.getmtime(file_path)
-    filesize = os.path.getsize(file_path)
-
-    isNewer = lastModified - properties['lastModified'] < timeDifferenceTolerance
-    isDifferentSize = properties['filesize'] != filesize
-
-    if both and isNewer and isDifferentSize:
-        return True
-
-    if not both and newer and isNewer:
-        return True
-
-    if not both and larger and isDifferentSize:
-        return True
-
-    return False
 
 
 # File watching
@@ -933,11 +863,11 @@ class SyncDownCurrent(sublime_plugin.TextCommand):
 # Synchronize down selected file/directory
 class FtpSyncDownTarget(sublime_plugin.TextCommand):
     def run(self, edit, paths, forced=False):
-        RemoteSyncDownCall(getFiles(paths), None, forced=forced).start()
+        RemoteSyncDownCall(getFiles(paths, getConfigFile), None, forced=forced).start()
 
 
 # Renames a file on disk and in folder
-class SyncRename(sublime_plugin.TextCommand):
+class FtpSyncRename(sublime_plugin.TextCommand):
     def run(self, edit, paths):
         self.original_path = paths[0]
         self.folder = os.path.dirname(self.original_path)
@@ -948,9 +878,6 @@ class SyncRename(sublime_plugin.TextCommand):
     def rename(self, new_name):
         RemoteSyncRename(self.original_path, getConfigFile(self.original_path), new_name)
 
-
-# { "caption": "Rename", "command": "sync_rename", "args": {"paths": []} },
-# { "caption": "-" },
 
 # Removes all the files in the given folder that are in the given folder but not on server
 class SyncDeleteLocal(sublime_plugin.TextCommand):
