@@ -501,7 +501,74 @@ def getProgressMessage(stored, progress, action, basename):
 # @param onSave: whether this is a regular upload or upload on save
 # @type disregardIgnore: bool
 # @type progress: Progress
-def performSync(file_path, config_file_path, onSave, disregardIgnore=False, progress=None):
+# @type whitelistConnections: list<connection_name: string>
+# @param whitelistConnections: if not empty then only these connection names can be used
+#
+# @return [{ connection: string (connection_name), metadata: Metafile }]
+def getRemoteMetadata(file_path, config_file_path, whitelistConnections=[]):
+    config = loadConfig(config_file_path)
+    basename = os.path.basename(file_path)
+
+    if ignore is not None and re_ignore.search(file_path) is not None:
+        return []
+
+    config_hash = getFilepathHash(config_file_path)
+    connections = getConnection(config_hash, config)
+
+    usingConnections.append(config_hash)
+
+    index = -1
+    failed = False
+    results = []
+
+    for name in config['connections']:
+        index += 1
+
+        if len(whitelistConnections) > 0 and name not in whitelistConnections:
+            continue
+
+        try:
+            connections[index]
+        except IndexError:
+            continue
+
+        try:
+            results.append({
+                'connection': name,
+                'metadata': connections[index].list(file_path)[0]
+            })
+
+        except Exception, e:
+            failed = e
+
+            print e
+
+        finally:
+            if failed:
+                message = "getting metadata failed: (" + basename + ")"
+
+                if type(failed) is Exception:
+                    message += "<Exception: " + str(failed) + ">"
+
+                printMessage(message, name, False, True)
+
+    if config_hash in usingConnections:
+        usingConnections.remove(config_hash)
+
+    return results
+
+
+# Uploads given file
+#
+# @type file_path: string
+# @type config_file_path: string
+# @type onSave: bool
+# @param onSave: whether this is a regular upload or upload on save
+# @type disregardIgnore: bool
+# @type progress: Progress
+# @type whitelistConnections: list<connection_name: string>
+# @param whitelistConnections: if not empty then only these connection names can be used
+def performSync(file_path, config_file_path, onSave, disregardIgnore=False, progress=None, whitelistConnections=[]):
     if progress is not None:
         progress.progress()
 
@@ -522,6 +589,9 @@ def performSync(file_path, config_file_path, onSave, disregardIgnore=False, prog
 
     for name in config['connections']:
         index += 1
+
+        if len(whitelistConnections) > 0 and name not in whitelistConnections:
+            continue
 
         try:
             connections[index]
@@ -632,7 +702,9 @@ def performSyncRename(file_path, config_file, new_name):
 # @param forced: whether it should download even if older or same size
 # @type skip: bool
 # @param skip: used with forced=False, should skip the download (the rest is needed though, for progress etc.)
-def performSyncDown(file_path, config_file_path, disregardIgnore=False, progress=None, isDir=None,forced=False,skip=False):
+# @type whitelistConnections: list<connection_name: string>
+# @param whitelistConnections: if not empty then only these connection names can be used
+def performSyncDown(file_path, config_file_path, disregardIgnore=False, progress=None, isDir=None,forced=False,skip=False, whitelistConnections=[]):
     if progress is not None and isDir is not True:
         progress.progress()
 
@@ -653,6 +725,9 @@ def performSyncDown(file_path, config_file_path, disregardIgnore=False, progress
 
     for name in config['connections']:
         index += 1
+
+        if len(whitelistConnections) > 0 and name not in whitelistConnections:
+            continue
 
         try:
             connections[index]
@@ -731,20 +806,75 @@ class RemoteSync(sublime_plugin.EventListener):
         RemoteSyncCall(file_path, getConfigFile(file_path), True).start()
 
     def on_close(self, view):
-        config_file = getConfigFile(view.file_name())
+        config_file_path = getConfigFile(view.file_name())
 
-        if config_file is not None:
-            hash = getFilepathHash(config_file)
-            closeConnection(hash)
+        if config_file_path is not None:
+            closeConnection(getFilepathHash(config_file_path))
+
+    # When a file is loaded and at least 1 connection has download_on_open enabled
+    # it will check those enabled if the remote version is newer and offers the newest to download
+    def on_load(self, view):
+        file_path = view.file_name()
+        config_file_path = getConfigFile(file_path)
+        config = loadConfig(config_file_path)
+        checking = []
+
+        for name in config['connections']:
+            if config['connections'][name]['download_on_open'] is True:
+                checking.append(name)
+
+        if len(checking) is 0:
+            return
+
+        metadata = getRemoteMetadata(file_path, config_file_path)
+
+        newest = []
+
+        for entry in metadata:
+            if entry['metadata'].isNewerThan(file_path):
+                newest.append(entry)
+
+        if len(newest) > 0 and view.window() is not None:
+            sorted(newest, key=lambda entry: entry['metadata'].getLastModified())
+            newest.reverse()
+
+            def sync(index):
+                if index is 1:
+                    self.sync(file_path, newest[index - 1]['connection'])
+
+            filesize = os.path.getsize(file_path)
+            items = ["Keep current (older, " + str(round(float(os.path.getsize(file_path)) / 1024, 3)) + " kB)"]
+            index = 1
+
+            for item in newest:
+                item_filesize = item['metadata'].getFilesize()
+
+                if item_filesize == filesize:
+                    item_filesize = "same size"
+                else:
+                    if item_filesize > filesize:
+                        item_filesize = "larger: " + str(round(item_filesize / 1024, 3)) + " kB"
+                    else:
+                        item_filesize = "smaller: " + str(round(item_filesize / 1024, 3)) + " kB"
+
+                items.append(["Download newer from <" + item['connection'] + "> (" + item_filesize + ")"])
+                index += 1
+
+            view.window().show_quick_panel(items, sync)
+
+    def sync(self, file_path, connection):
+        RemoteSyncDownCall(file_path, getConfigFile(file_path), True, whitelistConnections=connection).start()
+
 
 
 # Remote handling
 class RemoteSyncCall(threading.Thread):
-    def __init__(self, file_path, config, onSave, disregardIgnore=False):
+    def __init__(self, file_path, config, onSave, disregardIgnore=False, whitelistConnections=[]):
         self.file_path = file_path
         self.config = config
         self.onSave = onSave
         self.disregardIgnore = disregardIgnore
+        self.whitelistConnections = whitelistConnections
         threading.Thread.__init__(self)
 
     def run(self):
@@ -754,22 +884,23 @@ class RemoteSyncCall(threading.Thread):
             return False
 
         if type(target) is str or type(target) is unicode:
-            performSync(target, self.config, self.onSave, self.disregardIgnore)
+            performSync(target, self.config, self.onSave, self.disregardIgnore, whitelistConnections=self.whitelistConnections)
         elif type(target) is list:
             total = len(target)
             progress = Progress(total)
 
             for file_path, config in target:
-                performSync(file_path, config, self.onSave, self.disregardIgnore, progress)
+                performSync(file_path, config, self.onSave, self.disregardIgnore, progress, whitelistConnections=self.whitelistConnections)
 
 
 # Remote handling
 class RemoteSyncDownCall(threading.Thread):
-    def __init__(self, file_path, config, disregardIgnore=False,forced=False):
+    def __init__(self, file_path, config, disregardIgnore=False,forced=False,whitelistConnections=[]):
         self.file_path = file_path
         self.config = config
         self.disregardIgnore = disregardIgnore
         self.forced = forced
+        self.whitelistConnections=[]
         threading.Thread.__init__(self)
 
     def run(self):
@@ -779,7 +910,7 @@ class RemoteSyncDownCall(threading.Thread):
             return False
 
         if type(target) is str or type(target) is unicode:
-            performSyncDown(target, self.config, self.disregardIgnore, forced=self.forced)
+            performSyncDown(target, self.config, self.disregardIgnore, forced=self.forced, whitelistConnections=self.whitelistConnections)
         else:
             total = len(target)
             progress = Progress(total)
@@ -788,7 +919,7 @@ class RemoteSyncDownCall(threading.Thread):
                 if os.path.isfile(file_path):
                     progress.add([file_path])
 
-                performSyncDown(file_path, config, self.disregardIgnore, progress, forced=self.forced)
+                performSyncDown(file_path, config, self.disregardIgnore, progress, forced=self.forced, whitelistConnections=self.whitelistConnections)
 
 
 # Remote handling

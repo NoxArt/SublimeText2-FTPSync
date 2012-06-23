@@ -56,6 +56,12 @@ class Metafile:
     def isDirectory(self):
         return self.isDir
 
+    def getLastModified(self):
+        return self.lastModified
+
+    def getFilesize(self):
+        return self.filesize
+
     def isNewerThan(self, file_path):
         if os.path.exists(file_path) is False:
             return True
