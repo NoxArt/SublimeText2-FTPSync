@@ -46,7 +46,7 @@ import copy
 # FTPSync libraries
 from ftpsyncwrapper import CreateConnection
 from ftpsyncprogress import Progress
-from ftpsyncfiles import getFolders, findFile, getFiles
+from ftpsyncfiles import getFolders, findFile, getFiles, formatTimestamp
 
 
 # ==== Initialization and optimization =====================================================
@@ -892,14 +892,14 @@ def performRemoteCheck(file_path, window, forced=False):
         every.extend(extra)
 
         sorted(every, key=lambda entry: entry['metadata'].getLastModified())
-        every.reverse()
+        #every.reverse()
 
         def sync(index):
             if index is 1:
                 RemoteSyncDownCall(file_path, getConfigFile(file_path), True, whitelistConnections=[newest[index - 1]['connection']]).start()
 
         filesize = os.path.getsize(file_path)
-        items = ["Keep current (older, " + str(round(float(os.path.getsize(file_path)) / 1024, 3)) + " kB)"]
+        items = ["Keep current (" + str(round(float(os.path.getsize(file_path)) / 1024, 3)) + " kB | " + formatTimestamp(os.path.getmtime(file_path)) + ")"]
         index = 1
 
         for item in every:

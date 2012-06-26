@@ -60,8 +60,8 @@ class Metafile:
     def getLastModified(self):
         return self.lastModified
 
-    def getLastModifiedFormatted(self, format='%Y-%m-%d %H:%M:%S'):
-        return datetime.datetime.fromtimestamp(int(self.lastModified)).strftime(format)
+    def getLastModifiedFormatted(self, format='%Y-%m-%d %H:%M'):
+        return formatTimestamp(self.lastModified, format)
 
     def getFilesize(self):
         return self.filesize
@@ -78,6 +78,16 @@ class Metafile:
 
         return self.filesize != os.path.getsize(file_path)
 
+
+# Returns a timestamp formatted for humans
+#
+# @type timestamp: int|float
+# @type format: string
+# @param format: see http://docs.python.org/library/time.html#time.strftime
+#
+# @return string
+def formatTimestamp(timestamp, format='%Y-%m-%d %H:%M'):
+    return datetime.datetime.fromtimestamp(int(timestamp)).strftime(format)
 
 
 # Get all folders paths from given path upwards
