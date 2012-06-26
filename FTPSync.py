@@ -834,7 +834,7 @@ def performSyncDown(file_path, config_file_path, disregardIgnore=False, progress
         usingConnections.remove(config_hash)
 
 
-def performRemoteCheck(file_path, window):
+def performRemoteCheck(file_path, window, forced=False):
     if type(file_path) is not str and type(file_path) is not unicode:
         return
 
@@ -848,12 +848,13 @@ def performRemoteCheck(file_path, window):
     config = loadConfig(config_file_path)
     checking = []
 
-    for name in config['connections']:
-        if config['connections'][name]['download_on_open'] is True:
-            checking.append(name)
+    if forced is False:
+        for name in config['connections']:
+            if config['connections'][name]['download_on_open'] is True:
+                checking.append(name)
 
-    if len(checking) is 0:
-        return
+        if len(checking) is 0:
+            return
 
     metadata = getRemoteMetadata(file_path, config_file_path)
 
@@ -911,6 +912,8 @@ def performRemoteCheck(file_path, window):
             index += 1
 
         window.show_quick_panel(items, sync)
+    else:
+        printMessage("All remote versions are of same size and older", status=True)
 
 
 
@@ -931,13 +934,12 @@ class RemoteSync(sublime_plugin.EventListener):
     # When a file is loaded and at least 1 connection has download_on_open enabled
     # it will check those enabled if the remote version is newer and offers the newest to download
     def on_load(self, view):
-        performRemoteCheck(view.file_name(), view.window())
+        RemoteSyncCheck(view.file_name(), view.window())
 
 
 
 # ==== Threading ===========================================================================
 
-# Remote handling
 class RemoteSyncCall(threading.Thread):
     def __init__(self, file_path, config, onSave, disregardIgnore=False, whitelistConnections=[]):
         self.file_path = file_path
@@ -963,7 +965,6 @@ class RemoteSyncCall(threading.Thread):
                 performSync(file_path, config, self.onSave, self.disregardIgnore, progress, whitelistConnections=self.whitelistConnections)
 
 
-# Remote handling
 class RemoteSyncDownCall(threading.Thread):
     def __init__(self, file_path, config, disregardIgnore=False,forced=False,whitelistConnections=[]):
         self.file_path = file_path
@@ -992,7 +993,6 @@ class RemoteSyncDownCall(threading.Thread):
                 performSyncDown(file_path, config, self.disregardIgnore, progress, forced=self.forced, whitelistConnections=self.whitelistConnections)
 
 
-# Remote handling
 class RemoteSyncRename(threading.Thread):
     def __init__(self, file_path, config, new_name):
         self.file_path = file_path
@@ -1002,6 +1002,17 @@ class RemoteSyncRename(threading.Thread):
 
     def run(self):
         performSyncRename(self.file_path, self.config, self.new_name)
+
+
+class RemoteSyncCheck(threading.Thread):
+    def __init__(self, file_path, window, forced=False):
+        self.file_path = file_path
+        self.window = window
+        self.forced = forced
+        threading.Thread.__init__(self)
+
+    def run(self):
+        performRemoteCheck(self.file_path, self.window, self.forced)
 
 
 
@@ -1070,7 +1081,7 @@ class FtpSyncCheckCurrent(sublime_plugin.TextCommand):
         file_path = sublime.active_window().active_view().file_name()
         view = sublime.active_window()
 
-        performRemoteCheck(file_path, view)
+        RemoteSyncCheck(file_path, view, True).start()
 
 
 # Synchronize down selected file/directory
