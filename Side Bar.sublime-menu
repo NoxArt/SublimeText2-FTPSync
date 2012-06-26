@@ -8,8 +8,6 @@
 			{ "caption": "Download", "command": "ftp_sync_down_target", "args": {"paths": []} },
 			{ "caption": "Download Forced", "command": "ftp_sync_down_target", "args": {"paths": [], "forced": true} },
 			{ "caption": "-" },
-			{ "caption": "Rename", "command": "ftp_sync_rename", "args": {"paths": []} },
-			{ "caption": "-" },
 			{ "caption": "Setup FTPSync in this folder", "command": "new_ftp_sync", "args": {"dirs": []} }
 		]
 	}

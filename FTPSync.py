@@ -859,7 +859,10 @@ def performRemoteCheck(file_path, window):
         else:
             oldest.append(entry)
 
-    if len(newest) > 0 and window is not None:
+            if entry['metadata'].isDifferentSizeThan(file_path):
+                every.append(entry)
+
+    if len(every) > 0 and window is not None:
         sorted(newest, key=lambda entry: entry['metadata'].getLastModified())
         newest.reverse()
 
