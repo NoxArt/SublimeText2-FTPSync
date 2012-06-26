@@ -851,9 +851,11 @@ def performRemoteCheck(file_path, window, forced=False):
     if window is None:
         return
 
+    printMessage("Checking " + os.path.basename(file_path) + " if up-to-date", status=True)
+
     config_file_path = getConfigFile(file_path)
     if config_file_path is None:
-        return printMessage("Found no config > for file: " + file_path)
+        return printMessage("Found no config > for file: " + file_path, status=forced)
 
     config = loadConfig(config_file_path)
     checking = []
@@ -921,7 +923,7 @@ def performRemoteCheck(file_path, window, forced=False):
             items.append(["Get from <" + item['connection'] + "> (" + item_filesize + " | " + time + ")"])
             index += 1
 
-        window.show_quick_panel(items, sync)
+        sublime.set_timeout(lambda: window.show_quick_panel(items, sync), 1)
     else:
         printMessage("All remote versions are of same size and older", status=True)
 
