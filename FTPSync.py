@@ -375,7 +375,7 @@ def getConnection(hash, config):
         valid = True
         index = 0
         for name in config['connections']:
-            if getConfigHash(connections[hash][index].config) != getConfigHash(config['connections'][name]):
+            if getObjectHash(connections[hash][index].config) != getObjectHash(config['connections'][name]):
                 valid = False
 
             index += 1
@@ -835,7 +835,16 @@ def performSyncDown(file_path, config_file_path, disregardIgnore=False, progress
 
 
 def performRemoteCheck(file_path, window):
+    if type(file_path) is not str and type(file_path) is not unicode:
+        return
+
+    if window is None:
+        return
+
     config_file_path = getConfigFile(file_path)
+    if config_file_path is None:
+        return printMessage("Found no config > for file: " + file_path)
+
     config = loadConfig(config_file_path)
     checking = []
 
@@ -866,7 +875,7 @@ def performRemoteCheck(file_path, window):
         if entry not in every:
             extra.append(entry)
 
-    if len(every) > 0 and window is not None:
+    if len(every) > 0:
         every.extend(extra)
 
         sorted(every, key=lambda entry: entry['metadata'].getLastModified())
