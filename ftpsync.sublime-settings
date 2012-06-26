@@ -2,6 +2,7 @@
 	"debug": true,
 	"debug_verbose": true,
 	"connection_timeout": 100,
+	"time_format": "%Y-%m-%d %H:%M",
 
 	"project_defaults_name": "default",
 	"project_defaults": {

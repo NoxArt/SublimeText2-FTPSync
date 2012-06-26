@@ -6,10 +6,14 @@
     },
     {
         "caption": "FTPSync: Upload current file",
-        "command": "sync_current"
+        "command": "ftp_sync_current"
     },
     {
         "caption": "FTPSync: Download current file",
-        "command": "sync_down_current"
+        "command": "ftp_sync_down_current"
+    },
+    {
+        "caption": "FTPSync: Check current file",
+        "command": "ftp_sync_check_current"
     }
 ]

@@ -63,7 +63,8 @@ isDebugVerbose = settings.get('debug_verbose')
 projectDefaults = settings.get('project_defaults').items()
 # global ignore pattern
 ignore = settings.get('ignore')
-
+# time format settings
+time_format = settings.get('time_format')
 
 # loaded project's config will be merged with this global one
 coreConfig = {
@@ -833,6 +834,73 @@ def performSyncDown(file_path, config_file_path, disregardIgnore=False, progress
         usingConnections.remove(config_hash)
 
 
+def performRemoteCheck(file_path, window):
+    config_file_path = getConfigFile(file_path)
+    config = loadConfig(config_file_path)
+    checking = []
+
+    for name in config['connections']:
+        if config['connections'][name]['download_on_open'] is True:
+            checking.append(name)
+
+    if len(checking) is 0:
+        return
+
+    metadata = getRemoteMetadata(file_path, config_file_path)
+
+    newest = []
+    oldest = []
+    every = []
+
+    for entry in metadata:
+        if entry['metadata'].isNewerThan(file_path):
+            newest.append(entry)
+            every.append(entry)
+        else:
+            oldest.append(entry)
+
+    if len(newest) > 0 and window is not None:
+        sorted(newest, key=lambda entry: entry['metadata'].getLastModified())
+        newest.reverse()
+
+        sorted(oldest, key=lambda entry: entry['metadata'].getLastModified())
+        oldest.reverse()
+
+        every.extend(oldest)
+
+        def sync(index):
+            if index is 1:
+                RemoteSyncDownCall(file_path, getConfigFile(file_path), True, whitelistConnections=[newest[index - 1]['connection']]).start()
+
+        filesize = os.path.getsize(file_path)
+        items = ["Keep current (older, " + str(round(float(os.path.getsize(file_path)) / 1024, 3)) + " kB)"]
+        index = 1
+
+        for item in every:
+            item_filesize = item['metadata'].getFilesize()
+
+            if item_filesize == filesize:
+                item_filesize = "same size"
+            else:
+                if item_filesize > filesize:
+                    item_filesize = str(round(item_filesize / 1024, 3)) + " kB ~ larger"
+                else:
+                    item_filesize = str(round(item_filesize / 1024, 3)) + " kB ~ smaller"
+
+            time = str(item['metadata'].getLastModifiedFormatted(time_format))
+
+            if item in newest:
+                time += " ~ newer"
+            else:
+                time += " ~ older"
+
+            items.append(["Get from <" + item['connection'] + "> (" + item_filesize + " | " + time + ")"])
+            index += 1
+
+        window.show_quick_panel(items, sync)
+
+
+
 # File watching
 class RemoteSync(sublime_plugin.EventListener):
     def on_post_save(self, view):
@@ -848,56 +916,7 @@ class RemoteSync(sublime_plugin.EventListener):
     # When a file is loaded and at least 1 connection has download_on_open enabled
     # it will check those enabled if the remote version is newer and offers the newest to download
     def on_load(self, view):
-        file_path = view.file_name()
-        config_file_path = getConfigFile(file_path)
-        config = loadConfig(config_file_path)
-        checking = []
-
-        for name in config['connections']:
-            if config['connections'][name]['download_on_open'] is True:
-                checking.append(name)
-
-        if len(checking) is 0:
-            return
-
-        metadata = getRemoteMetadata(file_path, config_file_path)
-
-        newest = []
-
-        for entry in metadata:
-            if entry['metadata'].isNewerThan(file_path):
-                newest.append(entry)
-
-        if len(newest) > 0 and view.window() is not None:
-            sorted(newest, key=lambda entry: entry['metadata'].getLastModified())
-            newest.reverse()
-
-            def sync(index):
-                if index is 1:
-                    self.sync(file_path, newest[index - 1]['connection'])
-
-            filesize = os.path.getsize(file_path)
-            items = ["Keep current (older, " + str(round(float(os.path.getsize(file_path)) / 1024, 3)) + " kB)"]
-            index = 1
-
-            for item in newest:
-                item_filesize = item['metadata'].getFilesize()
-
-                if item_filesize == filesize:
-                    item_filesize = "same size"
-                else:
-                    if item_filesize > filesize:
-                        item_filesize = "larger: " + str(round(item_filesize / 1024, 3)) + " kB"
-                    else:
-                        item_filesize = "smaller: " + str(round(item_filesize / 1024, 3)) + " kB"
-
-                items.append(["Download newer from <" + item['connection'] + "> (" + item_filesize + ")"])
-                index += 1
-
-            view.window().show_quick_panel(items, sync)
-
-    def sync(self, file_path, connection):
-        RemoteSyncDownCall(file_path, getConfigFile(file_path), True, whitelistConnections=connection).start()
+        performRemoteCheck(view.file_name(), view.window())
 
 
 
@@ -1010,7 +1029,7 @@ class FtpSyncTarget(sublime_plugin.TextCommand):
 
 
 # Synchronize up current file
-class SyncCurrent(sublime_plugin.TextCommand):
+class FtpSyncCurrent(sublime_plugin.TextCommand):
     def run(self, edit):
         file_path = sublime.active_window().active_view().file_name()
 
@@ -1018,11 +1037,20 @@ class SyncCurrent(sublime_plugin.TextCommand):
 
 
 # Synchronize down current file
-class SyncDownCurrent(sublime_plugin.TextCommand):
+class FtpSyncDownCurrent(sublime_plugin.TextCommand):
     def run(self, edit):
         file_path = sublime.active_window().active_view().file_name()
 
         RemoteSyncDownCall(file_path, getConfigFile(file_path), False, True).start()
+
+
+# Checks whether there's a different version of the file on server
+class FtpSyncCheckCurrent(sublime_plugin.TextCommand):
+    def run(self, edit):
+        file_path = sublime.active_window().active_view().file_name()
+        view = sublime.active_window()
+
+        performRemoteCheck(file_path, view)
 
 
 # Synchronize down selected file/directory
@@ -1044,7 +1072,7 @@ class FtpSyncRename(sublime_plugin.TextCommand):
         RemoteSyncRename(self.original_path, getConfigFile(self.original_path), new_name)
 
 
-# Removes all the files in the given folder that are in the given folder but not on server
-class SyncDeleteLocal(sublime_plugin.TextCommand):
+# Removes given file(s) or folders
+class SyncDelete(sublime_plugin.TextCommand):
     def run(self, edit, paths):
         pass

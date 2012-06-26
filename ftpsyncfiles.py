@@ -29,6 +29,7 @@
 
 # Python's built-in libraries
 import os
+import datetime
 
 
 # ==== Initialization and optimization =====================================================
@@ -58,6 +59,9 @@ class Metafile:
 
     def getLastModified(self):
         return self.lastModified
+
+    def getLastModifiedFormatted(self, format='%Y-%m-%d %H:%M:%S'):
+        return datetime.datetime.fromtimestamp(int(self.lastModified)).strftime(format)
 
     def getFilesize(self):
         return self.filesize
