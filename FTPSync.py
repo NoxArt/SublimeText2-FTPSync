@@ -41,6 +41,7 @@ import hashlib
 import json
 import threading
 import re
+import copy
 
 # FTPSync libraries
 from ftpsyncwrapper import CreateConnection
@@ -212,6 +213,24 @@ def getFilepathHash(file_path):
     return hashlib.md5(file_path).hexdigest()
 
 
+# Returns hash of configuration contents
+#
+# @type config: dict
+#
+# @link http://stackoverflow.com/a/8714242/387503
+def getObjectHash(o):
+    if isinstance(o, set) or isinstance(o, tuple) or isinstance(o, list):
+        return tuple([getObjectHash(e) for e in o])
+    elif not isinstance(o, dict):
+        return hash(o)
+
+    new_o = copy.deepcopy(o)
+    for k, v in new_o.items():
+        new_o[k] = getObjectHash(v)
+
+    return hash(tuple(frozenset(new_o.items())))
+
+
 # Verifies contents of a given config object
 #
 # Checks that it's an object with all needed keys of a proper type
@@ -349,6 +368,21 @@ def getConnection(hash, config):
             printMessage("Connection cache hit (key: " + hash + ")", None, True)
 
         if len(connections[hash]) == 0:
+            raise KeyError
+
+        # has config changed?
+        valid = True
+        index = 0
+        for name in config['connections']:
+            if getConfigHash(connections[hash][index].config) != getConfigHash(config['connections'][name]):
+                valid = False
+
+            index += 1
+
+        if valid == False:
+            for connection in connections[hash]:
+                connection.close(connections, hash)
+
             raise KeyError
 
         return connections[hash]

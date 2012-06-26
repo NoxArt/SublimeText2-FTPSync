@@ -104,11 +104,15 @@ class FTPSConnection(AbstractConnection):
     def __init__(self, config, name):
         self.config = config
         self.name = name
+        self.isClosed = False
 
         if self.config['tls'] is True:
             self.connection = ftplib.FTP_TLS()
         else:
             self.connection = ftplib.FTP()
+
+    def __del__(self):
+        self.close()
 
     def connect(self):
         self.connection.connect(self.config['host'], int(self.config['port']), int(self.config['timeout']))
@@ -218,16 +222,19 @@ class FTPSConnection(AbstractConnection):
 
         return result
 
-    def close(self, connections, hash):
+    def close(self, connections=[], hash=None):
         try:
             self.connection.quit()
         except:
             self.connection.close()
+        finally:
+            self.isClosed = True
 
-        try:
-            connections[hash].remove(self)
-        except ValueError:
-            return
+        if len(connections) > 0 and hash is not None:
+            try:
+                connections[hash].remove(self)
+            except ValueError:
+                return
 
     def __makePath(self, path):
         self.connection.cwd(self.config['path'])
