@@ -946,7 +946,7 @@ class RemoteSync(sublime_plugin.EventListener):
     # When a file is loaded and at least 1 connection has download_on_open enabled
     # it will check those enabled if the remote version is newer and offers the newest to download
     def on_load(self, view):
-        RemoteSyncCheck(view.file_name(), view.window())
+        RemoteSyncCheck(view.file_name(), view.window()).start()
 
 
 
