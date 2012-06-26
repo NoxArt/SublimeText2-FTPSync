@@ -851,6 +851,7 @@ def performRemoteCheck(file_path, window):
     newest = []
     oldest = []
     every = []
+    extra = []
 
     for entry in metadata:
         if entry['metadata'].isNewerThan(file_path):
@@ -862,14 +863,14 @@ def performRemoteCheck(file_path, window):
             if entry['metadata'].isDifferentSizeThan(file_path):
                 every.append(entry)
 
+        if entry not in every:
+            extra.append(entry)
+
     if len(every) > 0 and window is not None:
-        sorted(newest, key=lambda entry: entry['metadata'].getLastModified())
-        newest.reverse()
+        every.extend(extra)
 
-        sorted(oldest, key=lambda entry: entry['metadata'].getLastModified())
-        oldest.reverse()
-
-        every.extend(oldest)
+        sorted(every, key=lambda entry: entry['metadata'].getLastModified())
+        every.reverse()
 
         def sync(index):
             if index is 1:

@@ -166,14 +166,7 @@ class FTPSConnection(AbstractConnection):
                 return self.name
 
         except Exception, e:
-            if str(e)[:3] == str(ftpErrors['noFileOrDirectory']):
-                self.__makePath(path)
-
-                self.put(file_path)
-
-                return self.name
-            else:
-                print e
+            print e
 
     def rename(self, file_path, new_name):
         path = self.getMappedPath(file_path)
