@@ -26,7 +26,7 @@
                                 "caption": "Settings – User"
                             },
                             {
-                                "command": "new_ftp_sync",
+                                "command": "ftp_sync_new_settings",
                                 "caption": "Setup FTPSync in this folder",
                                 "args": {"dirs": []}
                             },

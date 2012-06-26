@@ -8,7 +8,7 @@
 			{ "caption": "Download", "command": "ftp_sync_down_target", "args": {"paths": []} },
 			{ "caption": "Download Forced", "command": "ftp_sync_down_target", "args": {"paths": [], "forced": true} },
 			{ "caption": "-" },
-			{ "caption": "Setup FTPSync in this folder", "command": "new_ftp_sync", "args": {"dirs": []} }
+			{ "caption": "Setup FTPSync in this folder", "command": "ftp_sync_new_settings", "args": {"dirs": []} }
 		]
 	}
 ]

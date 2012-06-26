@@ -914,6 +914,8 @@ def performRemoteCheck(file_path, window):
 
 
 
+# ==== Watching ===========================================================================
+
 # File watching
 class RemoteSync(sublime_plugin.EventListener):
     def on_post_save(self, view):
@@ -932,6 +934,8 @@ class RemoteSync(sublime_plugin.EventListener):
         performRemoteCheck(view.file_name(), view.window())
 
 
+
+# ==== Threading ===========================================================================
 
 # Remote handling
 class RemoteSyncCall(threading.Thread):
@@ -1000,8 +1004,11 @@ class RemoteSyncRename(threading.Thread):
         performSyncRename(self.file_path, self.config, self.new_name)
 
 
+
+# ==== Commands ===========================================================================
+
 # Sets up a config file in a directory
-class NewFtpSyncCommand(sublime_plugin.TextCommand):
+class FtpSyncNewSettings(sublime_plugin.TextCommand):
     def run(self, edit, dirs):
         if len(dirs) == 0:
             dirs = [os.path.dirname(self.view.file_name())]
@@ -1086,6 +1093,6 @@ class FtpSyncRename(sublime_plugin.TextCommand):
 
 
 # Removes given file(s) or folders
-class SyncDelete(sublime_plugin.TextCommand):
+class FtpSyncDelete(sublime_plugin.TextCommand):
     def run(self, edit, paths):
         pass
