@@ -111,6 +111,8 @@ def statusMessage(text):
 #
 # @type  text: string
 # @param text: message to status bar
+#
+# @global messageTimeout
 def dumpMessage(text):
     sublime.set_timeout(lambda: statusMessage(text), messageTimeout)
 
@@ -132,10 +134,10 @@ def printMessage(text, name=None, onlyVerbose=False, status=False):
     message = "FTPSync"
 
     if name is not None:
-        message += " [" + name + "]"
+        message += " [" + str(name) + "]"
 
     message += " > "
-    message += text
+    message += str(text)
 
     if isDebug and (onlyVerbose is False or isDebugVerbose is True):
         print message
@@ -151,6 +153,8 @@ def printMessage(text, name=None, onlyVerbose=False, status=False):
 #
 # @type  config_dir_name: string
 # @param config_dir_name: path to a folder of a config to be invalidated
+#
+# @global configs
 def invalidateConfigCache(config_dir_name):
     for file_path in configs:
         if file_path.startswith(config_dir_name) and (configs[file_path] is None or config_dir_name.startswith(configs[file_path])):
@@ -163,6 +167,8 @@ def invalidateConfigCache(config_dir_name):
 # @param folders: list of paths to folders to filter
 #
 # @return list<string> of file paths
+#
+# @global configName
 def findConfigFile(folders):
     return findFile(folders, configName)
 
@@ -217,6 +223,8 @@ def getFilepathHash(file_path):
 # Returns hash of configuration contents
 #
 # @type config: dict
+#
+# @return string
 #
 # @link http://stackoverflow.com/a/8714242/387503
 def getObjectHash(o):
@@ -300,6 +308,8 @@ def verifyConfig(config):
 # @type  file_path: string
 #
 # @return dict
+#
+# @global removeLineComment
 def parseJson(file_path):
     contents = ""
     file = open(file_path, 'r')
