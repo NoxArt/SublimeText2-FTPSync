@@ -891,15 +891,20 @@ def performRemoteCheck(file_path, window, forced=False):
             if entry['metadata'].isDifferentSizeThan(file_path):
                 every.append(entry)
 
-        if entry not in every:
-            extra.append(entry)
-
     if len(every) > 0:
-        every.extend(extra)
+        every = metadata
         sorted(every, key=lambda entry: entry['metadata'].getLastModified())
+        every.reverse()
 
         def sync(index):
             if index > 0:
+                i = 0
+                for entry in every:
+                    printMessage("Listing connection " + str(i) + ": " + str(entry['connection']))
+                    i += 1
+
+                printMessage("Index selected: " + str(index - 1))
+
                 RemoteSyncDownCall(file_path, getConfigFile(file_path), True, whitelistConnections=[every[index - 1]['connection']]).start()
 
         filesize = os.path.getsize(file_path)
