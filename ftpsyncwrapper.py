@@ -52,6 +52,13 @@ ftpErrors = {
 }
 
 
+
+# ==== Exceptions ==========================================================================
+
+class ConnectionClosedException(Exception):
+    pass
+
+
 # ==== Content =============================================================================
 
 # Factory function - returns and instance of a proper class based on the configuration
@@ -87,7 +94,7 @@ class AbstractConnection:
     # @type file_path: string
     #
     # @return string remote file path
-    def getMappedPath(self, file_path):
+    def _getMappedPath(self, file_path):
         config = os.path.dirname(self.config['file_path'])
         fragment = os.path.relpath(file_path, config)
         return os.path.join(self.config['path'], fragment).replace('\\', '/')
@@ -101,6 +108,13 @@ class AbstractConnection:
 # shipped with the plugin
 class FTPSConnection(AbstractConnection):
 
+    # Constructor
+    #
+    # @type self: FTPSConnection
+    # @type config: dict
+    # @param config: only the connection part of config
+    # @type name: string
+    # @param name: connection name from config
     def __init__(self, config, name):
         self.config = config
         self.name = name
@@ -111,13 +125,27 @@ class FTPSConnection(AbstractConnection):
         else:
             self.connection = ftplib.FTP()
 
+
+    # Destructor, closes connection
+    #
+    # @type self: FTPSConnection
     def __del__(self):
         self.close()
 
+
+    # Connects to remote server
+    #
+    # @type self: FTPSConnection
     def connect(self):
-        self.connection.connect(self.config['host'], int(self.config['port']), int(self.config['timeout']))
+        self.connection.connect(self.config['host'], self.config['port'], self.config['timeout'])
         self.connection.set_pasv(self.config['passive'])
 
+
+    # Authenticates if necessary
+    #
+    # @type self: FTPSConnection
+    #
+    # @return bool whether the authentication happened or not
     def authenticate(self):
         if self.config['tls'] is True:
             self.connection.auth()
@@ -125,12 +153,24 @@ class FTPSConnection(AbstractConnection):
 
         return False
 
+
+    # Logs into the remote server
+    #
+    # @type self: FTPSConnection
     def login(self):
         self.connection.login(self.config['username'], self.config['password'])
 
 
+    # Uploads a file to remote server
+    #
+    # @type self: FTPSConnection
+    # @type file_path: string
+    #
+    # @return string|None name of this connection or None
+    #
+    # @global ftpErrors
     def put(self, file_path):
-        path = self.getMappedPath(file_path)
+        path = self._getMappedPath(file_path)
 
         command = "STOR " + path
 
@@ -153,8 +193,9 @@ class FTPSConnection(AbstractConnection):
             else:
                 print e
 
+
     def get(self, file_path):
-        path = self.getMappedPath(file_path)
+        path = self._getMappedPath(file_path)
 
         command = "RETR " + path
 
@@ -168,8 +209,9 @@ class FTPSConnection(AbstractConnection):
         except Exception, e:
             print e
 
+
     def rename(self, file_path, new_name):
-        path = self.getMappedPath(file_path)
+        path = self._getMappedPath(file_path)
         base = os.path.basename(file_path)
 
         self.cwd(path)
@@ -182,17 +224,9 @@ class FTPSConnection(AbstractConnection):
     def cwd(self, path):
         self.connection.cwd(path)
 
-    def parseTime(self, time_val):
-        if time_val.find(':') is -1:
-            struct = time.strptime(time_val + str(" 00:00"), "%b %d %Y %H:%M")
-        else:
-            struct = time.strptime(str(currentYear) + " " + time_val, "%Y %b %d %H:%M")
-
-        return time.mktime(struct)
-
 
     def list(self, path):
-        path = str(self.getMappedPath(path))
+        path = self._getMappedPath(path)
         contents = []
         result = []
         self.connection.dir(path, lambda data: contents.append(data))
@@ -208,12 +242,13 @@ class FTPSConnection(AbstractConnection):
             lastModified = split.group(3)
             name = split.group(4)
 
-            data = Metafile(name, isDir, self.parseTime(lastModified), filesize)
+            data = Metafile(name, isDir, self.__parseTime(lastModified), filesize)
 
             if name != "." and name != "..":
                 result.append(data)
 
         return result
+
 
     def close(self, connections=[], hash=None):
         try:
@@ -228,6 +263,21 @@ class FTPSConnection(AbstractConnection):
                 connections[hash].remove(self)
             except ValueError:
                 return
+
+
+    def __checkClosed(self):
+        if self.isClosed is True:
+            raise ConnectionClosedException
+
+
+    def __parseTime(self, time_val):
+        if time_val.find(':') is -1:
+            struct = time.strptime(time_val + str(" 00:00"), "%b %d %Y %H:%M")
+        else:
+            struct = time.strptime(str(currentYear) + " " + time_val, "%Y %b %d %H:%M")
+
+        return time.mktime(struct)
+
 
     def __makePath(self, path):
         self.connection.cwd(self.config['path'])

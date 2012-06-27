@@ -31,6 +31,8 @@
 import math
 
 
+# ==== Content =============================================================================
+
 # Class implementing logic for progress bar
 class Progress:
     def __init__(self, current=0):
@@ -43,9 +45,6 @@ class Progress:
     # @type  entries: list
     # @param entries: list of unfinished entries, usually strings
     def add(self, entries):
-        if self.entries is None:
-            self.entries = []
-
         for entry in entries:
             if entry not in self.entries:
                 self.entries.append(entry)
@@ -54,12 +53,13 @@ class Progress:
     # Return number of items in the progress
     #
     # @type  self: Progress
+    #
     # @return int
     def getTotal(self):
         return len(self.entries)
 
 
-    # Marked a certain number of entries as finished
+    # Marks a certain number of entries as finished
     #
     # @type  self: Progress
     # @type  by: integer
@@ -76,6 +76,7 @@ class Progress:
     # @type  self: Progress
     # @type  division: integer
     # @param division: rounding amount
+    #
     # @return integer between 0 and 100 / division
     def getPercent(self, division=5):
         percent = int(math.ceil(float(self.current) / float(self.getTotal()) * 100))

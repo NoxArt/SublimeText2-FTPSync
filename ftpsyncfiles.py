@@ -35,7 +35,7 @@ import datetime
 # ==== Initialization and optimization =====================================================
 
 # difference in time when comes to local vs remote {last modified} [s]
-timeDifferenceTolerance = 2
+timeDifferenceTolerance = 1
 # limit for breaking down a filepath structure when looking for config files
 nestingLimit = 30
 

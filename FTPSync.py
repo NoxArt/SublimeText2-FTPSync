@@ -378,7 +378,7 @@ def getConnection(hash, config):
         if connections[hash] and len(connections[hash]) > 0:
             printMessage("Connection cache hit (key: " + hash + ")", None, True)
 
-        if len(connections[hash]) == 0:
+        if len(connections[hash]) < len(config['connections']):
             raise KeyError
 
         # has config changed?
@@ -631,6 +631,7 @@ def performSync(file_path, config_file_path, onSave, disregardIgnore=False, prog
     index = -1
     stored = []
     failed = False
+    index = -1
 
     for name in config['connections']:
         index += 1
@@ -643,8 +644,7 @@ def performSync(file_path, config_file_path, onSave, disregardIgnore=False, prog
         except IndexError:
             continue
 
-           # legacy check
-        if 'upload_on_save' in config['connections'][name] and config['connections'][name]['upload_on_save'] is False and onSave is True:
+        if config['connections'][name]['upload_on_save'] is False and onSave is True:
             return
 
         if disregardIgnore is False and config['connections'][name]['ignore'] is not None and re.search(config['connections'][name]['ignore'], file_path):
@@ -933,6 +933,45 @@ def performRemoteCheck(file_path, window, forced=False):
 
 # File watching
 class RemoteSync(sublime_plugin.EventListener):
+    def on_pre_save(self, view):
+        file_path = view.file_name()
+        config_file_path = getConfigFile(file_path)
+        if config_file_path is None:
+            return
+
+        config = loadConfig(config_file_path)
+        metadata = getRemoteMetadata(file_path, config_file_path)
+
+        newest = None
+        newer = []
+        index = 0
+
+        for entry in metadata:
+            if config['connections'][ entry['connection'] ]['check_time'] is True and entry['metadata'].isNewerThan(file_path):
+                skipped = True
+                newer.append(entry['connection'])
+
+                if newest is None or newest > entry['metadata'].getLastModified():
+                    newest = index
+
+            index += 1
+
+        if len(newer) > 0:
+            def sync(index):
+                if index is 1:
+                    self.on_post_save(view)
+
+            items = [
+                "Newer entry in <" + ','.join(newer) + "> - cancel upload?",
+                "Overwrite, newest: " + metadata[newest]['metadata'].getLastModifiedFormatted()
+            ]
+
+            window = view.window()
+            if window is None:
+                window = sublime.active_window() # only in main thread!
+
+            sublime.set_timeout(lambda: window.show_quick_panel(items, sync), 1)
+
     def on_post_save(self, view):
         file_path = view.file_name()
         RemoteSyncCall(file_path, getConfigFile(file_path), True).start()
