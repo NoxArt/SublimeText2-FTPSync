@@ -578,29 +578,29 @@ def getRemoteMetadata(file_path, config_file_path, whitelistConnections=[]):
             continue
 
         try:
-            results.append({
-                'connection': name,
-                'metadata': connections[index].list(file_path)[0]
-            })
+            metadata = connections[index].list(file_path)
+
+            if len(metadata) > 0:
+                results.append({
+                    'connection': name,
+                    'metadata': metadata[0]
+                })
 
         except Exception, e:
-            failed = e
+            message = "getting metadata failed: (" + basename + ") <Exception: " + str(e) + ">"
 
-            print e
+            printMessage(message, name, False, True)
 
-        finally:
-            if failed:
-                message = "getting metadata failed: (" + basename + ")"
-
-                if type(failed) is Exception:
-                    message += "<Exception: " + str(failed) + ">"
-
-                printMessage(message, name, False, True)
 
     if config_hash in usingConnections:
         usingConnections.remove(config_hash)
 
     return results
+
+
+# ==== Executive functions ======================================================================
+
+# --- Following section could use a pretty big overhaul ---
 
 
 # Uploads given file
@@ -664,7 +664,7 @@ def performSync(file_path, config_file_path, onSave, disregardIgnore=False, prog
         except Exception, e:
             failed = e
 
-            print e
+            printMessage("performSync exception: " + str(e))
 
         if failed:
             message = "upload failed: (" + basename + ")"
@@ -715,7 +715,7 @@ def performSyncRename(file_path, config_file, new_name):
         except Exception, e:
             failed = e
 
-            print e
+            printMessage("performSyncRename" + str(e))
 
         if failed:
             message = "renaming failed: (" + basename + " -> " + new_name + ")"
@@ -825,7 +825,7 @@ def performSyncDown(file_path, config_file_path, disregardIgnore=False, progress
         except Exception, e:
             failed = e
 
-            print file_path + " => " + str(e)
+            printMessage("performSyncDown exception: " + str(e))
 
         if failed:
             message = "download failed: (" + basename + ")"
@@ -868,7 +868,13 @@ def performRemoteCheck(file_path, window, forced=False):
         if len(checking) is 0:
             return
 
-    metadata = getRemoteMetadata(file_path, config_file_path)
+    try:
+        metadata = getRemoteMetadata(file_path, config_file_path, checking)
+    except:
+        metadata = []
+
+    if len(metadata) == 0:
+        return printMessage("No version found on any server", status=True)
 
     newest = []
     oldest = []
@@ -890,12 +896,10 @@ def performRemoteCheck(file_path, window, forced=False):
 
     if len(every) > 0:
         every.extend(extra)
-
         sorted(every, key=lambda entry: entry['metadata'].getLastModified())
-        #every.reverse()
 
         def sync(index):
-            if index is 1:
+            if index > 0:
                 RemoteSyncDownCall(file_path, getConfigFile(file_path), True, whitelistConnections=[newest[index - 1]['connection']]).start()
 
         filesize = os.path.getsize(file_path)
@@ -933,6 +937,8 @@ def performRemoteCheck(file_path, window, forced=False):
 
 # File watching
 class RemoteSync(sublime_plugin.EventListener):
+
+    # @todo - put into thread
     def on_pre_save(self, view):
         file_path = view.file_name()
         config_file_path = getConfigFile(file_path)
