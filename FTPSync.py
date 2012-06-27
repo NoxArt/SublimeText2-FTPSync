@@ -900,7 +900,7 @@ def performRemoteCheck(file_path, window, forced=False):
 
         def sync(index):
             if index > 0:
-                RemoteSyncDownCall(file_path, getConfigFile(file_path), True, whitelistConnections=[newest[index - 1]['connection']]).start()
+                RemoteSyncDownCall(file_path, getConfigFile(file_path), True, whitelistConnections=[every[index - 1]['connection']]).start()
 
         filesize = os.path.getsize(file_path)
         items = ["Keep current (" + str(round(float(os.path.getsize(file_path)) / 1024, 3)) + " kB | " + formatTimestamp(os.path.getmtime(file_path)) + ")"]
