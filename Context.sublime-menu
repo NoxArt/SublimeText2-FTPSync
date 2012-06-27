@@ -1,16 +1,21 @@
 [
     { "caption": "-" },
     {
-        "caption": "Check this file",
-        "command": "ftp_sync_check_current"
-    },
-    {
-        "caption": "Upload this file",
-        "command": "ftp_sync_current"
-    },
-    {
-        "caption": "Download this file",
-        "command": "ftp_sync_down_current"
+        "caption": "FTPSync",
+        "children": [
+            {
+                "caption": "Check this file",
+                "command": "ftp_sync_check_current"
+            },
+            {
+                "caption": "Upload this file",
+                "command": "ftp_sync_current"
+            },
+            {
+                "caption": "Download this file",
+                "command": "ftp_sync_down_current"
+            }
+        ]
     },
     { "caption": "-" }
 ]
