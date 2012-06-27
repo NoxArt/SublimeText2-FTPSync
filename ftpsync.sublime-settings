@@ -19,7 +19,11 @@
 		"timeout": 30,
 		"ignore": null,
 		"check_time": true,
-		"download_on_open": false
+		"download_on_open": false,
+
+		"debug_extras": {
+			"print_list_result": false
+		}
 	},
 
 	"ignore": "ftpsync\\.settings|\\.gitignore|\\.git|Sublime Text 2/Packages"
