@@ -40,7 +40,7 @@ from ftpsyncfiles import Metafile
 # ==== Initialization and optimization =====================================================
 
 # to extract data from FTP LIST http://stackoverflow.com/questions/2443007/ftp-list-format
-ftpListParse = re.compile("^([d-])[rxws-]{9}\s+\d+\s+\d+\s+\d+\s+(\d+)\s+(\w{1,3}\s+\d+\s+(?:\d+:\d+|\d{2,4}))\s+(.*?)$", re.M | re.I | re.U | re.L)
+ftpListParse = re.compile("^([d-])[rxws-]{9}\s+\d+\s+[\w\d]+\s+[\w\d]+\s+(\d+)\s+(\w{1,3}\s+\d+\s+(?:\d+:\d+|\d{2,4}))\s+(.*?)$", re.M | re.I | re.U | re.L)
 
 # For FTP LIST entries with {last modified} timestamp earlier than 6 months, see http://stackoverflow.com/questions/2443007/ftp-list-format
 currentYear = int(time.strftime("%Y", time.gmtime()))
