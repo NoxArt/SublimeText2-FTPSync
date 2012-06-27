@@ -48,7 +48,8 @@ currentYear = int(time.strftime("%Y", time.gmtime()))
 # List of FTP errors of interest
 ftpErrors = {
     'noFileOrDirectory': 553,
-    'cwdNoFileOrDirectory': 550
+    'cwdNoFileOrDirectory': 550,
+    'rnfrExists': 350
 }
 
 
@@ -211,12 +212,23 @@ class FTPSConnection(AbstractConnection):
 
 
     def rename(self, file_path, new_name):
-        path = self._getMappedPath(file_path)
+        path = self._getMappedPath(os.path.dirname(file_path))
         base = os.path.basename(file_path)
 
-        self.cwd(path)
-        self.voidcmd("RNFR " + base)
-        self.voidcmd("RNTO " + new_name)
+        try:
+            self.cwd(path)
+        except Exception, e:
+            if str(e)[:3] == str(ftpErrors['noFileOrDirectory']):
+                self.__makePath(path)
+
+        try:
+            self.connection.voidcmd("RNFR " + base)
+        except Exception, e:
+            if str(e)[:3] == str(ftpErrors['cwdNoFileOrDirectory']):
+                self.put(file_path)
+
+        self.connection.voidcmd("RNFR " + base)
+        self.connection.voidcmd("RNTO " + new_name)
 
         return base
 

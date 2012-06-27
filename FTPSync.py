@@ -692,7 +692,6 @@ def performSyncRename(file_path, config_file, new_name):
     usingConnections.append(config_hash)
 
     index = -1
-    stored = []
     failed = False
 
     for name in config['connections']:
@@ -707,9 +706,7 @@ def performSyncRename(file_path, config_file, new_name):
             uploaded = connections[index].rename(file_path, new_name)
 
             if type(uploaded) is str or type(uploaded) is unicode:
-                stored.append(uploaded)
                 printMessage("renamed " + basename + " -> " + new_name, name)
-
             else:
                 failed = type(uploaded)
 
@@ -728,8 +725,11 @@ def performSyncRename(file_path, config_file, new_name):
 
             printMessage(message, name, False, True)
 
+    # rename file
+    os.rename(file_path, os.path.join(dirname, new_name))
+
     if len(stored) > 0:
-        dumpMessage(getProgressMessage(stored, progress, "renamed", basename + " -> " + new_name))
+        dumpMessage(getProgressMessage(stored, None, "renamed", basename + " -> " + new_name))
 
     if config_hash in usingConnections:
         usingConnections.remove(config_hash)
@@ -991,6 +991,13 @@ class RemoteSync(sublime_plugin.EventListener):
 
 # ==== Threading ===========================================================================
 
+def fillProgress(progress, entry):
+    if type(entry) is list:
+        for item in entry:
+            fillProgress(progress, item)
+    elif os.path.isfile(entry):
+        progress.add([entry])
+
 class RemoteSyncCall(threading.Thread):
     def __init__(self, file_path, config, onSave, disregardIgnore=False, whitelistConnections=[]):
         self.file_path = file_path
@@ -1011,6 +1018,7 @@ class RemoteSyncCall(threading.Thread):
         elif type(target) is list:
             total = len(target)
             progress = Progress(total)
+            fillProgress(progress, target)
 
             for file_path, config in target:
                 performSync(file_path, config, self.onSave, self.disregardIgnore, progress, whitelistConnections=self.whitelistConnections)
@@ -1151,7 +1159,7 @@ class FtpSyncRename(sublime_plugin.TextCommand):
         self.view.window().show_input_panel('Enter new name', self.original_name, self.rename, None, None)
 
     def rename(self, new_name):
-        RemoteSyncRename(self.original_path, getConfigFile(self.original_path), new_name)
+        RemoteSyncRename(self.original_path, getConfigFile(self.original_path), new_name).start()
 
 
 # Removes given file(s) or folders

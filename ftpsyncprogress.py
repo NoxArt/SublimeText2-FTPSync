@@ -79,7 +79,14 @@ class Progress:
     #
     # @return integer between 0 and 100 / division
     def getPercent(self, division=5):
-        percent = int(math.ceil(float(self.current) / float(self.getTotal()) * 100))
+        if division is 0:
+            division = 1
+
+        total = self.getTotal()
+        if total is 0:
+            total = self.current
+
+        percent = int(math.ceil(float(self.current) / float(total) * 100))
         percent = math.ceil(percent / division)
 
         return percent
