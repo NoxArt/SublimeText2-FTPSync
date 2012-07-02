@@ -98,7 +98,16 @@ class AbstractConnection:
     def _getMappedPath(self, file_path):
         config = os.path.dirname(self.config['file_path'])
         fragment = os.path.relpath(file_path, config)
-        return os.path.join(self.config['path'], fragment).replace('\\', '/')
+        return self._postprocessPath(os.path.join(self.config['path'], fragment))
+
+    # Tweaks a remote path before using it
+    #
+    # @type self: AbstractConnection
+    # @type file_path: string
+    #
+    # @return string remote file path
+    def _postprocessPath(self, path):
+        return path.replace('\\', '/')
 
 
 # FTP(S) connection
@@ -170,8 +179,12 @@ class FTPSConnection(AbstractConnection):
     # @return string|None name of this connection or None
     #
     # @global ftpErrors
-    def put(self, file_path):
-        path = self._getMappedPath(file_path)
+    def put(self, file_path, new_name = None):
+        remote_file = file_path
+        if new_name is not None:
+            remote_file = self._postprocessPath(os.path.join(os.path.split(file_path)[0], new_name))
+
+        path = self._getMappedPath(remote_file)
 
         command = "STOR " + path
 
@@ -225,9 +238,16 @@ class FTPSConnection(AbstractConnection):
             self.connection.voidcmd("RNFR " + base)
         except Exception, e:
             if str(e)[:3] == str(ftpErrors['cwdNoFileOrDirectory']):
-                self.put(file_path)
+                self.put(file_path, new_name)
+                return base
 
-        self.connection.voidcmd("RNFR " + base)
+        try:
+            self.connection.voidcmd("RNFR " + base)
+        except:
+            if str(e)[:3] == str(ftpErrors['rnfrExists']) and str(e).find('Aborting previous'):
+                self.connection.voidcmd("RNTO " + new_name)
+                return base
+
         self.connection.voidcmd("RNTO " + new_name)
 
         return base

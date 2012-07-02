@@ -715,7 +715,7 @@ def performSyncRename(file_path, config_file, new_name):
         except Exception, e:
             failed = e
 
-            printMessage("performSyncRename" + str(e))
+            printMessage("performSyncRename exception: " + str(e))
 
         if failed:
             message = "renaming failed: (" + basename + " -> " + new_name + ")"
@@ -727,9 +727,6 @@ def performSyncRename(file_path, config_file, new_name):
 
     # rename file
     os.rename(file_path, os.path.join(dirname, new_name))
-
-    if len(stored) > 0:
-        dumpMessage(getProgressMessage(stored, None, "renamed", basename + " -> " + new_name))
 
     if config_hash in usingConnections:
         usingConnections.remove(config_hash)
