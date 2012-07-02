@@ -4,11 +4,7 @@ SublimeText2-FTPSync
 Simple and free plugin for FTP syncing. Just hit the _save_ as usual and it's upped.
 
 Recently:
-* Started [Wiki](https://github.com/NoxArt/SublimeText2-FTPSync/wiki/_pages)
-* FTPSync checks upon opening a file whether there's a new version of this file on a server
-(checks only on file load, not when the file is loaded from cache)
-* You can also check manually by *FTPSync: Check current file* command
-* Fixed [issue #13](https://github.com/NoxArt/SublimeText2-FTPSync/issues/13)
+* Added *Rename* feature into sidebar context menu
 
 What's there for you?
 * Multiple named upload targets
@@ -23,6 +19,8 @@ Current focus:
 * Resolving downloading from more locations
 * SFTP support
 
+
+For more info look into [Wiki](https://github.com/NoxArt/SublimeText2-FTPSync/wiki/_pages)
 
 
 How to use
