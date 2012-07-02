@@ -10,8 +10,9 @@ What's there for you?
 * Multiple named upload targets
 * Ignored file regex patterns
 * Secure transfer using TLS
-* Manual multiple file & folder uploading (sidebar context menu)
-* Manual multiple file & folder downloading (sidebar context menu)
+* Determining newer remote files, overwrite protection
+* Manual multiple file & folder up/downloading (sidebar context menu)
+* Local&remote renaming
 * Progress bar for multiple up/download
 
 Current focus:
