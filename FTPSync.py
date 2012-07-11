@@ -65,6 +65,8 @@ projectDefaults = settings.get('project_defaults').items()
 ignore = settings.get('ignore')
 # time format settings
 time_format = settings.get('time_format')
+# delay before check of right opened file is performed, cancelled if closed in the meantime
+download_on_open_delay = settings.get('download_on_open_delay')
 
 # loaded project's config will be merged with this global one
 coreConfig = {
@@ -938,6 +940,9 @@ def performRemoteCheck(file_path, window, forced=False):
 
 # ==== Watching ===========================================================================
 
+# list of views to be checked on load
+checksScheduled = []
+
 # File watching
 class RemoteSync(sublime_plugin.EventListener):
 
@@ -988,13 +993,23 @@ class RemoteSync(sublime_plugin.EventListener):
     def on_close(self, view):
         config_file_path = getConfigFile(view.file_name())
 
+        if view in checksScheduled:
+            checksScheduled.remove(view)
+
         if config_file_path is not None:
             closeConnection(getFilepathHash(config_file_path))
 
     # When a file is loaded and at least 1 connection has download_on_open enabled
     # it will check those enabled if the remote version is newer and offers the newest to download
     def on_load(self, view):
-        RemoteSyncCheck(view.file_name(), view.window()).start()
+        if view not in checksScheduled:
+            checksScheduled.append(view)
+
+            def check():
+                if view in checksScheduled:
+                    RemoteSyncCheck(view.file_name(), view.window()).start()
+
+            sublime.set_timeout(check, download_on_open_delay)
 
 
 

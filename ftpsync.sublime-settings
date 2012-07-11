@@ -3,6 +3,7 @@
 	"debug_verbose": true,
 	"connection_timeout": 100,
 	"time_format": "%Y-%m-%d %H:%M",
+	"download_on_open_delay": 5000,
 
 	"project_defaults_name": "default",
 	"project_defaults": {
