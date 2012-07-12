@@ -967,7 +967,7 @@ class RemoteSync(sublime_plugin.EventListener):
         index = 0
 
         for entry in metadata:
-            if config['connections'][ entry['connection'] ]['check_time'] is True and entry['metadata'].isNewerThan(file_path):
+            if config['connections'][ entry['connection'] ]['upload_on_save'] is True and config['connections'][ entry['connection'] ]['check_time'] is True and entry['metadata'].isNewerThan(file_path):
                 skipped = True
                 newer.append(entry['connection'])
 
