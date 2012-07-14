@@ -1016,7 +1016,7 @@ class RemoteSync(sublime_plugin.EventListener):
             checksScheduled.append(file_path)
 
             def check():
-                if view in checksScheduled:
+                if file_path in checksScheduled:
                     RemoteSyncCheck(file_path, view.window()).start()
 
             sublime.set_timeout(check, download_on_open_delay)
