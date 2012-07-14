@@ -159,6 +159,7 @@ class FTPSConnection(AbstractConnection):
     def authenticate(self):
         if self.config['tls'] is True:
             self.connection.auth()
+            self.connection.prot_p()
             return True
 
         return False
