@@ -65,6 +65,8 @@ projectDefaults = settings.get('project_defaults').items()
 ignore = settings.get('ignore')
 # time format settings
 time_format = settings.get('time_format')
+# delay before check of right opened file is performed, cancelled if closed in the meantime
+download_on_open_delay = settings.get('download_on_open_delay')
 
 # loaded project's config will be merged with this global one
 coreConfig = {
@@ -200,7 +202,7 @@ def getConfigFile(file_path):
             configFolder = findConfigFile(folders)
 
             if configFolder is None:
-                return printMessage("Found no config > for file: " + file_path)
+                return printMessage("Found no config > for file: {" + file_path + "}")
 
             config = os.path.join(configFolder, configName)
             configs[file_path] = config
@@ -339,7 +341,7 @@ def loadConfig(file_path):
     try:
         config = parseJson(file_path)
     except Exception, e:
-        printMessage("Failed parsing configuration file: " + file_path + " (commas problem?) <Exception: " + str(e) + ">", status=True)
+        printMessage("Failed parsing configuration file: {" + file_path + "} (commas problem?) <Exception: " + str(e) + ">", status=True)
         return None
 
     result = {}
@@ -535,7 +537,7 @@ def getProgressMessage(stored, progress, action, basename):
 
         base += " " + str(progress.current) + "/" + str(progress.getTotal()) + "] "
 
-    return base + action + basename
+    return base + action + " {" + basename + "}"
 
 
 # Uploads given file
@@ -587,7 +589,7 @@ def getRemoteMetadata(file_path, config_file_path, whitelistConnections=[]):
                 })
 
         except Exception, e:
-            message = "getting metadata failed: (" + basename + ") <Exception: " + str(e) + ">"
+            message = "getting metadata failed: {" + basename + "} <Exception: " + str(e) + ">"
 
             printMessage(message, name, False, True)
 
@@ -621,7 +623,7 @@ def performSync(file_path, config_file_path, onSave, disregardIgnore=False, prog
     basename = os.path.basename(file_path)
 
     if disregardIgnore is False and ignore is not None and re_ignore.search(file_path) is not None:
-        return printMessage("file globally ignored: " + basename, onlyVerbose=True)
+        return printMessage("file globally ignored: {" + basename + "}", onlyVerbose=True)
 
     config_hash = getFilepathHash(config_file_path)
     connections = getConnection(config_hash, config)
@@ -648,7 +650,7 @@ def performSync(file_path, config_file_path, onSave, disregardIgnore=False, prog
             return
 
         if disregardIgnore is False and config['connections'][name]['ignore'] is not None and re.search(config['connections'][name]['ignore'], file_path):
-            printMessage("file ignored by rule: " + basename, name, True)
+            printMessage("file ignored by rule: {" + basename + "}", name, True)
             break
 
         try:
@@ -667,7 +669,7 @@ def performSync(file_path, config_file_path, onSave, disregardIgnore=False, prog
             printMessage("performSync exception: " + str(e))
 
         if failed:
-            message = "upload failed: (" + basename + ")"
+            message = "upload failed: {" + basename + "}"
 
             if type(failed) is Exception:
                 message += "<Exception: " + str(failed) + ">"
@@ -693,6 +695,7 @@ def performSyncRename(file_path, config_file, new_name):
 
     index = -1
     failed = False
+    renamed = []
 
     for name in config['connections']:
         index += 1
@@ -706,11 +709,10 @@ def performSyncRename(file_path, config_file, new_name):
             uploaded = connections[index].rename(file_path, new_name)
 
             if type(uploaded) is str or type(uploaded) is unicode:
-                printMessage("renamed " + basename + " -> " + new_name, name)
+                printMessage("renamed {" + basename + "} -> {" + new_name + "}", name)
+                renamed.append(name)
             else:
                 failed = type(uploaded)
-
-            os.rename(file_path, os.path.join(dirname, new_name))
 
         except Exception, e:
             failed = e
@@ -718,7 +720,7 @@ def performSyncRename(file_path, config_file, new_name):
             printMessage("performSyncRename exception: " + str(e))
 
         if failed:
-            message = "renaming failed: (" + basename + " -> " + new_name + ")"
+            message = "renaming failed: {" + basename + "} -> {" + new_name + "}"
 
             if type(failed) is Exception:
                 message += "<Exception: " + str(failed) + ">"
@@ -727,6 +729,10 @@ def performSyncRename(file_path, config_file, new_name):
 
     # rename file
     os.rename(file_path, os.path.join(dirname, new_name))
+
+    # message
+    if len(renamed) > 0:
+        printMessage("remotely renamed {" + basename + "} -> {" + new_name + "}", "remotes: " + ','.join(renamed), status=True)
 
     if config_hash in usingConnections:
         usingConnections.remove(config_hash)
@@ -754,7 +760,7 @@ def performSyncDown(file_path, config_file_path, disregardIgnore=False, progress
     basename = os.path.basename(file_path)
 
     if disregardIgnore is False and ignore is not None and re_ignore.search(file_path) is not None:
-        return printMessage("file globally ignored: " + basename, onlyVerbose=True)
+        return printMessage("file globally ignored: {" + basename + "}", onlyVerbose=True)
 
     config_hash = getFilepathHash(config_file_path)
     connections = getConnection(config_hash, config)
@@ -777,7 +783,7 @@ def performSyncDown(file_path, config_file_path, disregardIgnore=False, progress
             continue
 
         if disregardIgnore is False and config['connections'][name]['ignore'] is not None and re.search(config['connections'][name]['ignore'], file_path):
-            printMessage("file ignored by rule: " + basename, name, True)
+            printMessage("file ignored by rule: {" + basename + "}", name, True)
             continue
 
         try:
@@ -814,7 +820,7 @@ def performSyncDown(file_path, config_file_path, disregardIgnore=False, progress
 
             if type(downloaded) is str or type(downloaded) is unicode:
                 stored.append(downloaded)
-                printMessage("downloaded " + basename, name)
+                printMessage("downloaded {" + basename + "}", name)
 
             else:
                 failed = type(downloaded)
@@ -825,7 +831,7 @@ def performSyncDown(file_path, config_file_path, disregardIgnore=False, progress
             printMessage("performSyncDown exception: " + str(e))
 
         if failed:
-            message = "download failed: (" + basename + ")"
+            message = "download of {" + basename + "} failed"
 
             if type(failed) is Exception:
                 message += "<Exception: " + str(failed) + ">"
@@ -848,7 +854,9 @@ def performRemoteCheck(file_path, window, forced=False):
     if window is None:
         return
 
-    printMessage("Checking " + os.path.basename(file_path) + " if up-to-date", status=True)
+    basename = os.path.basename(file_path)
+
+    printMessage("Checking {" + basename + "} if up-to-date", status=True)
 
     config_file_path = getConfigFile(file_path)
     if config_file_path is None:
@@ -871,7 +879,7 @@ def performRemoteCheck(file_path, window, forced=False):
         metadata = []
 
     if len(metadata) == 0:
-        return printMessage("No version found on any server", status=True)
+        return printMessage("No version of {" + basename + "} found on any server", status=True)
 
     newest = []
     oldest = []
@@ -932,11 +940,14 @@ def performRemoteCheck(file_path, window, forced=False):
 
         sublime.set_timeout(lambda: window.show_quick_panel(items, sync), 1)
     else:
-        printMessage("All remote versions are of same size and older", status=True)
+        printMessage("All remote versions of {" + basename + "} are of same size and older", status=True)
 
 
 
 # ==== Watching ===========================================================================
+
+# list of file paths to be checked on load
+checksScheduled = []
 
 # File watching
 class RemoteSync(sublime_plugin.EventListener):
@@ -956,7 +967,7 @@ class RemoteSync(sublime_plugin.EventListener):
         index = 0
 
         for entry in metadata:
-            if config['connections'][ entry['connection'] ]['check_time'] is True and entry['metadata'].isNewerThan(file_path):
+            if config['connections'][ entry['connection'] ]['upload_on_save'] is True and config['connections'][ entry['connection'] ]['check_time'] is True and entry['metadata'].isNewerThan(file_path):
                 skipped = True
                 newer.append(entry['connection'])
 
@@ -986,7 +997,12 @@ class RemoteSync(sublime_plugin.EventListener):
         RemoteSyncCall(file_path, getConfigFile(file_path), True).start()
 
     def on_close(self, view):
-        config_file_path = getConfigFile(view.file_name())
+        file_path = view.file_name()
+
+        config_file_path = getConfigFile(file_path)
+
+        if file_path in checksScheduled:
+            checksScheduled.remove(file_path)
 
         if config_file_path is not None:
             closeConnection(getFilepathHash(config_file_path))
@@ -994,7 +1010,16 @@ class RemoteSync(sublime_plugin.EventListener):
     # When a file is loaded and at least 1 connection has download_on_open enabled
     # it will check those enabled if the remote version is newer and offers the newest to download
     def on_load(self, view):
-        RemoteSyncCheck(view.file_name(), view.window()).start()
+        file_path = view.file_name()
+
+        if view not in checksScheduled:
+            checksScheduled.append(file_path)
+
+            def check():
+                if view in checksScheduled:
+                    RemoteSyncCheck(file_path, view.window()).start()
+
+            sublime.set_timeout(check, download_on_open_delay)
 
 
 
@@ -1164,6 +1189,9 @@ class FtpSyncRename(sublime_plugin.TextCommand):
         self.original_path = paths[0]
         self.folder = os.path.dirname(self.original_path)
         self.original_name = os.path.basename(self.original_path)
+
+        if self.original_path in checksScheduled:
+            checksScheduled.remove(self.original_path)
 
         self.view.window().show_input_panel('Enter new name', self.original_name, self.rename, None, None)
 
