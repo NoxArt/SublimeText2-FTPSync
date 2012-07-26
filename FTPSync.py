@@ -1146,7 +1146,7 @@ class FtpSyncTarget(sublime_plugin.TextCommand):
                 for root, dirs, files in os.walk(target):
                     for file_path in files:
                         if file_path not in fileNames:
-                            syncFiles.append([root + "\\" + file_path, getConfigFile(root + "\\" + file_path)])
+                            syncFiles.append([os.path.join(root, file_path), getConfigFile(os.path.join(root, file_path))])
 
         # sync
         RemoteSyncCall(syncFiles, None, False).start()
