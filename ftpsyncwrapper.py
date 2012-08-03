@@ -52,6 +52,11 @@ ftpErrors = {
     'rnfrExists': 350
 }
 
+# SSL issue
+sslErrors = {
+    'badWrite': 'error:1409F07F:SSL routines:SSL3_WRITE_PENDING:bad write retry'
+}
+
 
 
 # ==== Exceptions ==========================================================================
@@ -159,6 +164,7 @@ class FTPSConnection(AbstractConnection):
     def authenticate(self):
         if self.config['tls'] is True:
             self.connection.auth()
+            self.connection.prot_p()
             return True
 
         return False
@@ -187,40 +193,53 @@ class FTPSConnection(AbstractConnection):
     #
     # @global ftpErrors
     def put(self, file_path, new_name = None):
-        remote_file = file_path
-        if new_name is not None:
-            remote_file = self._postprocessPath(os.path.join(os.path.split(file_path)[0], new_name))
 
-        path = self._getMappedPath(remote_file)
+        def action():
+            remote_file = file_path
+            if new_name is not None:
+                remote_file = self._postprocessPath(os.path.join(os.path.split(file_path)[0], new_name))
 
-        command = "STOR " + path
+            path = self._getMappedPath(remote_file)
 
-        try:
-            uploaded = open(file_path, "rb")
+            command = "STOR " + path
 
-            self.connection.storbinary(command, uploaded)
+            try:
+                uploaded = open(file_path, "rb")
 
-            uploaded.close()
+                self.connection.storbinary(command, uploaded)
 
-            return self.name
-
-        except Exception, e:
-            if str(e)[:3] == str(ftpErrors['noFileOrDirectory']):
-                self.__makePath(path)
-
-                self.put(file_path)
+                uploaded.close()
 
                 return self.name
-            else:
-                print e
+
+            except Exception, e:
+                if str(e)[:3] == str(ftpErrors['noFileOrDirectory']):
+                    self.__makePath(path)
+
+                    self.put(file_path)
+
+                    return self.name
+                else:
+                    raise e
+
+        return self.__execute(action)
 
 
+    # Downloads a file from remote server
+    #
+    # @type self: FTPSConnection
+    # @type file_path: string
+    #
+    # @return string|None name of this connection or None
+    #
+    # @global ftpErrors
     def get(self, file_path):
-        path = self._getMappedPath(file_path)
 
-        command = "RETR " + path
+        def action():
+            path = self._getMappedPath(file_path)
 
-        try:
+            command = "RETR " + path
+
             with open(file_path, 'wb') as f:
 
                 self.connection.retrbinary(command, lambda data: f.write(data))
@@ -229,69 +248,82 @@ class FTPSConnection(AbstractConnection):
 
                 return self.name
 
-        except Exception, e:
-            print e
+        return self.__execute(action)
 
 
     def rename(self, file_path, new_name):
-        path = self._getMappedPath(os.path.dirname(file_path))
-        base = os.path.basename(file_path)
 
-        try:
-            self.cwd(path)
-        except Exception, e:
-            if str(e)[:3] == str(ftpErrors['noFileOrDirectory']):
-                self.__makePath(path)
+        def action():
+            path = self._getMappedPath(os.path.dirname(file_path))
+            base = os.path.basename(file_path)
 
-        try:
-            self.connection.voidcmd("RNFR " + base)
-        except Exception, e:
-            if str(e)[:3] == str(ftpErrors['cwdNoFileOrDirectory']):
-                self.put(file_path, new_name)
-                return base
+            try:
+                self.cwd(path)
+            except Exception, e:
+                if str(e)[:3] == str(ftpErrors['noFileOrDirectory']):
+                    self.__makePath(path)
+                else:
+                    raise e
 
-        try:
-            self.connection.voidcmd("RNFR " + base)
-        except:
-            if str(e)[:3] == str(ftpErrors['rnfrExists']) and str(e).find('Aborting previous'):
-                self.connection.voidcmd("RNTO " + new_name)
-                return base
+            try:
+                self.connection.voidcmd("RNFR " + base)
+            except Exception, e:
+                if str(e)[:3] == str(ftpErrors['cwdNoFileOrDirectory']):
+                    self.put(file_path, new_name)
+                    return base
+                else:
+                    raise e
 
-        self.connection.voidcmd("RNTO " + new_name)
+            try:
+                self.connection.voidcmd("RNFR " + base)
+            except:
+                if str(e)[:3] == str(ftpErrors['rnfrExists']) and str(e).find('Aborting previous'):
+                    self.connection.voidcmd("RNTO " + new_name)
+                    return base
+                else:
+                    raise e
 
-        return base
+            self.connection.voidcmd("RNTO " + new_name)
+
+            return base
+
+        return self.__execute(action)
 
 
     def cwd(self, path):
         self.connection.cwd(path)
 
 
-    def list(self, path):
-        path = self._getMappedPath(path)
-        contents = []
-        result = []
-        self.connection.dir(path, lambda data: contents.append(data))
+    def list(self, file_path):
 
-        for content in contents:
-            if self.config['debug_extras']['print_list_result'] is True:
-                print "FTPSync <debug> LIST line: " + str(content)
+        def action():
+            path = self._getMappedPath(file_path)
+            contents = []
+            result = []
+            self.connection.dir(path, lambda data: contents.append(data))
 
-            split = ftpListParse.search(content)
+            for content in contents:
+                if self.config['debug_extras']['print_list_result'] is True:
+                    print "FTPSync <debug> LIST line: " + str(content)
 
-            if split is None:
-                continue
+                split = ftpListParse.search(content)
 
-            isDir = split.group(1) == 'd'
-            filesize = split.group(2)
-            lastModified = split.group(3)
-            name = split.group(4)
+                if split is None:
+                    continue
 
-            data = Metafile(name, isDir, self.__parseTime(lastModified), filesize)
+                isDir = split.group(1) == 'd'
+                filesize = split.group(2)
+                lastModified = split.group(3)
+                name = split.group(4)
 
-            if name != "." and name != "..":
-                result.append(data)
+                data = Metafile(name, isDir, self.__parseTime(lastModified), filesize)
 
-        return result
+                if name != "." and name != "..":
+                    result.append(data)
+
+            return result
+
+        return self.__execute(action)
 
 
     def close(self, connections=[], hash=None):
@@ -307,6 +339,17 @@ class FTPSConnection(AbstractConnection):
                 connections[hash].remove(self)
             except ValueError:
                 return
+
+
+    def __execute(self, callback):
+        try:
+            return callback()
+        except Exception, e:
+
+            if str(e).find(sslErrors['badWrite']) is True:
+                return callback()
+            else:
+                raise e
 
 
     def __checkClosed(self):

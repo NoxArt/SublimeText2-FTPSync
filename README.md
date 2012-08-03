@@ -41,7 +41,7 @@ Format:
     		path: {string="/"}, // remote root for these files
 
             upload_on_save: true, // whether upload on save or manually
-            download_on_open: false // whether to check upon openning a file whether there's a new version on the server and offer download
+            download_on_open: false // overwrite protection when remote file is newer
 
     		port: {int=21}, // remote port, pretty much always 21, unless SFTP
     		tls: {bool=false}, // set true to use secured transfer, recommended! (server needs to support)

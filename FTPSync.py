@@ -1016,7 +1016,7 @@ class RemoteSync(sublime_plugin.EventListener):
             checksScheduled.append(file_path)
 
             def check():
-                if view in checksScheduled:
+                if file_path in checksScheduled:
                     RemoteSyncCheck(file_path, view.window()).start()
 
             sublime.set_timeout(check, download_on_open_delay)
@@ -1146,7 +1146,7 @@ class FtpSyncTarget(sublime_plugin.TextCommand):
                 for root, dirs, files in os.walk(target):
                     for file_path in files:
                         if file_path not in fileNames:
-                            syncFiles.append([root + "\\" + file_path, getConfigFile(root + "\\" + file_path)])
+                            syncFiles.append([os.path.join(root, file_path), getConfigFile(os.path.join(root, file_path))])
 
         # sync
         RemoteSyncCall(syncFiles, None, False).start()
