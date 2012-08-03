@@ -171,6 +171,13 @@ class FTPSConnection(AbstractConnection):
         self.connection.login(self.config['username'], self.config['password'])
 
 
+    # Send an empty/keep-alive message to server
+    #
+    # @type self: FTPSConnection
+    def keepAlive(self):
+        self.connection.voidcmd("NOOP")
+
+
     # Uploads a file to remote server
     #
     # @type self: FTPSConnection
@@ -217,6 +224,8 @@ class FTPSConnection(AbstractConnection):
             with open(file_path, 'wb') as f:
 
                 self.connection.retrbinary(command, lambda data: f.write(data))
+
+                self.close()
 
                 return self.name
 
