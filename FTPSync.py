@@ -1026,6 +1026,9 @@ class RemoteSync(sublime_plugin.EventListener):
 # ==== Threading ===========================================================================
 
 def fillProgress(progress, entry):
+    if type(entry[0]) is str or type(entry[0]) is unicode:
+        entry = entry[0]
+
     if type(entry) is list:
         for item in entry:
             fillProgress(progress, item)
@@ -1051,7 +1054,8 @@ class RemoteSyncCall(threading.Thread):
             performSync(target, self.config, self.onSave, self.disregardIgnore, whitelistConnections=self.whitelistConnections)
         elif type(target) is list:
             total = len(target)
-            progress = Progress(total)
+            print total
+            progress = Progress()
             fillProgress(progress, target)
 
             for file_path, config in target:
