@@ -54,8 +54,15 @@ ftpErrors = {
 
 # SSL issue
 sslErrors = {
-    'badWrite': 'error:1409F07F:SSL routines:SSL3_WRITE_PENDING:bad write retry'
+    'badWrite': 'error:1409F07F:SSL routines:SSL3_WRITE_PENDING:bad write retry',
+    'noFileOrDirectory': 'No such file or directory',
+    'cwdNoFileOrDirectory': 'No such file or directory',
+    'permissionDenied': 'Permission denied',
+    'rnfrExists': 'RNFR accepted - file exists, ready for destination'
 }
+
+# Default permissions for newly created folder
+defaultFolderPermissions = "755"
 
 
 
@@ -332,6 +339,12 @@ class FTPSConnection(AbstractConnection):
                 return
 
 
+    def chmod(self, filename, permissions):
+        command = "SITE CHMOD " + str(permissions) + " " + str(filename)
+
+        self.connection.voidcmd(command)
+
+
     def __execute(self, callback):
         try:
             return callback()
@@ -357,6 +370,10 @@ class FTPSConnection(AbstractConnection):
         return time.mktime(struct)
 
 
+    def __isError(self, exception, error):
+        return str(exception).find(error)
+
+
     def __makePath(self, path):
         self.connection.cwd(self.config['path'])
 
@@ -376,6 +393,7 @@ class FTPSConnection(AbstractConnection):
             except Exception, e:
                 if str(e)[:3] == str(ftpErrors['cwdNoFileOrDirectory']):
                     self.connection.mkd(folder)
+                    self.chmod(folder, self.config['default_folder_permissions'])
                     self.connection.cwd(folder)
 
 

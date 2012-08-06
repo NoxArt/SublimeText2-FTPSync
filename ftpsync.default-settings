@@ -39,5 +39,8 @@
 		// if set to true it will download the file from server on opening, but only if it's newer than the current file
 		//"download_on_open": false
 
+		// chmod value for directories created on remote server by FTPSync
+		//"default_folder_permissions": "755"
+
 	}
 }
