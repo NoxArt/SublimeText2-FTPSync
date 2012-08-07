@@ -99,6 +99,9 @@ def formatTimestamp(timestamp, format='%Y-%m-%d %H:%M'):
 #
 # @global nestingLimit
 def getFolders(file_path):
+    if file_path is None:
+        return []
+
     folders = [file_path]
     limit = nestingLimit
 
@@ -132,6 +135,9 @@ def getFolders(file_path):
 #
 # @return string file path or None
 def findFile(folders, file_name):
+    if folders is None:
+        return None
+
     for folder in folders:
         if os.path.exists(os.path.join(folder, file_name)) is True:
             return folder
@@ -147,6 +153,9 @@ def findFile(folders, file_name):
 #
 # @return list<string> of file paths
 def getFiles(paths, getConfigFile):
+    if paths is None:
+        return []
+
     files = []
     fileNames = []
 
