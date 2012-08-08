@@ -52,13 +52,17 @@ ftpErrors = {
     'rnfrExists': 350
 }
 
-# SSL issue
-sslErrors = {
-    'badWrite': 'error:1409F07F:SSL routines:SSL3_WRITE_PENDING:bad write retry',
+ftpErrors = {
     'noFileOrDirectory': 'No such file or directory',
     'cwdNoFileOrDirectory': 'No such file or directory',
     'permissionDenied': 'Permission denied',
-    'rnfrExists': 'RNFR accepted - file exists, ready for destination'
+    'rnfrExists': 'RNFR accepted - file exists, ready for destination',
+    'disconnected': 'An established connection was aborted by the software in your host machine'
+}
+
+# SSL issue
+sslErrors = {
+    'badWrite': 'error:1409F07F:SSL routines:SSL3_WRITE_PENDING:bad write retry',
 }
 
 # Default permissions for newly created folder
@@ -191,6 +195,15 @@ class FTPSConnection(AbstractConnection):
         self.connection.voidcmd("NOOP")
 
 
+    # Returns whether the connection is active
+    #
+    # @type self: FTPSConnection
+    #
+    # @return bool
+    def isAlive(self):
+        return self.isClosed is False and self.connection.sock is not None and self.connection.file is not None
+
+
     # Uploads a file to remote server
     #
     # @type self: FTPSConnection
@@ -220,7 +233,7 @@ class FTPSConnection(AbstractConnection):
                 return self.name
 
             except Exception, e:
-                if str(e)[:3] == str(ftpErrors['noFileOrDirectory']):
+                if self.__isError(e, 'noFileOrDirectory'):
                     self.__makePath(path)
 
                     self.put(file_path)
@@ -267,7 +280,7 @@ class FTPSConnection(AbstractConnection):
             try:
                 self.cwd(path)
             except Exception, e:
-                if str(e)[:3] == str(ftpErrors['noFileOrDirectory']):
+                if self.__isError(e, 'noFileOrDirectory'):
                     self.__makePath(path)
                 else:
                     raise e
@@ -275,7 +288,7 @@ class FTPSConnection(AbstractConnection):
             try:
                 self.connection.voidcmd("RNFR " + base)
             except Exception, e:
-                if str(e)[:3] == str(ftpErrors['cwdNoFileOrDirectory']):
+                if self.__isError(e, 'cwdNoFileOrDirectory'):
                     self.put(file_path, new_name)
                     return base
                 else:
@@ -361,6 +374,9 @@ class FTPSConnection(AbstractConnection):
 
             if str(e).find(sslErrors['badWrite']) is True:
                 return callback()
+            if self.__isError(e, 'disconnected') is True:
+                self.close()
+                raise e
             else:
                 raise e
 
@@ -380,7 +396,7 @@ class FTPSConnection(AbstractConnection):
 
 
     def __isError(self, exception, error):
-        return str(exception).find(error)
+        return str(exception).find(ftpErrors[error]) != -1
 
 
     def __makePath(self, path):
@@ -400,7 +416,7 @@ class FTPSConnection(AbstractConnection):
                 if index < len(folders):
                     self.connection.cwd(folder)
             except Exception, e:
-                if str(e)[:3] == str(ftpErrors['cwdNoFileOrDirectory']):
+                if self.__isError(e, 'cwdNoFileOrDirectory'):
                     self.connection.mkd(folder)
                     self.chmod(folder, self.config['default_folder_permissions'])
                     self.connection.cwd(folder)

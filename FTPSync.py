@@ -398,6 +398,11 @@ def getConnection(hash, config):
 
             raise KeyError
 
+        # is config truly alive
+        for connection in connections[hash]:
+            if connection.isAlive() is False:
+                raise KeyError
+
         return connections[hash]
 
     # cache miss
@@ -1054,7 +1059,6 @@ class RemoteSyncCall(threading.Thread):
             performSync(target, self.config, self.onSave, self.disregardIgnore, whitelistConnections=self.whitelistConnections)
         elif type(target) is list:
             total = len(target)
-            print total
             progress = Progress()
             fillProgress(progress, target)
 
