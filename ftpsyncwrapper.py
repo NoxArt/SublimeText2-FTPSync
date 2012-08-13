@@ -57,7 +57,8 @@ ftpErrors = {
     'cwdNoFileOrDirectory': 'No such file or directory',
     'permissionDenied': 'Permission denied',
     'rnfrExists': 'RNFR accepted - file exists, ready for destination',
-    'disconnected': 'An established connection was aborted by the software in your host machine'
+    'disconnected': 'An established connection was aborted by the software in your host machine',
+    'timeout': 'timed out'
 }
 
 # SSL issue
@@ -377,6 +378,8 @@ class FTPSConnection(AbstractConnection):
             if self.__isError(e, 'disconnected') is True:
                 self.close()
                 raise e
+            if self.__isError(e, 'timeout') is True:
+                return callback()
             else:
                 raise e
 
