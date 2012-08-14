@@ -71,7 +71,9 @@ download_on_open_delay = settings.get('download_on_open_delay')
 # loaded project's config will be merged with this global one
 coreConfig = {
     'ignore': ignore,
-    'connection_timeout': settings.get('connection_timeout')
+    'connection_timeout': settings.get('connection_timeout'),
+    'ascii_extensions': settings.get('ascii_extensions'),
+    'binary_extensions': settings.get('binary_extensions')
 }.items()
 
 # compiled global ignore pattern
@@ -415,7 +417,7 @@ def getConnection(hash, config):
 
             # 1. initialize
             try:
-                connection = CreateConnection(properties, name)
+                connection = CreateConnection(config, name)
             except Exception, e:
                 printMessage("Connection initialization failed <Exception: " + str(e) + ">", name, status=True)
 

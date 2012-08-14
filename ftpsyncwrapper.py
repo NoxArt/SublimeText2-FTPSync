@@ -34,7 +34,7 @@ import re
 import time
 
 # FTPSync libraries
-from ftpsyncfiles import Metafile
+from ftpsyncfiles import Metafile, isTextFile
 
 
 # ==== Initialization and optimization =====================================================
@@ -93,7 +93,7 @@ def CreateConnection(config, name):
     if 'private_key' in config and config['private_key'] is not None:
         raise NotImplementedError
     else:
-        return FTPSConnection(config, name)
+        return FTPSConnection(config['connections'][name], config, name)
 
 
 # Base class for all connection classes
@@ -142,8 +142,9 @@ class FTPSConnection(AbstractConnection):
     # @param config: only the connection part of config
     # @type name: string
     # @param name: connection name from config
-    def __init__(self, config, name):
+    def __init__(self, config, generic_config, name):
         self.config = config
+        self.generic_config = generic_config
         self.name = name
         self.isClosed = False
 
@@ -223,11 +224,19 @@ class FTPSConnection(AbstractConnection):
             path = self._getMappedPath(remote_file)
 
             command = "STOR " + path
+            action  = "storbinary"
+            mode    = 'b'
+            if isTextFile(file_path, self.generic_config['ascii_extensions'], self.generic_config['binary_extensions']):
+                action = "storlines"
+                mode = ''
 
             try:
-                uploaded = open(file_path, "rb")
+                uploaded = open(file_path, "r" + mode)
 
-                self.connection.storbinary(command, uploaded)
+                if action is "storbinary":
+                    self.connection.storbinary(command, uploaded)
+                else:
+                    self.connection.storlines(command, uploaded)
 
                 uploaded.close()
 
@@ -260,10 +269,18 @@ class FTPSConnection(AbstractConnection):
             path = self._getMappedPath(file_path)
 
             command = "RETR " + path
+            action  = "retrbinary"
+            mode    = 'b'
+            if isTextFile(file_path, self.generic_config['ascii_extensions'], self.generic_config['binary_extensions']):
+                action = "retrlines"
+                mode = ''
 
-            with open(file_path, 'wb') as f:
+            with open(file_path, 'w' + mode) as f:
 
-                self.connection.retrbinary(command, lambda data: f.write(data))
+                if action is "retrbinary":
+                    self.connection.retrbinary(command, lambda data: f.write(data))
+                else:
+                    self.connection.retrlines(command, lambda data: f.write(data))
 
                 self.close()
 

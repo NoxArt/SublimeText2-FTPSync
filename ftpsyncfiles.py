@@ -38,6 +38,23 @@ import datetime
 timeDifferenceTolerance = 1
 # limit for breaking down a filepath structure when looking for config files
 nestingLimit = 30
+# bom marks (decimal)
+bomMarks = {
+    'utf8': [239,187,191],
+    'utf16be': [254,255],
+    'utf16le': [255,254],
+    'utf32be': [0,0,254,255],
+    'utf32le': [255,254,0,0],
+    'utf7': [43,47,118,56,43,47,118,57,43,47,118,43,43,47,118,47],
+    'utf1': [247,100,76],
+    'utfebcdic': [221,115,102,115],
+    'scsu': [14,254,255],
+    'bocu-1': [251,238,40],
+    'gb18030': [132,49,149,51]
+}
+bomMaxLength = 16
+# file_path[string] => textual[boolean]
+isTextCache = {}
 
 
 # ==== Content =============================================================================
@@ -164,3 +181,52 @@ def getFiles(paths, getConfigFile):
             files.append([target, getConfigFile(target)])
 
     return files
+
+
+# Guesses whether given file is textual or not
+#
+# @type file_path: string
+# @type asciiWhitelist: None|list<string>
+# @type binaryWhitelist: None|list<string>
+#
+# @return boolean whether it's likely textual or binary
+def isTextFile(file_path, asciiWhitelist=None, binaryWhitelist=None):
+
+    # check cache
+    if file_path in isTextCache:
+        return isTextCache[file_path]
+
+    # check extension
+    extension = os.path.splitext(file_path)[1][1:]
+
+    if extension:
+
+        if type(asciiWhitelist) is list:
+            if extension in asciiWhitelist:
+                isTextCache[file_path] = True
+                return True
+
+        if type(binaryWhitelist) is list:
+            if extension in binaryWhitelist:
+                isTextCache[file_path] = False
+                return False
+
+    # check BOM
+    f = open(file_path, 'rb')
+    beginning = f.read(bomMaxLength)
+    f.close()
+
+    begin = []
+    for char in beginning:
+        begin.append(ord(char))
+
+    for encoding in bomMarks:
+        subarray = begin[0:len(bomMarks[encoding])]
+
+        if subarray == begin:
+            isTextCache[file_path] = True
+            return True
+
+    # is not
+    isTextCache[file_path] = False
+    return False
