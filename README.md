@@ -3,9 +3,6 @@ SublimeText2-FTPSync
 
 Simple and free plugin for FTP syncing. Just hit the _save_ as usual and it's upped.
 
-Recently:
-* Added *Rename* feature into sidebar context menu
-
 What's there for you?
 * Multiple named upload targets
 * Ignored file regex patterns
@@ -16,7 +13,6 @@ What's there for you?
 * Progress bar for multiple up/download
 
 Current focus:
-* Remote vs local file _last\_updated_ detection
 * Resolving downloading from more locations
 * SFTP support
 
@@ -65,7 +61,7 @@ Released under MIT licence.
 
 Feel free to add issues, ideas, pull requests...
 
-Thanks to [castus](https://github.com/castus), [tommymarshall](https://github.com/tommymarshall), [TotallyInformation](https://github.com/TotallyInformation), [saiori](https://github.com/saiori), [vnabet](https://github.com/vnabet), [Jcrs](https://github.com/Jcrs), [ItayXD](https://github.com/ItayXD), [bibimij](https://github.com/bibimij) and [digitalmaster](https://github.com/digitalmaster) for reporting issues, ideas and fixing!
+Thanks to [castus](https://github.com/castus), [tommymarshall](https://github.com/tommymarshall), [TotallyInformation](https://github.com/TotallyInformation), [saiori](https://github.com/saiori), [vnabet](https://github.com/vnabet), [Jcrs](https://github.com/Jcrs), [ItayXD](https://github.com/ItayXD), [bibimij](https://github.com/bibimij), [digitalmaster](https://github.com/digitalmaster), [alfaex](https://github.com/alfaex) and [seyDoggy](https://github.com/seyDoggy) for reporting issues, ideas and fixing!
 
 
 
