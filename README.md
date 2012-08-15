@@ -44,6 +44,8 @@ Format:
             passive: {bool=true}, // whether to use passive or active connection
     		timeout: {int=30}, // seconds to invalidate the cached connection
     		ignore: {null|string} // regular expression, matched against file path - not applied for downloading
+
+            line_separator: {string=\n} // line separator for text files used in your project, usually \n, can be \r\n
     	} //,
         // <connection2_name>: { ... }
     }

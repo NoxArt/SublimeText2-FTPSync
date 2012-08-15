@@ -192,8 +192,6 @@ def getFiles(paths, getConfigFile):
 # @return boolean whether it's likely textual or binary
 def isTextFile(file_path, asciiWhitelist=None, binaryWhitelist=None):
 
-    return False
-
     # check cache
     if file_path in isTextCache:
         return isTextCache[file_path]
