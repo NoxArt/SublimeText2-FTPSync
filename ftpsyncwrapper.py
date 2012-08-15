@@ -58,7 +58,8 @@ ftpErrors = {
     'permissionDenied': 'Permission denied',
     'rnfrExists': 'RNFR accepted - file exists, ready for destination',
     'disconnected': 'An established connection was aborted by the software in your host machine',
-    'timeout': 'timed out'
+    'timeout': 'timed out',
+    'ascii': 'TYPE is now ASCII'
 }
 
 # SSL issue
@@ -280,7 +281,7 @@ class FTPSConnection(AbstractConnection):
                 if action is "retrbinary":
                     self.connection.retrbinary(command, lambda data: f.write(data))
                 else:
-                    self.connection.retrlines(command, lambda data: f.write(data))
+                    self.connection.retrlines(command, lambda data: f.write(data + str(self.config['line_separator'])))
 
                 self.close()
 
@@ -392,11 +393,13 @@ class FTPSConnection(AbstractConnection):
 
             if str(e).find(sslErrors['badWrite']) is True:
                 return callback()
-            if self.__isError(e, 'disconnected') is True:
+            elif self.__isError(e, 'disconnected') is True:
                 self.close()
                 raise e
-            if self.__isError(e, 'timeout') is True:
+            elif self.__isError(e, 'timeout') is True:
                 return callback()
+            elif self.__isError(e, 'ascii') is True:
+                return
             else:
                 raise e
 

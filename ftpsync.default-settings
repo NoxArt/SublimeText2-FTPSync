@@ -42,5 +42,8 @@
 		// chmod value for directories created on remote server by FTPSync
 		//"default_folder_permissions": "755"
 
+		//line separator for text files
+		//"line_separator": "\n"
+
 	}
 }

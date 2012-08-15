@@ -23,6 +23,7 @@
 		"check_time": true,
 		"download_on_open": false,
 		"default_folder_permissions": "755",
+		"line_separator": "\n",
 
 		"debug_extras": {
 			"print_list_result": false
