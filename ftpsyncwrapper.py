@@ -159,7 +159,8 @@ class FTPSConnection(AbstractConnection):
     #
     # @type self: FTPSConnection
     def __del__(self):
-        self.close()
+        if hasattr(self, 'connection'):
+            self.close()
 
 
     # Connects to remote server

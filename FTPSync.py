@@ -428,7 +428,7 @@ def getConnection(hash, config):
                 connection.connect()
             except Exception, e:
                 printMessage("Connection failed <Exception: " + str(e) + ">", name, status=True)
-                connection.close(connection, hash)
+                connection.close(connections, hash)
 
                 continue
 
