@@ -680,6 +680,8 @@ def performSync(file_path, config_file_path, onSave, disregardIgnore=False, prog
 
             if type(failed) is Exception:
                 message += "<Exception: " + str(failed) + ">"
+            else:
+                message += "<Error: " + str(failed) + ">"
 
             printMessage(message, name, False, True)
 
@@ -731,6 +733,8 @@ def performSyncRename(file_path, config_file, new_name):
 
             if type(failed) is Exception:
                 message += "<Exception: " + str(failed) + ">"
+            else:
+                message += "<Error: " + str(failed) + ">"
 
             printMessage(message, name, False, True)
 
@@ -842,6 +846,8 @@ def performSyncDown(file_path, config_file_path, disregardIgnore=False, progress
 
             if type(failed) is Exception:
                 message += "<Exception: " + str(failed) + ">"
+            else:
+                message += "<Error: " + str(failed) + ">"
 
             printMessage(message, name, False, True)
         else:
