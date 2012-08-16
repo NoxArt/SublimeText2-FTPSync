@@ -1,3 +1,5 @@
+**Note**: I was recently contacted by a person via mail, unfortunately due to an error in a form I didn't get his e-mail address, my apology. I'd be glad if (s)he would contact me again on petruzelka@nox-art.cz, thank you.
+
 SublimeText2-FTPSync
 ====================
 
