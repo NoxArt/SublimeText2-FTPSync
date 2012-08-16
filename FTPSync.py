@@ -353,6 +353,9 @@ def loadConfig(file_path):
         result[name] = dict(projectDefaults + config[name].items())
         result[name]['file_path'] = file_path
 
+        if result[name]['debug_extras']['dump_config_load'] is True:
+            printMessage(result[name])
+
         verification_result = verifyConfig(result[name])
 
         if verification_result is not True:

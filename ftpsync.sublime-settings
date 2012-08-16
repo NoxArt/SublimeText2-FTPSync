@@ -26,7 +26,8 @@
 		"line_separator": "\n",
 
 		"debug_extras": {
-			"print_list_result": false
+			"print_list_result": false,
+			"dump_config_load": false
 		}
 	},
 
