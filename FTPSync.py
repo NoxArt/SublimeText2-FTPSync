@@ -624,32 +624,39 @@ def getRemoteMetadata(file_path, config_file_path, whitelistConnections=[]):
 # ==== Executive functions ======================================================================
 
 
-class SyncCommand:
+# Generic synchronization command
+class SyncCommand(object):
 
-    def __init__(file_path, config_file_path):
+    def __init__(self, file_path, config_file_path):
+        self.closed = False
         self.file_path = file_path
+        self.config_file_path = config_file_path
+
         self.config = loadConfig(config_file_path)
         self.basename = os.path.basename(file_path)
 
-        config_hash = getFilepathHash(self.config_file_path)
-        connections = getConnection(self.config_hash, self.config)
+        self.config_hash = getFilepathHash(self.config_file_path)
+        self.connections = getConnection(self.config_hash, self.config)
 
-    def __del__():
-        if self.config_hash in usingConnections:
+
+    def __del__(self):
+        if hasattr(self, 'config_hash') and self.config_hash in usingConnections:
             usingConnections.remove(self.config_hash)
 
 
 
+# Transfer-related sychronization command
 class SyncCommandTransfer(SyncCommand):
 
-    def __init__(file_path, config_file_path, progress=None, onSave=False, disregardIgnore=False, whitelistConnections=[]):
+    def __init__(self, file_path, config_file_path, progress=None, onSave=False, disregardIgnore=False, whitelistConnections=[]):
 
         # global ignore
         if disregardIgnore is False and ignore is not None and re_ignore.search(file_path) is not None:
             printMessage("file globally ignored: {" + os.path.basename(file_path) + "}", onlyVerbose=True)
             self.closed = True
+            return
 
-        super(SyncCommandTransfer, self).__init__(file_path, config_file_path)
+        SyncCommand.__init__(self, file_path, config_file_path)
 
         self.onSave = False
         self.disregardIgnore = False
@@ -662,7 +669,7 @@ class SyncCommandTransfer(SyncCommand):
                 self.config['connections'].remove(name)
 
             # ignore
-            if disregardIgnore is False and config['connections'][name]['ignore'] is not None and re.search(config['connections'][name]['ignore'], file_path):
+            if disregardIgnore is False and self.config['connections'][name]['ignore'] is not None and re.search(self.config['connections'][name]['ignore'], file_path):
                 printMessage("file ignored by rule: {" + basename + "}", name, True)
                 self.config['connections'].remove(name)
 
@@ -672,10 +679,11 @@ class SyncCommandTransfer(SyncCommand):
 
 
 
-class SyncCommandUp(SyncCommandTransfer):
+# Upload command
+class SyncCommandUpload(SyncCommandTransfer):
 
-    def execute():
-        if self.closed or len(self.config['connections']) == 0:
+    def execute(self):
+        if self.closed is True or len(self.config['connections']) == 0:
             return
 
         if self.progress is not None:
@@ -689,18 +697,16 @@ class SyncCommandUp(SyncCommandTransfer):
             index += 1
 
             try:
-                connections[index]
-            except IndexError:
-                continue
-
-            try:
-                connections[index].put(file_path)
+                self.connections[index].put(self.file_path)
 
                 stored.append(name)
                 printMessage("uploaded " + self.basename, name)
 
+            except IndexError:
+                continue
+
             except Exception, e:
-                printMessage("performSync exception: " + str(e))
+                printMessage("SyncCommandUp exception: " + str(e))
                 printMessage("upload failed: {" + self.basename + "} <Exception: " + str(e) + ">", name, False, True)
 
         if len(stored) > 0:
@@ -708,84 +714,93 @@ class SyncCommandUp(SyncCommandTransfer):
 
 
 
-# Uploads given file
-#
-# @type file_path: string
-# @type config_file_path: string
-# @type onSave: bool
-# @param onSave: whether this is a regular upload or upload on save
-# @type disregardIgnore: bool
-# @type progress: Progress
-# @type whitelistConnections: list<connection_name: string>
-# @param whitelistConnections: if not empty then only these connection names can be used
-def performSync(file_path, config_file_path, onSave, disregardIgnore=False, progress=None, whitelistConnections=[]):
-    if progress is not None:
-        progress.progress()
+# Download command
+class SyncCommandDownload(SyncCommandTransfer):
 
-    config = loadConfig(config_file_path)
-    basename = os.path.basename(file_path)
+    def __init__(self, file_path, config_file_path, progress=None, onSave=False, disregardIgnore=False, whitelistConnections=[]):
+        SyncCommandTransfer.__init__(self, file_path, config_file_path, progress, onSave, disregardIgnore, whitelistConnections)
 
-    if disregardIgnore is False and ignore is not None and re_ignore.search(file_path) is not None:
-        return printMessage("file globally ignored: {" + basename + "}", onlyVerbose=True)
+        self.isDir = False
+        self.forced = False
+        self.skip = False
 
-    config_hash = getFilepathHash(config_file_path)
-    connections = getConnection(config_hash, config)
 
-    usingConnections.append(config_hash)
+    def setIsDir(self, isDir=True):
+        self.isDir = isDir
 
-    index = -1
-    stored = []
-    failed = False
-    index = -1
+        return self
 
-    for name in config['connections']:
-        index += 1
 
-        if len(whitelistConnections) > 0 and name not in whitelistConnections:
-            continue
+    def setForced(self, forced=True):
+        self.forced = forced
 
-        try:
-            connections[index]
-        except IndexError:
-            continue
+        return self
 
-        if config['connections'][name]['upload_on_save'] is False and onSave is True:
-            continue
 
-        if disregardIgnore is False and config['connections'][name]['ignore'] is not None and re.search(config['connections'][name]['ignore'], file_path):
-            printMessage("file ignored by rule: {" + basename + "}", name, True)
-            break
+    def setSkip(self, skip=True):
+        self.skip = skip
 
-        try:
-            uploaded = connections[index].put(file_path)
+        return self
 
-            if type(uploaded) is str or type(uploaded) is unicode:
-                stored.append(uploaded)
-                printMessage("uploaded " + basename, name)
 
-            else:
-                failed = type(uploaded)
+    def execute(self):
+        if self.closed is True or len(self.config['connections']) == 0:
+            return
 
-        except Exception, e:
-            failed = e
+        if self.progress is not None and self.isDir is not True:
+            self.progress.progress()
 
-            printMessage("performSync exception: " + str(e))
+        usingConnections.append(self.config_hash)
+        index = -1
+        stored = []
 
-        if failed:
-            message = "upload failed: {" + basename + "}"
+        for name in self.config['connections']:
+            index += 1
 
-            if type(failed) is Exception:
-                message += "<Exception: " + str(failed) + ">"
-            else:
-                message += "<Error: " + str(failed) + ">"
+            try:
 
-            printMessage(message, name, False, True)
+                contents = self.connections[index].list(self.file_path)
 
-    if len(stored) > 0:
-        dumpMessage(getProgressMessage(stored, progress, "uploaded", basename))
+                if self.isDir or os.path.isdir(self.file_path):
+                    if os.path.exists(self.file_path) is False:
+                        os.mkdir(self.file_path)
 
-    if config_hash in usingConnections:
-        usingConnections.remove(config_hash)
+                    for entry in contents:
+                        if entry.isDirectory() is False:
+                            self.progress.add([entry.getName()])
+
+                    for entry in contents:
+                        full_name = os.path.join(self.file_path, entry.getName())
+
+                        if entry.isDirectory() is True:
+                            SyncCommandDownload(full_name, self.config_file_path, progress=self.progress, disregardIgnore=self.disregardIgnore).setIsDir().setForced(self.forced).execute()
+                        else:
+                            completed = False
+
+                            if not self.forced and entry.isNewerThan(full_name) is False:
+                                completed = True
+
+                            SyncCommandDownload(full_name, self.config_file_path, progress=self.progress, disregardIgnore=self.disregardIgnore).setIsDir().setForced(self.forced).setSkip(completed).execute()
+
+                    return
+
+                elif not self.skip:
+                    self.connections[index].get(self.file_path)
+                    stored.append(name)
+                    printMessage("downloaded {" + self.basename + "}", name)
+
+            except IndexError:
+                continue
+
+            except Exception, e:
+                printMessage("SyncCommandDownload exception: " + str(e))
+                printMessage("download of {" + self.basename + "} failed <Exception: " + str(e) + ">", name, False, True)
+
+
+        if len(stored) > 0:
+            dumpMessage(getProgressMessage(stored, self.progress, "downloaded", self.basename))
+
+
 
 
 # Renames given file
@@ -1160,9 +1175,7 @@ class RemoteSyncCall(threading.Thread):
             return False
 
         if type(target) is str or type(target) is unicode:
-            #performSync(target, self.config, self.onSave, self.disregardIgnore, whitelistConnections=self.whitelistConnections)
-
-            SyncCommandUp(target, self.config, onSave=self.onSave, disregardIgnore=self.disregardIgnore, whitelistConnections=self.whitelistConnections).execute()
+            SyncCommandUpload(target, self.config, onSave=self.onSave, disregardIgnore=self.disregardIgnore, whitelistConnections=self.whitelistConnections).execute()
 
         elif type(target) is list:
             total = len(target)
@@ -1170,7 +1183,7 @@ class RemoteSyncCall(threading.Thread):
             fillProgress(progress, target)
 
             for file_path, config in target:
-                performSync(file_path, config, self.onSave, self.disregardIgnore, progress, whitelistConnections=self.whitelistConnections)
+                SyncCommandUpload(file_path, config, progress=progress, onSave=self.onSave, disregardIgnore=self.disregardIgnore, whitelistConnections=self.whitelistConnections).execute()
 
 
 class RemoteSyncDownCall(threading.Thread):
@@ -1189,7 +1202,7 @@ class RemoteSyncDownCall(threading.Thread):
             return False
 
         if type(target) is str or type(target) is unicode:
-            performSyncDown(target, self.config, self.disregardIgnore, forced=self.forced, whitelistConnections=self.whitelistConnections)
+            SyncCommandDownload(target, self.config, disregardIgnore=self.disregardIgnore, whitelistConnections=self.whitelistConnections).setForced(self.forced).execute()
         else:
             total = len(target)
             progress = Progress(total)
@@ -1198,7 +1211,7 @@ class RemoteSyncDownCall(threading.Thread):
                 if os.path.isfile(file_path):
                     progress.add([file_path])
 
-                performSyncDown(file_path, config, self.disregardIgnore, progress, forced=self.forced, whitelistConnections=self.whitelistConnections)
+                SyncCommandDownload(file_path, config, disregardIgnore=self.disregardIgnore, progress=progress, whitelistConnections=self.whitelistConnections).setForced(self.forced).execute()
 
 
 class RemoteSyncRename(threading.Thread):
