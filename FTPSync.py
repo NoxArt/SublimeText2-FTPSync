@@ -353,6 +353,11 @@ def loadConfig(file_path):
         result[name] = dict(projectDefaults + config[name].items())
         result[name]['file_path'] = file_path
 
+        if 'debug_extras' in config[name]:
+            result[name]['debug_extras'] = dict(projectDefaults['debug_extras'] + config[name]['debug_extras'].items())
+
+        print result[name]
+
         if result[name]['debug_extras']['dump_config_load'] is True:
             printMessage(result[name])
 
@@ -612,7 +617,89 @@ def getRemoteMetadata(file_path, config_file_path, whitelistConnections=[]):
 
 # ==== Executive functions ======================================================================
 
-# --- Following section could use a pretty big overhaul ---
+
+class SyncCommand:
+
+    def __init__(file_path, config_file_path):
+        self.file_path = file_path
+        self.config = loadConfig(config_file_path)
+        self.basename = os.path.basename(file_path)
+
+        config_hash = getFilepathHash(self.config_file_path)
+        connections = getConnection(self.config_hash, self.config)
+
+    def __del__():
+        if self.config_hash in usingConnections:
+            usingConnections.remove(self.config_hash)
+
+
+
+class SyncCommandTransfer(SyncCommand):
+
+    def __init__(file_path, config_file_path, progress=None, onSave=False, disregardIgnore=False, whitelistConnections=[]):
+
+        # global ignore
+        if disregardIgnore is False and ignore is not None and re_ignore.search(file_path) is not None:
+            printMessage("file globally ignored: {" + os.path.basename(file_path) + "}", onlyVerbose=True)
+            self.closed = True
+
+        super(SyncCommandTransfer, self).__init__(file_path, config_file_path)
+
+        self.onSave = False
+        self.disregardIgnore = False
+        self.progress = progress
+
+        for name in self.config['connections']:
+
+            # on save
+            if self.config['connections'][name]['upload_on_save'] is False and onSave is True:
+                self.config['connections'].remove(name)
+
+            # ignore
+            if disregardIgnore is False and config['connections'][name]['ignore'] is not None and re.search(config['connections'][name]['ignore'], file_path):
+                printMessage("file ignored by rule: {" + basename + "}", name, True)
+                self.config['connections'].remove(name)
+
+            # whitelist
+            if len(whitelistConnections) > 0 and name not in whitelistConnections:
+                self.config['connections'].remove(name)
+
+
+
+class SyncCommandUp(SyncCommandTransfer):
+
+    def execute():
+        if self.closed or len(self.config['connections']) == 0:
+            return
+
+        if self.progress is not None:
+            self.progress.progress()
+
+        usingConnections.append(self.config_hash)
+        stored = []
+        index = -1
+
+        for name in self.config['connections']:
+            index += 1
+
+            try:
+                connections[index]
+            except IndexError:
+                continue
+
+            try:
+                connections[index].put(file_path)
+
+                stored.append(name)
+                printMessage("uploaded " + self.basename, name)
+
+            except Exception, e:
+                printMessage("performSync exception: " + str(e))
+                printMessage("upload failed: {" + self.basename + "} <Exception: " + str(e) + ">", name, False, True)
+
+        if len(stored) > 0:
+            dumpMessage(getProgressMessage(stored, self.progress, "uploaded", self.basename))
+
 
 
 # Uploads given file
@@ -664,13 +751,29 @@ def performSync(file_path, config_file_path, onSave, disregardIgnore=False, prog
             break
 
         try:
-            connections[index].put(file_path)
+            uploaded = connections[index].put(file_path)
 
-            stored.append(name)
-            printMessage("uploaded " + basename, name)
+            if type(uploaded) is str or type(uploaded) is unicode:
+                stored.append(uploaded)
+                printMessage("uploaded " + basename, name)
+
+            else:
+                failed = type(uploaded)
 
         except Exception, e:
-            printMessage("upload failed: {" + basename + "} <Exception: " + str(e) + ">", name, False, True)
+            failed = e
+
+            printMessage("performSync exception: " + str(e))
+
+        if failed:
+            message = "upload failed: {" + basename + "}"
+
+            if type(failed) is Exception:
+                message += "<Exception: " + str(failed) + ">"
+            else:
+                message += "<Error: " + str(failed) + ">"
+
+            printMessage(message, name, False, True)
 
     if len(stored) > 0:
         dumpMessage(getProgressMessage(stored, progress, "uploaded", basename))
@@ -811,17 +914,34 @@ def performSyncDown(file_path, config_file_path, disregardIgnore=False, progress
 
                 return
             else:
-                connections[index].get(file_path)
+                if skip:
+                    downloaded = name
+                else:
+                    downloaded = connections[index].get(file_path)
 
-            stored.append(name)
-            printMessage("downloaded {" + basename + "}", name)
+            if type(downloaded) is str or type(downloaded) is unicode:
+                stored.append(downloaded)
+                printMessage("downloaded {" + basename + "}", name)
+
+            else:
+                failed = type(downloaded)
 
         except Exception, e:
+            failed = e
+
             printMessage("performSyncDown exception: " + str(e))
 
-            message = "download of {" + basename + "} failed <Exception: " + str(e) + ">"
+        if failed:
+            message = "download of {" + basename + "} failed"
+
+            if type(failed) is Exception:
+                message += "<Exception: " + str(failed) + ">"
+            else:
+                message += "<Error: " + str(failed) + ">"
 
             printMessage(message, name, False, True)
+        else:
+            break
 
     if len(stored) > 0:
         dumpMessage(getProgressMessage(stored, progress, "downloaded", basename))
@@ -1034,7 +1154,10 @@ class RemoteSyncCall(threading.Thread):
             return False
 
         if type(target) is str or type(target) is unicode:
-            performSync(target, self.config, self.onSave, self.disregardIgnore, whitelistConnections=self.whitelistConnections)
+            #performSync(target, self.config, self.onSave, self.disregardIgnore, whitelistConnections=self.whitelistConnections)
+
+            SyncCommandUp(target, self.config, onSave=self.onSave, disregardIgnore=self.disregardIgnore, whitelistConnections=self.whitelistConnections).execute()
+
         elif type(target) is list:
             total = len(target)
             progress = Progress()
