@@ -55,6 +55,7 @@ ftpErrors = {
 ftpErrors = {
     'noFileOrDirectory': 'No such file or directory',
     'cwdNoFileOrDirectory': 'No such file or directory',
+    'fileNotExist': 'Sorry, but that file doesn\'t exist',
     'permissionDenied': 'Permission denied',
     'rnfrExists': 'RNFR accepted - file exists, ready for destination',
     'disconnected': 'An established connection was aborted by the software in your host machine',
@@ -308,7 +309,7 @@ class FTPSConnection(AbstractConnection):
             try:
                 self.connection.voidcmd("RNFR " + base)
             except Exception, e:
-                if self.__isError(e, 'cwdNoFileOrDirectory'):
+                if self.__isError(e, 'cwdNoFileOrDirectory') or self.__isError(e, 'fileNotExist'):
                     self.put(file_path, new_name)
                     return base
                 else:
