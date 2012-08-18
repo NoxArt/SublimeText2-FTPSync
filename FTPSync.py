@@ -661,29 +661,13 @@ def performSync(file_path, config_file_path, onSave, disregardIgnore=False, prog
             break
 
         try:
-            uploaded = connections[index].put(file_path)
+            connections[index].put(file_path)
 
-            if type(uploaded) is str or type(uploaded) is unicode:
-                stored.append(uploaded)
-                printMessage("uploaded " + basename, name)
-
-            else:
-                failed = type(uploaded)
+            stored.append(name)
+            printMessage("uploaded " + basename, name)
 
         except Exception, e:
-            failed = e
-
-            printMessage("performSync exception: " + str(e))
-
-        if failed:
-            message = "upload failed: {" + basename + "}"
-
-            if type(failed) is Exception:
-                message += "<Exception: " + str(failed) + ">"
-            else:
-                message += "<Error: " + str(failed) + ">"
-
-            printMessage(message, name, False, True)
+            printMessage("upload failed: {" + basename + "} <Exception: " + str(e) + ">", name, False, True)
 
     if len(stored) > 0:
         dumpMessage(getProgressMessage(stored, progress, "uploaded", basename))
@@ -824,34 +808,17 @@ def performSyncDown(file_path, config_file_path, disregardIgnore=False, progress
 
                 return
             else:
-                if skip:
-                    downloaded = name
-                else:
-                    downloaded = connections[index].get(file_path)
+                connections[index].get(file_path)
 
-            if type(downloaded) is str or type(downloaded) is unicode:
-                stored.append(downloaded)
-                printMessage("downloaded {" + basename + "}", name)
-
-            else:
-                failed = type(downloaded)
+            stored.append(name)
+            printMessage("downloaded {" + basename + "}", name)
 
         except Exception, e:
-            failed = e
-
             printMessage("performSyncDown exception: " + str(e))
 
-        if failed:
-            message = "download of {" + basename + "} failed"
-
-            if type(failed) is Exception:
-                message += "<Exception: " + str(failed) + ">"
-            else:
-                message += "<Error: " + str(failed) + ">"
+            message = "download of {" + basename + "} failed <Exception: " + str(e) + ">"
 
             printMessage(message, name, False, True)
-        else:
-            break
 
     if len(stored) > 0:
         dumpMessage(getProgressMessage(stored, progress, "downloaded", basename))

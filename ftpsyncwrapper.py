@@ -47,14 +47,9 @@ currentYear = int(time.strftime("%Y", time.gmtime()))
 
 # List of FTP errors of interest
 ftpErrors = {
-    'noFileOrDirectory': 553,
-    'cwdNoFileOrDirectory': 550,
-    'rnfrExists': 350
-}
-
-ftpErrors = {
     'noFileOrDirectory': 'No such file or directory',
     'cwdNoFileOrDirectory': 'No such file or directory',
+    'fileNotExist': 'Sorry, but that file doesn\'t exist',
     'permissionDenied': 'Permission denied',
     'rnfrExists': 'RNFR accepted - file exists, ready for destination',
     'disconnected': 'An established connection was aborted by the software in your host machine',
@@ -226,16 +221,16 @@ class FTPSConnection(AbstractConnection):
             path = self._getMappedPath(remote_file)
 
             command = "STOR " + path
-            action  = "storbinary"
+            binary  = True
             mode    = 'b'
             if isTextFile(file_path, self.generic_config['ascii_extensions'], self.generic_config['binary_extensions']):
-                action = "storlines"
+                binary = False
                 mode = ''
 
             try:
                 uploaded = open(file_path, "r" + mode)
 
-                if action is "storbinary":
+                if binary:
                     self.connection.storbinary(command, uploaded)
                 else:
                     self.connection.storlines(command, uploaded)
@@ -271,15 +266,15 @@ class FTPSConnection(AbstractConnection):
             path = self._getMappedPath(file_path)
 
             command = "RETR " + path
-            action  = "retrbinary"
+            binary  = True
             mode    = 'b'
             if isTextFile(file_path, self.generic_config['ascii_extensions'], self.generic_config['binary_extensions']):
-                action = "retrlines"
+                binary = False
                 mode = ''
 
             with open(file_path, 'w' + mode) as f:
 
-                if action is "retrbinary":
+                if binary:
                     self.connection.retrbinary(command, lambda data: f.write(data))
                 else:
                     self.connection.retrlines(command, lambda data: f.write(data + str(self.config['line_separator'])))
@@ -308,7 +303,7 @@ class FTPSConnection(AbstractConnection):
             try:
                 self.connection.voidcmd("RNFR " + base)
             except Exception, e:
-                if self.__isError(e, 'cwdNoFileOrDirectory'):
+                if self.__isError(e, 'cwdNoFileOrDirectory') or self.__isError(e, 'fileNotExist'):
                     self.put(file_path, new_name)
                     return base
                 else:
@@ -317,7 +312,7 @@ class FTPSConnection(AbstractConnection):
             try:
                 self.connection.voidcmd("RNFR " + base)
             except:
-                if str(e)[:3] == str(ftpErrors['rnfrExists']) and str(e).find('Aborting previous'):
+                if self.__isError(e, 'rnfrExists') and str(e).find('Aborting previous'):
                     self.connection.voidcmd("RNTO " + new_name)
                     return base
                 else:
