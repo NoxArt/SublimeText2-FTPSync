@@ -61,6 +61,13 @@ isDebug = settings.get('debug')
 isDebugVerbose = settings.get('debug_verbose')
 # default config for a project
 projectDefaults = settings.get('project_defaults').items()
+nested = []
+index  = 0
+for item in projectDefaults:
+    if type(item[1]) is dict:
+        nested.append(index)
+    index += 1
+
 # global ignore pattern
 ignore = settings.get('ignore')
 # time format settings
@@ -353,8 +360,9 @@ def loadConfig(file_path):
         result[name] = dict(projectDefaults + config[name].items())
         result[name]['file_path'] = file_path
 
-        if 'debug_extras' in config[name]:
-            result[name]['debug_extras'] = dict(projectDefaults['debug_extras'] + config[name]['debug_extras'].items())
+        # merge nested
+        for index in nested:
+            result[name][ projectDefaults[index][0] ] = dict(result[name][ projectDefaults[index][0] ].items() + projectDefaults[index][1].items())
 
         if result[name]['debug_extras']['dump_config_load'] is True:
             printMessage(result[name])
