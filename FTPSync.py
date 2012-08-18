@@ -298,11 +298,11 @@ def verifyConfig(config):
     if type(config['download_on_open']) is not bool:
         return "Config entry 'download_on_open' must be true or false, " + str(type(config['download_on_open'])) + " given"
 
-    if type(config['port']) is not int:
-        return "Config entry 'port' must be an integer, " + str(type(config['port'])) + " given"
+    if type(config['port']) is not int and type(config['port']) is not long:
+        return "Config entry 'port' must be an integer or long, " + str(type(config['port'])) + " given"
 
-    if type(config['timeout']) is not int:
-        return "Config entry 'timeout' must be an integer, " + str(type(config['timeout'])) + " given"
+    if type(config['timeout']) is not int and type(config['timeout']) is not long:
+        return "Config entry 'timeout' must be an integer or long, " + str(type(config['timeout'])) + " given"
 
     return True
 
@@ -352,6 +352,9 @@ def loadConfig(file_path):
     for name in config:
         result[name] = dict(projectDefaults + config[name].items())
         result[name]['file_path'] = file_path
+
+        if result[name]['debug_extras']['dump_config_load'] is True:
+            printMessage(result[name])
 
         verification_result = verifyConfig(result[name])
 

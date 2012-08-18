@@ -168,7 +168,7 @@ class FTPSConnection(AbstractConnection):
     #
     # @type self: FTPSConnection
     def connect(self):
-        self.connection.connect(self.config['host'], self.config['port'], self.config['timeout'])
+        self.connection.connect(self.config['host'], int(self.config['port']), int(self.config['timeout']))
         self.connection.set_pasv(self.config['passive'])
 
 
