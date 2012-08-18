@@ -657,7 +657,7 @@ def performSync(file_path, config_file_path, onSave, disregardIgnore=False, prog
             continue
 
         if config['connections'][name]['upload_on_save'] is False and onSave is True:
-            return
+            continue
 
         if disregardIgnore is False and config['connections'][name]['ignore'] is not None and re.search(config['connections'][name]['ignore'], file_path):
             printMessage("file ignored by rule: {" + basename + "}", name, True)
