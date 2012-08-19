@@ -13,8 +13,10 @@ What's there for you?
 * Progress bar for multiple up/download
 
 Current focus:
-* Resolving downloading from more locations
-* SFTP support
+* Downloading from more locations
+* Safer downloading/uploading of files (tempfile)
+* Refactoring of syncing code
+* SFTP support (hopefully soon)
 
 
 For more info look into [Wiki](https://github.com/NoxArt/SublimeText2-FTPSync/wiki/_pages)
@@ -50,7 +52,7 @@ Format:
         // <connection2_name>: { ... }
     }
 
-Files are automatically uploaded **on save** (unless disabled by _upload\_on\_save_=false setting).
+Files are automatically uploaded **on save** (unless disabled by _upload\_on\_save_=false setting). In your newly created settings file some options are preceded with `//`, this means they are commented out (and default value from global settings file is used) - remove the `//` to enable the entry.
 
 
 
@@ -63,7 +65,7 @@ Released under MIT licence.
 
 Feel free to add issues, ideas, pull requests...
 
-Thanks to [castus](https://github.com/castus), [tommymarshall](https://github.com/tommymarshall), [TotallyInformation](https://github.com/TotallyInformation), [saiori](https://github.com/saiori), [vnabet](https://github.com/vnabet), [Jcrs](https://github.com/Jcrs), [ItayXD](https://github.com/ItayXD), [bibimij](https://github.com/bibimij), [digitalmaster](https://github.com/digitalmaster), [alfaex](https://github.com/alfaex) and [seyDoggy](https://github.com/seyDoggy) for reporting issues, ideas and fixing!
+Thanks to [castus](https://github.com/castus), [tommymarshall](https://github.com/tommymarshall), [TotallyInformation](https://github.com/TotallyInformation), [saiori](https://github.com/saiori), [vnabet](https://github.com/vnabet), [Jcrs](https://github.com/Jcrs), [ItayXD](https://github.com/ItayXD), [bibimij](https://github.com/bibimij), [digitalmaster](https://github.com/digitalmaster), [alfaex](https://github.com/alfaex), [seyDoggy](https://github.com/seyDoggy) and Nuno for reporting issues, ideas and fixing!
 
 
 

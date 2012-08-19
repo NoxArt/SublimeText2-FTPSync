@@ -1,5 +1,29 @@
 {
+
+	// ------ INFO ----------------------------------------------------------------------
+
+	// ** Commas
+
 	// don't forget about commas
+	// -> each entry needs a comma at the end of line EXCEPT the last (uncommented) entry
+	// for precise info see www.json.org
+
+
+	// ** Comments
+
+	// the "//" are so called "comments", all text after it is ignored
+	// they are used for notes or deactivating an entry
+
+	// non-basic settings are deactivated and default options specified in the global settings file,
+	// that is $packages$/FTPSync/ftpsync.sublime-settings (where $packages$ is a path where Sublime
+	// keeps packages in your Operating System) accessible via Preferences > Package Settings > FTPSync
+	// use Settings - User to override the global defaults
+
+	// more info about Sublime Text 2 settings on http://www.sublimetext.com/docs/2/settings.html
+
+	// -> if you want to activate a settings entry with preceding //, remove the //
+
+	// ------ SETTINGS ------------------------------------------------------------------
 
 	// your main connection
 	"default": {
@@ -7,7 +31,7 @@
 		// address
 		"host": "ftp.example.com",
 
-		//"port": 21, // use 22 for SFTP
+		//"port": 21,
 
 		// credentials
 		"username": "your_login",  // or null for anonymous login
@@ -25,8 +49,6 @@
 		// true = upload on save, false = upload only manually
 		// "upload_on_save": true,
 
-		// "private_key":
-
 		// how long until connection closes [seconds]
 		//"timeout": 30,
 
@@ -34,13 +56,13 @@
 		//"ignore": "",
 
 		// whether to check 'last updated' of the target file on server
-		//"check_time": true
+		//"check_time": true,
 
 		// if set to true it will download the file from server on opening, but only if it's newer than the current file
-		//"download_on_open": false
+		//"download_on_open": false,
 
 		// chmod value for directories created on remote server by FTPSync
-		//"default_folder_permissions": "755"
+		//"default_folder_permissions": "755",
 
 		//line separator for text files
 		//"line_separator": "\n"
