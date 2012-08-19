@@ -1039,6 +1039,9 @@ class RemoteSync(sublime_plugin.EventListener):
     def on_load(self, view):
         file_path = view.file_name()
 
+        if ignore is not None and re_ignore.search(file_path) is not None:
+            return
+
         if view not in checksScheduled:
             checksScheduled.append(file_path)
 
