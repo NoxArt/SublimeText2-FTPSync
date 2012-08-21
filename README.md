@@ -39,7 +39,8 @@ Format:
     		path: {string="/"}, // remote root for these files
 
             upload_on_save: true, // whether upload on save or manually
-            download_on_open: false // overwrite protection when remote file is newer
+            download_on_open: false, // overwrite protection when remote file is newer
+            upload_delay: {int=0}, // delays upload triggered by upload_on_save
 
     		port: {int=21}, // remote port, pretty much always 21, unless SFTP
     		tls: {bool=false}, // set true to use secured transfer, recommended! (server needs to support)

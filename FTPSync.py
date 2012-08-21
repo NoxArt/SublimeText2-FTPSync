@@ -106,6 +106,8 @@ connections = {}
 usingConnections = []
 # individual folder config cache, file => config path
 configs = {}
+# scheduled delayed uploads, file_path => callback()
+scheduledUploads = {}
 
 
 # ==== Messaging ===========================================================================
@@ -304,6 +306,9 @@ def verifyConfig(config):
 
     if type(config['download_on_open']) is not bool:
         return "Config entry 'download_on_open' must be true or false, " + str(type(config['download_on_open'])) + " given"
+
+    if type(config['upload_delay']) is not int and type(config['upload_delay']) is not long:
+        return "Config entry 'upload_delay' must be integer or long, " + str(type(config['upload_delay'])) + " given"
 
     if type(config['port']) is not int and type(config['port']) is not long:
         return "Config entry 'port' must be an integer or long, " + str(type(config['port'])) + " given"

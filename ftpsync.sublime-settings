@@ -22,6 +22,7 @@
 		"ignore": null,
 		"check_time": true,
 		"download_on_open": false,
+		"upload_delay": 0,
 		"default_folder_permissions": "755",
 		"line_separator": "\n",
 
