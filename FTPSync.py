@@ -98,6 +98,10 @@ connectionDefaultsFilename = 'ftpsync.default-settings'
 messageTimeout = 250
 # comment removing regexp
 removeLineComment = re.compile('//.*', re.I)
+# deprecated names
+deprecatedNames = {
+    "check_time": "overwrite_newer_prevention"
+}
 
 
 # connection cache pool - all connections
@@ -253,6 +257,26 @@ def getObjectHash(o):
     return hash(tuple(frozenset(new_o.items())))
 
 
+
+# Updates deprecated config to newer version
+#
+# @type config: dict
+#
+# @return dict (config)
+#
+# @global deprecatedNames
+def updateConfig(config):
+    for old_name in deprecatedNames:
+        new_name = deprecatedNames[old_name]
+
+        if new_name in config:
+            config[old_name] = config[new_name]
+        elif old_name in config:
+            config[new_name] = config[old_name]
+
+    return config
+
+
 # Verifies contents of a given config object
 #
 # Checks that it's an object with all needed keys of a proper type
@@ -371,6 +395,8 @@ def loadConfig(file_path):
 
         if result[name]['debug_extras']['dump_config_load'] is True:
             printMessage(result[name])
+
+        result[name] = updateConfig(result[name])
 
         verification_result = verifyConfig(result[name])
 
