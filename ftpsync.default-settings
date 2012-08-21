@@ -61,7 +61,7 @@
 		// if set to true it will download the file from server on opening, but only if it's newer than the current file
 		//"download_on_open": false,
 
-		// delay before changed file is uploaded !when using upload_on_save!
+		// delay [seconds] before changed file is uploaded !when using upload_on_save!
 		// can be used for increase of performance or to allow build scripts to finish
 		//"upload_delay": 0,
 

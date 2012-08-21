@@ -106,7 +106,7 @@ connections = {}
 usingConnections = []
 # individual folder config cache, file => config path
 configs = {}
-# scheduled delayed uploads, file_path => callback()
+# scheduled delayed uploads, file_path => action id
 scheduledUploads = {}
 
 
@@ -658,7 +658,7 @@ def performSync(file_path, config_file_path, onSave, disregardIgnore=False, prog
 
     index = -1
     stored = []
-    failed = False
+    delayed = False
     index = -1
 
     for name in config['connections']:
@@ -680,34 +680,41 @@ def performSync(file_path, config_file_path, onSave, disregardIgnore=False, prog
             break
 
         try:
-            uploaded = connections[index].put(file_path)
+            # action
+            connection = connections[index]
+            id = os.urandom(32)
+            scheduledUploads[file_path] = id
 
-            if type(uploaded) is str or type(uploaded) is unicode:
-                stored.append(uploaded)
-                printMessage("uploaded " + basename, name)
+            def action():
+                try:
+                    if scheduledUploads[file_path] != id:
+                        return
 
+                    connection.put(file_path)
+                    stored.append(name)
+                    printMessage("uploaded " + basename, name)
+
+                    scheduledUploads.pop(file_path)
+                except Exception, e:
+                    printMessage("performSync exception: " + str(e))
+                    printMessage("upload failed: {" + basename + "} <Exception: " + str(e) + ">", name, False, True)
+
+
+            # delayed
+            if onSave is True and config['connections'][name]['upload_delay'] > 0:
+                delayed = True
+                printMessage("delaying upload of " + basename + " by " + str(config['connections'][name]['upload_delay']) + " seconds", name, onlyVerbose=True)
+                sublime.set_timeout(action, config['connections'][name]['upload_delay'] * 1000)
             else:
-                failed = type(uploaded)
-
+                action()
         except Exception, e:
-            failed = e
-
             printMessage("performSync exception: " + str(e))
-
-        if failed:
-            message = "upload failed: {" + basename + "}"
-
-            if type(failed) is Exception:
-                message += "<Exception: " + str(failed) + ">"
-            else:
-                message += "<Error: " + str(failed) + ">"
-
-            printMessage(message, name, False, True)
+            printMessage("upload failed: {" + basename + "} <Exception: " + str(e) + ">", name, False, True)
 
     if len(stored) > 0:
         dumpMessage(getProgressMessage(stored, progress, "uploaded", basename))
 
-    if config_hash in usingConnections:
+    if delayed is False and config_hash in usingConnections:
         usingConnections.remove(config_hash)
 
 
