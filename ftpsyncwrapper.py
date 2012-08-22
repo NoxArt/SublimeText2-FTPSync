@@ -227,20 +227,10 @@ class FTPSConnection(AbstractConnection):
             path = self._getMappedPath(remote_file)
 
             command = "STOR " + path
-            action  = "storbinary"
-            mode    = 'b'
-            if isTextFile(file_path, self.generic_config['ascii_extensions'], self.generic_config['binary_extensions']):
-                action = "storlines"
-                mode = ''
 
             try:
-                uploaded = open(file_path, "r" + mode)
-
-                if action is "storbinary":
-                    self.connection.storbinary(command, uploaded)
-                else:
-                    self.connection.storlines(command, uploaded)
-
+                uploaded = open(file_path, "rb")
+                self.connection.storbinary(command, uploaded)
                 uploaded.close()
 
                 return self.name
@@ -272,22 +262,11 @@ class FTPSConnection(AbstractConnection):
             path = self._getMappedPath(file_path)
 
             command = "RETR " + path
-            action  = "retrbinary"
-            mode    = 'b'
-            if isTextFile(file_path, self.generic_config['ascii_extensions'], self.generic_config['binary_extensions']):
-                action = "retrlines"
-                mode = ''
+            downloaded = open(file_path, "wb")
+            self.connection.retrbinary(command, lambda data: downloaded.write(data))
+            downloaded.close()
 
-            with open(file_path, 'w' + mode) as f:
-
-                if action is "retrbinary":
-                    self.connection.retrbinary(command, lambda data: f.write(data))
-                else:
-                    self.connection.retrlines(command, lambda data: f.write(data + str(self.config['line_separator'])))
-
-                self.close()
-
-                return self.name
+            return self.name
 
         return self.__execute(action)
 
