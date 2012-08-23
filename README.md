@@ -76,7 +76,7 @@ Tips
 
 * **Working from more places? Or in team?**
 
-You can either use *download_on_open=true* to check files upon openning or *FTPSync: Check current file* command to see whether you have the same version as is on all servers.
+You can either use *download_on_open=true* to check files upon openning or *FTPSync: Check current file* command to see whether you have the same version as is on all servers. Using *overwrite_newer_prevention* is also recommended (it's actually enabled by default).
 
 * **Upload different language versions to different servers of paths**
 
