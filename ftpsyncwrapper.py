@@ -217,7 +217,7 @@ class FTPSConnection(AbstractConnection):
     # @return string|None name of this connection or None
     #
     # @global ftpErrors
-    def put(self, file_path, new_name = None):
+    def put(self, file_path, new_name = None, failed=False):
 
         def action():
             remote_file = file_path
@@ -233,10 +233,10 @@ class FTPSConnection(AbstractConnection):
                 self.connection.storbinary(command, uploaded)
 
             except Exception, e:
-                if self.__isError(e, 'noFileOrDirectory'):
+                if self.__isError(e, 'noFileOrDirectory') and failed is False:
                     self.__makePath(path)
 
-                    self.put(file_path)
+                    self.put(file_path, failed=True)
                 else:
                     raise e
 
