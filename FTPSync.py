@@ -1015,11 +1015,12 @@ def performRemoteCheck(file_path, window, forced=False):
 
 # list of file paths to be checked on load
 checksScheduled = []
+# pre_save x post_save upload prevention
+preventUpload = []
 
 # File watching
 class RemoteSync(sublime_plugin.EventListener):
 
-    # @todo - put into thread
     def on_pre_save(self, view):
         file_path = view.file_name()
         config_file_path = getConfigFile(file_path)
@@ -1044,6 +1045,8 @@ class RemoteSync(sublime_plugin.EventListener):
             index += 1
 
         if len(newer) > 0:
+            preventUpload.append(file_path)
+
             def sync(index):
                 if index is 1:
                     printMessage("Overwrite prevention: overwriting")
@@ -1064,6 +1067,11 @@ class RemoteSync(sublime_plugin.EventListener):
 
     def on_post_save(self, view):
         file_path = view.file_name()
+
+        if file_path in preventUpload:
+            preventUpload.remove(file_path)
+            return
+
         RemoteSyncCall(file_path, getConfigFile(file_path), True).start()
 
     def on_close(self, view):
