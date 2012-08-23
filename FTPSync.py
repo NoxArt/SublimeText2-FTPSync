@@ -759,7 +759,6 @@ def performSyncRename(file_path, config_file, new_name):
     usingConnections.append(config_hash)
 
     index = -1
-    failed = False
     renamed = []
 
     for name in config['connections']:
@@ -771,28 +770,12 @@ def performSyncRename(file_path, config_file, new_name):
             continue
 
         try:
-            uploaded = connections[index].rename(file_path, new_name)
-
-            if type(uploaded) is str or type(uploaded) is unicode:
-                printMessage("renamed {" + basename + "} -> {" + new_name + "}", name)
-                renamed.append(name)
-            else:
-                failed = type(uploaded)
-
+            connections[index].rename(file_path, new_name)
+            printMessage("renamed {" + basename + "} -> {" + new_name + "}", name)
+            renamed.append(name)
         except Exception, e:
-            failed = e
-
             printMessage("performSyncRename exception: " + unicode(e))
-
-        if failed:
-            message = "renaming failed: {" + basename + "} -> {" + new_name + "}"
-
-            if type(failed) is Exception:
-                message += "<Exception: " + unicode(failed) + ">"
-            else:
-                message += "<Error: " + unicode(failed) + ">"
-
-            printMessage(message, name, False, True)
+            printMessage("renaming failed: {" + basename + "} -> {" + new_name + "} <Exception: " + unicode(failed) + ">", name, False, True)
 
     # rename file
     os.rename(file_path, os.path.join(dirname, new_name))
@@ -879,35 +862,15 @@ def performSyncDown(file_path, config_file_path, disregardIgnore=False, progress
                         performSyncDown(full_name, config_file_path, disregardIgnore, progress, forced=forced, skip=completed)
 
                 return
-            else:
-                if skip:
-                    downloaded = name
-                else:
-                    downloaded = connections[index].get(file_path)
+            elif not skip:
+                connections[index].get(file_path)
 
-            if type(downloaded) is str or type(downloaded) is unicode:
-                stored.append(downloaded)
+                stored.append(name)
                 printMessage("downloaded {" + basename + "}", name)
 
-            else:
-                failed = type(downloaded)
-
         except Exception, e:
-            failed = e
-
             printMessage("performSyncDown exception: " + unicode(e))
-
-        if failed:
-            message = "download of {" + basename + "} failed"
-
-            if type(failed) is Exception:
-                message += "<Exception: " + unicode(failed) + ">"
-            else:
-                message += "<Error: " + unicode(failed) + ">"
-
-            printMessage(message, name, False, True)
-        else:
-            break
+            printMessage("download of {" + basename + "} failed <Exception: " + unicode(failed) + ">", name, False, True)
 
     if len(stored) > 0:
         dumpMessage(getProgressMessage(stored, progress, "downloaded", basename))
