@@ -323,8 +323,11 @@ class FTPSConnection(AbstractConnection):
             self.connection.dir(path, lambda data: contents.append(data))
 
             for content in contents:
-                if self.config['debug_extras']['print_list_result'] is True:
-                    print "FTPSync <debug> LIST line: " + str(content)
+                try:
+                    if self.config['debug_extras']['print_list_result'] is True:
+                        print "FTPSync <debug> LIST line: " + str(content)
+                except KeyError:
+                    pass
 
                 split = ftpListParse.search(content)
 

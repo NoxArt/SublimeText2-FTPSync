@@ -392,9 +392,11 @@ def loadConfig(file_path):
         # merge nested
         for index in nested:
             result[name][ projectDefaults[index][0] ] = dict(result[name][ projectDefaults[index][0] ].items() + projectDefaults[index][1].items())
-
-        if result[name]['debug_extras']['dump_config_load'] is True:
-            printMessage(result[name])
+        try:
+            if result[name]['debug_extras']['dump_config_load'] is True:
+                printMessage(result[name])
+        except:
+            pass
 
         result[name] = updateConfig(result[name])
 
