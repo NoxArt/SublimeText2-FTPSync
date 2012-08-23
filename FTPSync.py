@@ -977,6 +977,8 @@ def performRemoteCheck(file_path, window, forced=False):
                     printMessage("Index selected: " + unicode(index - 1))
 
                 RemoteSyncDownCall(file_path, getConfigFile(file_path), True, whitelistConnections=[every[index - 1]['connection']]).start()
+            else:
+                printMessage("Keeping current")
 
         filesize = os.path.getsize(file_path)
         items = ["Keep current (" + unicode(round(float(os.path.getsize(file_path)) / 1024, 3)) + " kB | " + formatTimestamp(os.path.getmtime(file_path)) + ")"]
@@ -1044,7 +1046,10 @@ class RemoteSync(sublime_plugin.EventListener):
         if len(newer) > 0:
             def sync(index):
                 if index is 1:
+                    printMessage("Overwrite prevention: overwriting")
                     self.on_post_save(view)
+                else:
+                    printMessage("Overwrite prevention: cancelled upload")
 
             items = [
                 "Newer entry in <" + ','.join(newer) + "> - cancel upload?",
