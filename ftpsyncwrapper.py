@@ -231,19 +231,17 @@ class FTPSConnection(AbstractConnection):
             try:
                 uploaded = open(file_path, "rb")
                 self.connection.storbinary(command, uploaded)
-                uploaded.close()
-
-                return self.name
 
             except Exception, e:
                 if self.__isError(e, 'noFileOrDirectory'):
                     self.__makePath(path)
 
                     self.put(file_path)
-
-                    return self.name
                 else:
                     raise e
+
+            finally:
+                uploaded.close()
 
         return self.__execute(action)
 
@@ -262,11 +260,12 @@ class FTPSConnection(AbstractConnection):
             path = self._getMappedPath(file_path)
 
             command = "RETR " + path
-            downloaded = open(file_path, "wb")
-            self.connection.retrbinary(command, lambda data: downloaded.write(data))
-            downloaded.close()
 
-            return self.name
+            try:
+                downloaded = open(file_path, "wb")
+                self.connection.retrbinary(command, lambda data: downloaded.write(data))
+            finally:
+                downloaded.close()
 
         return self.__execute(action)
 

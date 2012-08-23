@@ -352,12 +352,14 @@ def verifyConfig(config):
 # @global removeLineComment
 def parseJson(file_path):
     contents = ""
-    file = open(file_path, 'r')
 
-    for line in file:
-        contents += removeLineComment.sub('', line)
+    try:
+        file = open(file_path, 'r')
 
-    file.close()
+        for line in file:
+            contents += removeLineComment.sub('', line)
+    finally:
+        file.close()
 
     return json.loads(contents)
 
