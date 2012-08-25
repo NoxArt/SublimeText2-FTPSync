@@ -119,6 +119,7 @@ def getFolders(file_path):
     if file_path is None:
         return []
 
+    file_path = os.path.abspath(file_path).replace('\\','/')
     folders = [file_path]
     limit = nestingLimit
 
