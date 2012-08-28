@@ -217,7 +217,8 @@ def getConfigFile(file_path):
             configFolder = findConfigFile(folders)
 
             if configFolder is None:
-                return printMessage("Found no config > for file: {" + file_path + "}")
+                printMessage("Found no config for {" + file_path + "}")
+                return None
 
             config = os.path.join(configFolder, configName)
             configs[file_path] = config
@@ -292,7 +293,7 @@ def verifyConfig(config):
     if type(config) is not dict:
         return "Config is not a {dict} type"
 
-    keys = ["username", "password", "private_key", "private_key_pass", "path", "tls", "upload_on_save", "port", "timeout", "ignore", "check_time", "download_on_open"]
+    keys = ["username", "password", "private_key", "private_key_pass", "path", "tls", "upload_on_save", "port", "timeout", "ignore", "check_time", "download_on_open","upload_delay"]
 
     for key in keys:
         if key not in config:
@@ -672,6 +673,10 @@ def getRemoteMetadata(file_path, config_file_path, whitelistConnections=[]):
 # @type whitelistConnections: list<connection_name: string>
 # @param whitelistConnections: if not empty then only these connection names can be used
 def performSync(file_path, config_file_path, onSave, disregardIgnore=False, progress=None, whitelistConnections=[]):
+    if config_file_path is None:
+        printMessage("Cancelling upload of {" + file_path + "} - no settings file found")
+        return
+
     if progress is not None:
         progress.progress()
 
@@ -750,6 +755,10 @@ def performSync(file_path, config_file_path, onSave, disregardIgnore=False, prog
 
 # Renames given file
 def performSyncRename(file_path, config_file, new_name):
+    if config_file_path is None:
+        printMessage("Cancelling renaming of {" + file_path + "} - no settings file found")
+        return
+
     config = loadConfig(config_file)
     basename = os.path.basename(file_path)
     dirname = os.path.dirname(file_path)
@@ -803,6 +812,10 @@ def performSyncRename(file_path, config_file, new_name):
 # @type whitelistConnections: list<connection_name: string>
 # @param whitelistConnections: if not empty then only these connection names can be used
 def performSyncDown(file_path, config_file_path, disregardIgnore=False, progress=None, isDir=None,forced=False,skip=False, whitelistConnections=[]):
+    if config_file_path is None:
+        printMessage("Cancelling download of {" + file_path + "} - no settings file found")
+        return
+
     if progress is not None and isDir is not True:
         progress.progress()
 
@@ -892,7 +905,8 @@ def performRemoteCheck(file_path, window, forced=False):
 
     config_file_path = getConfigFile(file_path)
     if config_file_path is None:
-        return printMessage("Found no config > for file: " + file_path, status=forced)
+        printMessage("Cancelling check of {" + file_path + "} - no settings file found")
+        return None
 
     config = loadConfig(config_file_path)
     checking = []
