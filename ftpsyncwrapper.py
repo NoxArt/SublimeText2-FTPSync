@@ -60,7 +60,7 @@ ftpErrors = {
     'rnfrExists': 'RNFR accepted - file exists, ready for destination',
     'disconnected': 'An established connection was aborted by the software in your host machine',
     'timeout': 'timed out',
-    'ascii': 'TYPE is now ASCII'
+    'typeIsNow': 'TYPE is now'
 }
 
 # SSL issue
@@ -381,7 +381,7 @@ class FTPSConnection(AbstractConnection):
                 raise e
             elif self.__isError(e, 'timeout') is True:
                 return callback()
-            elif self.__isError(e, 'ascii') is True:
+            elif self.__isError(e, 'typeIsNow') is True:
                 return
             else:
                 raise e
