@@ -47,6 +47,12 @@ currentYear = int(time.strftime("%Y", time.gmtime()))
 
 # List of FTP errors of interest
 ftpErrors = {
+    'noFileOrDirectory': 553,
+    'cwdNoFileOrDirectory': 550,
+    'rnfrExists': 350
+}
+
+ftpErrors = {
     'noFileOrDirectory': 'No such file or directory',
     'cwdNoFileOrDirectory': 'No such file or directory',
     'fileNotExist': 'Sorry, but that file doesn\'t exist',
@@ -54,7 +60,7 @@ ftpErrors = {
     'rnfrExists': 'RNFR accepted - file exists, ready for destination',
     'disconnected': 'An established connection was aborted by the software in your host machine',
     'timeout': 'timed out',
-    'ascii': 'TYPE is now ASCII'
+    'typeIsNow': 'TYPE is now'
 }
 
 # SSL issue
@@ -211,7 +217,7 @@ class FTPSConnection(AbstractConnection):
     # @return string|None name of this connection or None
     #
     # @global ftpErrors
-    def put(self, file_path, new_name = None):
+    def put(self, file_path, new_name = None, failed=False):
 
         def action():
             remote_file = file_path
@@ -221,33 +227,21 @@ class FTPSConnection(AbstractConnection):
             path = self._getMappedPath(remote_file)
 
             command = "STOR " + path
-            binary  = True
-            mode    = 'b'
-            if isTextFile(file_path, self.generic_config['ascii_extensions'], self.generic_config['binary_extensions']):
-                binary = False
-                mode = ''
 
             try:
-                uploaded = open(file_path, "r" + mode)
-
-                if binary:
-                    self.connection.storbinary(command, uploaded)
-                else:
-                    self.connection.storlines(command, uploaded)
-
-                uploaded.close()
-
-                return self.name
+                uploaded = open(file_path, "rb")
+                self.connection.storbinary(command, uploaded)
 
             except Exception, e:
-                if self.__isError(e, 'noFileOrDirectory'):
+                if self.__isError(e, 'noFileOrDirectory') and failed is False:
                     self.__makePath(path)
 
-                    self.put(file_path)
-
-                    return self.name
+                    self.put(file_path, failed=True)
                 else:
                     raise e
+
+            finally:
+                uploaded.close()
 
         return self.__execute(action)
 
@@ -266,22 +260,12 @@ class FTPSConnection(AbstractConnection):
             path = self._getMappedPath(file_path)
 
             command = "RETR " + path
-            binary  = True
-            mode    = 'b'
-            if isTextFile(file_path, self.generic_config['ascii_extensions'], self.generic_config['binary_extensions']):
-                binary = False
-                mode = ''
 
-            with open(file_path, 'w' + mode) as f:
-
-                if binary:
-                    self.connection.retrbinary(command, lambda data: f.write(data))
-                else:
-                    self.connection.retrlines(command, lambda data: f.write(data + str(self.config['line_separator'])))
-
-                self.close()
-
-                return self.name
+            try:
+                downloaded = open(file_path, "wb")
+                self.connection.retrbinary(command, lambda data: downloaded.write(data))
+            finally:
+                downloaded.close()
 
         return self.__execute(action)
 
@@ -312,7 +296,7 @@ class FTPSConnection(AbstractConnection):
             try:
                 self.connection.voidcmd("RNFR " + base)
             except:
-                if self.__isError(e, 'rnfrExists') and str(e).find('Aborting previous'):
+                if str(e)[:3] == str(ftpErrors['rnfrExists']) and str(e).find('Aborting previous'):
                     self.connection.voidcmd("RNTO " + new_name)
                     return base
                 else:
@@ -338,8 +322,11 @@ class FTPSConnection(AbstractConnection):
             self.connection.dir(path, lambda data: contents.append(data))
 
             for content in contents:
-                if self.config['debug_extras']['print_list_result'] is True:
-                    print "FTPSync <debug> LIST line: " + str(content)
+                try:
+                    if self.config['debug_extras']['print_list_result'] is True:
+                        print "FTPSync <debug> LIST line: " + str(content)
+                except KeyError:
+                    pass
 
                 split = ftpListParse.search(content)
 
@@ -394,7 +381,7 @@ class FTPSConnection(AbstractConnection):
                 raise e
             elif self.__isError(e, 'timeout') is True:
                 return callback()
-            elif self.__isError(e, 'ascii') is True:
+            elif self.__isError(e, 'typeIsNow') is True:
                 return
             else:
                 raise e

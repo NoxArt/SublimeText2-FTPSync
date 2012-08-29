@@ -13,8 +13,10 @@ What's there for you?
 * Progress bar for multiple up/download
 
 Current focus:
-* Resolving downloading from more locations
-* SFTP support
+* Downloading from more locations
+* Safer downloading/uploading of files (tempfile)
+* Refactoring of syncing code
+* SFTP support (hopefully soon)
 
 
 For more info look into [Wiki](https://github.com/NoxArt/SublimeText2-FTPSync/wiki/_pages)
@@ -37,7 +39,9 @@ Format:
     		path: {string="/"}, // remote root for these files
 
             upload_on_save: true, // whether upload on save or manually
-            download_on_open: false // overwrite protection when remote file is newer
+            download_on_open: false, // checks whether there's a newer remote file on opening a file
+            overwrite_newer_prevention: true, // overwrite protection when remote file is newer
+            upload_delay: {int=0}, // delays [seconds] upload triggered by upload_on_save
 
     		port: {int=21}, // remote port, pretty much always 21, unless SFTP
     		tls: {bool=false}, // set true to use secured transfer, recommended! (server needs to support)
@@ -50,7 +54,7 @@ Format:
         // <connection2_name>: { ... }
     }
 
-Files are automatically uploaded **on save** (unless disabled by _upload\_on\_save_=false setting).
+Files are automatically uploaded **on save** (unless disabled by _upload\_on\_save_=false setting). In your newly created settings file some options are preceded with `//`, this means they are commented out (and default value from global settings file is used) - remove the `//` to enable the entry.
 
 
 
@@ -63,7 +67,7 @@ Released under MIT licence.
 
 Feel free to add issues, ideas, pull requests...
 
-Thanks to [castus](https://github.com/castus), [tommymarshall](https://github.com/tommymarshall), [TotallyInformation](https://github.com/TotallyInformation), [saiori](https://github.com/saiori), [vnabet](https://github.com/vnabet), [Jcrs](https://github.com/Jcrs), [ItayXD](https://github.com/ItayXD), [bibimij](https://github.com/bibimij), [digitalmaster](https://github.com/digitalmaster), [alfaex](https://github.com/alfaex) and [seyDoggy](https://github.com/seyDoggy) for reporting issues, ideas and fixing!
+Thanks to [castus](https://github.com/castus), [tommymarshall](https://github.com/tommymarshall), [TotallyInformation](https://github.com/TotallyInformation), [saiori](https://github.com/saiori), [vnabet](https://github.com/vnabet), [Jcrs](https://github.com/Jcrs), [ItayXD](https://github.com/ItayXD), [bibimij](https://github.com/bibimij), [digitalmaster](https://github.com/digitalmaster), [alfaex](https://github.com/alfaex), [seyDoggy](https://github.com/seyDoggy) and Nuno for reporting issues, ideas and fixing!
 
 
 
@@ -72,7 +76,7 @@ Tips
 
 * **Working from more places? Or in team?**
 
-You can either use *download_on_open=true* to check files upon openning or *FTPSync: Check current file* command to see whether you have the same version as is on all servers.
+You can either use *download_on_open=true* to check files upon openning or *FTPSync: Check current file* command to see whether you have the same version as is on all servers. Using *overwrite_newer_prevention* is also recommended (it's actually enabled by default).
 
 * **Upload different language versions to different servers of paths**
 
