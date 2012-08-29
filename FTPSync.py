@@ -98,6 +98,10 @@ connectionDefaultsFilename = 'ftpsync.default-settings'
 messageTimeout = 250
 # comment removing regexp
 removeLineComment = re.compile('//.*', re.I)
+# deprecated names
+deprecatedNames = {
+    "check_time": "overwrite_newer_prevention"
+}
 
 
 # connection cache pool - all connections
@@ -106,6 +110,8 @@ connections = {}
 usingConnections = []
 # individual folder config cache, file => config path
 configs = {}
+# scheduled delayed uploads, file_path => action id
+scheduledUploads = {}
 
 
 # ==== Messaging ===========================================================================
@@ -145,10 +151,10 @@ def printMessage(text, name=None, onlyVerbose=False, status=False):
     message = "FTPSync"
 
     if name is not None:
-        message += " [" + str(name) + "]"
+        message += " [" + unicode(name) + "]"
 
     message += " > "
-    message += str(text)
+    message += unicode(text)
 
     if isDebug and (onlyVerbose is False or isDebugVerbose is True):
         print message
@@ -211,7 +217,8 @@ def getConfigFile(file_path):
             configFolder = findConfigFile(folders)
 
             if configFolder is None:
-                return printMessage("Found no config > for file: {" + file_path + "}")
+                printMessage("Found no config for {" + file_path + "}")
+                return None
 
             config = os.path.join(configFolder, configName)
             configs[file_path] = config
@@ -251,6 +258,24 @@ def getObjectHash(o):
     return hash(tuple(frozenset(new_o.items())))
 
 
+# Updates deprecated config to newer version
+#
+# @type config: dict
+#
+# @return dict (config)
+#
+# @global deprecatedNames
+def updateConfig(config):
+    for old_name in deprecatedNames:
+        new_name = deprecatedNames[old_name]
+
+        if new_name in config:
+            config[old_name] = config[new_name]
+        elif old_name in config:
+            config[new_name] = config[old_name]
+
+    return config
+
 # Verifies contents of a given config object
 #
 # Checks that it's an object with all needed keys of a proper type
@@ -266,50 +291,53 @@ def verifyConfig(config):
     if type(config) is not dict:
         return "Config is not a {dict} type"
 
-    keys = ["username", "password", "private_key", "private_key_pass", "path", "tls", "upload_on_save", "port", "timeout", "ignore", "check_time", "download_on_open"]
+    keys = ["username", "password", "private_key", "private_key_pass", "path", "tls", "upload_on_save", "port", "timeout", "ignore", "check_time", "download_on_open","upload_delay"]
 
     for key in keys:
         if key not in config:
             return "Config is missing a {" + key + "} key"
 
     if config['username'] is not None and type(config['username']) is not str and type(config['username']) is not unicode:
-        return "Config entry 'username' must be null or string, " + str(type(config['username'])) + " given"
+        return "Config entry 'username' must be null or string, " + unicode(type(config['username'])) + " given"
 
     if config['password'] is not None and type(config['password']) is not str and type(config['password']) is not unicode:
-        return "Config entry 'password' must be null or string, " + str(type(config['password'])) + " given"
+        return "Config entry 'password' must be null or string, " + unicode(type(config['password'])) + " given"
 
     if config['private_key'] is not None and type(config['private_key']) is not str and type(config['private_key']) is not unicode:
-        return "Config entry 'private_key' must be null or string, " + str(type(config['private_key'])) + " given"
+        return "Config entry 'private_key' must be null or string, " + unicode(type(config['private_key'])) + " given"
 
     if config['private_key_pass'] is not None and type(config['private_key_pass']) is not str and type(config['private_key_pass']) is not unicode:
-        return "Config entry 'private_key_pass' must be null or string, " + str(type(config['private_key_pass'])) + " given"
+        return "Config entry 'private_key_pass' must be null or string, " + unicode(type(config['private_key_pass'])) + " given"
 
     if config['ignore'] is not None and type(config['ignore']) is not str and type(config['ignore']) is not unicode:
-        return "Config entry 'ignore' must be null or string, " + str(type(config['ignore'])) + " given"
+        return "Config entry 'ignore' must be null or string, " + unicode(type(config['ignore'])) + " given"
 
     if type(config['path']) is not str and type(config['path']) is not unicode:
-        return "Config entry 'path' must be a string, " + str(type(config['path'])) + " given"
+        return "Config entry 'path' must be a string, " + unicode(type(config['path'])) + " given"
 
     if type(config['tls']) is not bool:
-        return "Config entry 'tls' must be true or false, " + str(type(config['tls'])) + " given"
+        return "Config entry 'tls' must be true or false, " + unicode(type(config['tls'])) + " given"
 
     if type(config['passive']) is not bool:
-        return "Config entry 'passive' must be true or false, " + str(type(config['passive'])) + " given"
+        return "Config entry 'passive' must be true or false, " + unicode(type(config['passive'])) + " given"
 
     if type(config['upload_on_save']) is not bool:
-        return "Config entry 'upload_on_save' must be true or false, " + str(type(config['upload_on_save'])) + " given"
+        return "Config entry 'upload_on_save' must be true or false, " + unicode(type(config['upload_on_save'])) + " given"
 
     if type(config['check_time']) is not bool:
-        return "Config entry 'check_time' must be true or false, " + str(type(config['check_time'])) + " given"
+        return "Config entry 'check_time' must be true or false, " + unicode(type(config['check_time'])) + " given"
 
     if type(config['download_on_open']) is not bool:
-        return "Config entry 'download_on_open' must be true or false, " + str(type(config['download_on_open'])) + " given"
+        return "Config entry 'download_on_open' must be true or false, " + unicode(type(config['download_on_open'])) + " given"
+
+    if type(config['upload_delay']) is not int and type(config['upload_delay']) is not long:
+        return "Config entry 'upload_delay' must be integer or long, " + unicode(type(config['upload_delay'])) + " given"
 
     if type(config['port']) is not int and type(config['port']) is not long:
-        return "Config entry 'port' must be an integer or long, " + str(type(config['port'])) + " given"
+        return "Config entry 'port' must be an integer or long, " + unicode(type(config['port'])) + " given"
 
     if type(config['timeout']) is not int and type(config['timeout']) is not long:
-        return "Config entry 'timeout' must be an integer or long, " + str(type(config['timeout'])) + " given"
+        return "Config entry 'timeout' must be an integer or long, " + unicode(type(config['timeout'])) + " given"
 
     return True
 
@@ -323,12 +351,14 @@ def verifyConfig(config):
 # @global removeLineComment
 def parseJson(file_path):
     contents = ""
-    file = open(file_path, 'r')
 
-    for line in file:
-        contents += removeLineComment.sub('', line)
+    try:
+        file = open(file_path, 'r')
 
-    file.close()
+        for line in file:
+            contents += removeLineComment.sub('', line)
+    finally:
+        file.close()
 
     return json.loads(contents)
 
@@ -350,7 +380,7 @@ def loadConfig(file_path):
     try:
         config = parseJson(file_path)
     except Exception, e:
-        printMessage("Failed parsing configuration file: {" + file_path + "} (commas problem?) <Exception: " + str(e) + ">", status=True)
+        printMessage("Failed parsing configuration file: {" + file_path + "} (commas problem?) <Exception: " + unicode(e) + ">", status=True)
         return None
 
     result = {}
@@ -363,14 +393,18 @@ def loadConfig(file_path):
         # merge nested
         for index in nested:
             result[name][ projectDefaults[index][0] ] = dict(result[name][ projectDefaults[index][0] ].items() + projectDefaults[index][1].items())
+        try:
+            if result[name]['debug_extras']['dump_config_load'] is True:
+                printMessage(result[name])
+        except:
+            pass
 
-        if result[name]['debug_extras']['dump_config_load'] is True:
-            printMessage(result[name])
+        result[name] = updateConfig(result[name])
 
         verification_result = verifyConfig(result[name])
 
         if verification_result is not True:
-            printMessage("Invalid configuration loaded: <" + str(verification_result) + ">",status=True)
+            printMessage("Invalid configuration loaded: <" + unicode(verification_result) + ">",status=True)
 
     # merge with generics
     final = dict(coreConfig + {"connections": result}.items())
@@ -433,7 +467,7 @@ def getConnection(hash, config):
             try:
                 connection = CreateConnection(config, name)
             except Exception, e:
-                printMessage("Connection initialization failed <Exception: " + str(e) + ">", name, status=True)
+                printMessage("Connection initialization failed <Exception: " + unicode(e) + ">", name, status=True)
 
                 continue
 
@@ -441,19 +475,19 @@ def getConnection(hash, config):
             try:
                 connection.connect()
             except Exception, e:
-                printMessage("Connection failed <Exception: " + str(e) + ">", name, status=True)
+                printMessage("Connection failed <Exception: " + unicode(e) + ">", name, status=True)
                 connection.close(connections, hash)
 
                 continue
 
-            printMessage("Connected to: " + properties['host'] + ":" + str(properties['port']) + " (timeout: " + str(properties['timeout']) + ") (key: " + hash + ")", name)
+            printMessage("Connected to: " + properties['host'] + ":" + unicode(properties['port']) + " (timeout: " + unicode(properties['timeout']) + ") (key: " + hash + ")", name)
 
             # 3. authenticate
             try:
                 if connection.authenticate():
                     printMessage("Authentication processed", name)
             except Exception, e:
-                printMessage("Authentication failed <Exception: " + str(e) + ">", name, status=True)
+                printMessage("Authentication failed <Exception: " + unicode(e) + ">", name, status=True)
 
                 continue
 
@@ -462,7 +496,7 @@ def getConnection(hash, config):
                 try:
                     connection.login()
                 except Exception, e:
-                    printMessage("Login failed <Exception: " + str(e) + ">", name, status=True)
+                    printMessage("Login failed <Exception: " + unicode(e) + ">", name, status=True)
 
                     continue
 
@@ -478,7 +512,7 @@ def getConnection(hash, config):
             try:
                 connection.cwd(properties['path'])
             except Exception, e:
-                printMessage("Failed to set path (probably connection failed) <Exception: " + str(e) + ">", name)
+                printMessage("Failed to set path (probably connection failed) <Exception: " + unicode(e) + ">", name)
 
                 continue
 
@@ -513,7 +547,7 @@ def getConnection(hash, config):
 # @global connections
 def closeConnection(hash):
     if type(hash) is not str and type(hash) is not unicode:
-        printMessage("Error closing connection: connection hash must be a string, " + str(type(hash)) + " given")
+        printMessage("Error closing connection: connection hash must be a string, " + unicode(type(hash)) + " given")
         return
 
     if hash not in connections:
@@ -528,7 +562,7 @@ def closeConnection(hash):
             connections.pop(hash)
 
     except Exception, e:
-        printMessage("Error when closing connection (key: " + hash + ") <Exception: " + str(e) + ">")
+        printMessage("Error when closing connection (key: " + hash + ") <Exception: " + unicode(e) + ">")
 
 
 # Creates a process message with progress bar (to be used in status bar)
@@ -556,7 +590,7 @@ def getProgressMessage(stored, progress, action, basename):
         for i in range(int(percent), 20):
             base += "--"
 
-        base += " " + str(progress.current) + "/" + str(progress.getTotal()) + "] "
+        base += " " + unicode(progress.current) + "/" + unicode(progress.getTotal()) + "] "
 
     return base + action + " {" + basename + "}"
 
@@ -610,7 +644,7 @@ def getRemoteMetadata(file_path, config_file_path, whitelistConnections=[]):
                 })
 
         except Exception, e:
-            message = "getting metadata failed: {" + basename + "} <Exception: " + str(e) + ">"
+            message = "getting metadata failed: {" + basename + "} <Exception: " + unicode(e) + ">"
 
             printMessage(message, name, False, True)
 
@@ -632,11 +666,20 @@ class SyncCommand(object):
         self.file_path = file_path
         self.config_file_path = config_file_path
 
+        if type(config_file_path) is not str and type(config_file_path) is not unicode:
+            printMessage("Cancelling " + unicode(self.__class__.__name__) + ": invalid config_file_path given (type: " + unicode(type(config_file_path)) + ")")
+            self.close()
+            return
+
         self.config = loadConfig(config_file_path)
         self.basename = os.path.basename(file_path)
 
         self.config_hash = getFilepathHash(self.config_file_path)
         self.connections = getConnection(self.config_hash, self.config)
+
+
+    def close(self):
+        self.closed = True
 
 
     def __del__(self):
@@ -706,8 +749,8 @@ class SyncCommandUpload(SyncCommandTransfer):
                 continue
 
             except Exception, e:
-                printMessage("SyncCommandUp exception: " + str(e))
-                printMessage("upload failed: {" + self.basename + "} <Exception: " + str(e) + ">", name, False, True)
+                printMessage("SyncCommandUp exception: " + unicode(e))
+                printMessage("upload failed: {" + self.basename + "} <Exception: " + unicode(e) + ">", name, False, True)
 
         if len(stored) > 0:
             dumpMessage(getProgressMessage(stored, self.progress, "uploaded", self.basename))
@@ -793,8 +836,8 @@ class SyncCommandDownload(SyncCommandTransfer):
                 continue
 
             except Exception, e:
-                printMessage("SyncCommandDownload exception: " + str(e))
-                printMessage("download of {" + self.basename + "} failed <Exception: " + str(e) + ">", name, False, True)
+                printMessage("SyncCommandDownload exception: " + unicode(e))
+                printMessage("download of {" + self.basename + "} failed <Exception: " + unicode(e) + ">", name, False, True)
 
 
         if len(stored) > 0:
@@ -837,15 +880,15 @@ def performSyncRename(file_path, config_file, new_name):
         except Exception, e:
             failed = e
 
-            printMessage("performSyncRename exception: " + str(e))
+            printMessage("performSyncRename exception: " + unicode(e))
 
         if failed:
             message = "renaming failed: {" + basename + "} -> {" + new_name + "}"
 
             if type(failed) is Exception:
-                message += "<Exception: " + str(failed) + ">"
+                message += "<Exception: " + unicode(failed) + ">"
             else:
-                message += "<Error: " + str(failed) + ">"
+                message += "<Error: " + unicode(failed) + ">"
 
             printMessage(message, name, False, True)
 
@@ -950,15 +993,15 @@ def performSyncDown(file_path, config_file_path, disregardIgnore=False, progress
         except Exception, e:
             failed = e
 
-            printMessage("performSyncDown exception: " + str(e))
+            printMessage("performSyncDown exception: " + unicode(e))
 
         if failed:
             message = "download of {" + basename + "} failed"
 
             if type(failed) is Exception:
-                message += "<Exception: " + str(failed) + ">"
+                message += "<Exception: " + unicode(failed) + ">"
             else:
-                message += "<Error: " + str(failed) + ">"
+                message += "<Error: " + unicode(failed) + ">"
 
             printMessage(message, name, False, True)
         else:
@@ -1030,15 +1073,15 @@ def performRemoteCheck(file_path, window, forced=False):
                 if isDebug:
                     i = 0
                     for entry in every:
-                        printMessage("Listing connection " + str(i) + ": " + str(entry['connection']))
+                        printMessage("Listing connection " + unicode(i) + ": " + unicode(entry['connection']))
                         i += 1
 
-                    printMessage("Index selected: " + str(index - 1))
+                    printMessage("Index selected: " + unicode(index - 1))
 
                 RemoteSyncDownCall(file_path, getConfigFile(file_path), True, whitelistConnections=[every[index - 1]['connection']]).start()
 
         filesize = os.path.getsize(file_path)
-        items = ["Keep current (" + str(round(float(os.path.getsize(file_path)) / 1024, 3)) + " kB | " + formatTimestamp(os.path.getmtime(file_path)) + ")"]
+        items = ["Keep current (" + unicode(round(float(os.path.getsize(file_path)) / 1024, 3)) + " kB | " + formatTimestamp(os.path.getmtime(file_path)) + ")"]
         index = 1
 
         for item in every:
@@ -1048,11 +1091,11 @@ def performRemoteCheck(file_path, window, forced=False):
                 item_filesize = "same size"
             else:
                 if item_filesize > filesize:
-                    item_filesize = str(round(item_filesize / 1024, 3)) + " kB ~ larger"
+                    item_filesize = unicode(round(item_filesize / 1024, 3)) + " kB ~ larger"
                 else:
-                    item_filesize = str(round(item_filesize / 1024, 3)) + " kB ~ smaller"
+                    item_filesize = unicode(round(item_filesize / 1024, 3)) + " kB ~ smaller"
 
-            time = str(item['metadata'].getLastModifiedFormatted(time_format))
+            time = unicode(item['metadata'].getLastModifiedFormatted(time_format))
 
             if item in newest:
                 time += " ~ newer"
@@ -1072,6 +1115,8 @@ def performRemoteCheck(file_path, window, forced=False):
 
 # list of file paths to be checked on load
 checksScheduled = []
+# pre_save x post_save upload prevention
+preventUpload = []
 
 # File watching
 class RemoteSync(sublime_plugin.EventListener):
@@ -1101,9 +1146,14 @@ class RemoteSync(sublime_plugin.EventListener):
             index += 1
 
         if len(newer) > 0:
+            preventUpload.append(file_path)
+
             def sync(index):
                 if index is 1:
+                    printMessage("Overwrite prevention: overwriting")
                     self.on_post_save(view)
+                else:
+                    printMessage("Overwrite prevention: cancelled upload")
 
             items = [
                 "Newer entry in <" + ','.join(newer) + "> - cancel upload?",
@@ -1118,6 +1168,9 @@ class RemoteSync(sublime_plugin.EventListener):
 
     def on_post_save(self, view):
         file_path = view.file_name()
+
+
+
         RemoteSyncCall(file_path, getConfigFile(file_path), True).start()
 
     def on_close(self, view):
@@ -1135,6 +1188,9 @@ class RemoteSync(sublime_plugin.EventListener):
     # it will check those enabled if the remote version is newer and offers the newest to download
     def on_load(self, view):
         file_path = view.file_name()
+
+        if ignore is not None and re_ignore.search(file_path) is not None:
+            return
 
         if view not in checksScheduled:
             checksScheduled.append(file_path)
