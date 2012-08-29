@@ -62,7 +62,7 @@ isDebugVerbose = settings.get('debug_verbose')
 # default config for a project
 projectDefaults = settings.get('project_defaults').items()
 nested = []
-index  = 0
+index = 0
 for item in projectDefaults:
     if type(item[1]) is dict:
         nested.append(index)
@@ -112,6 +112,14 @@ usingConnections = []
 configs = {}
 # scheduled delayed uploads, file_path => action id
 scheduledUploads = {}
+
+
+# ==== Generic =============================================================================
+
+# Returns whether the variable is some form os string
+def isString(var):
+    var_type = type(var)
+    return var_type is str or var_type is unicode
 
 
 # ==== Messaging ===========================================================================
@@ -276,6 +284,7 @@ def updateConfig(config):
 
     return config
 
+
 # Verifies contents of a given config object
 #
 # Checks that it's an object with all needed keys of a proper type
@@ -291,28 +300,28 @@ def verifyConfig(config):
     if type(config) is not dict:
         return "Config is not a {dict} type"
 
-    keys = ["username", "password", "private_key", "private_key_pass", "path", "tls", "upload_on_save", "port", "timeout", "ignore", "check_time", "download_on_open","upload_delay"]
+    keys = ["username", "password", "private_key", "private_key_pass", "path", "tls", "upload_on_save", "port", "timeout", "ignore", "check_time", "download_on_open", "upload_delay"]
 
     for key in keys:
         if key not in config:
             return "Config is missing a {" + key + "} key"
 
-    if config['username'] is not None and type(config['username']) is not str and type(config['username']) is not unicode:
+    if config['username'] is not None and isString(config['username']) is False:
         return "Config entry 'username' must be null or string, " + unicode(type(config['username'])) + " given"
 
-    if config['password'] is not None and type(config['password']) is not str and type(config['password']) is not unicode:
+    if config['password'] is not None and isString(config['password']) is False:
         return "Config entry 'password' must be null or string, " + unicode(type(config['password'])) + " given"
 
-    if config['private_key'] is not None and type(config['private_key']) is not str and type(config['private_key']) is not unicode:
+    if config['private_key'] is not None and isString(config['private_key']) is False:
         return "Config entry 'private_key' must be null or string, " + unicode(type(config['private_key'])) + " given"
 
-    if config['private_key_pass'] is not None and type(config['private_key_pass']) is not str and type(config['private_key_pass']) is not unicode:
+    if config['private_key_pass'] is not None and isString(config['private_key_pass']) is False:
         return "Config entry 'private_key_pass' must be null or string, " + unicode(type(config['private_key_pass'])) + " given"
 
-    if config['ignore'] is not None and type(config['ignore']) is not str and type(config['ignore']) is not unicode:
+    if config['ignore'] is not None and isString(config['ignore']) is False:
         return "Config entry 'ignore' must be null or string, " + unicode(type(config['ignore'])) + " given"
 
-    if type(config['path']) is not str and type(config['path']) is not unicode:
+    if isString(config['path']) is False:
         return "Config entry 'path' must be a string, " + unicode(type(config['path'])) + " given"
 
     if type(config['tls']) is not bool:
@@ -392,7 +401,7 @@ def loadConfig(file_path):
 
         # merge nested
         for index in nested:
-            result[name][ projectDefaults[index][0] ] = dict(result[name][ projectDefaults[index][0] ].items() + projectDefaults[index][1].items())
+            result[name][projectDefaults[index][0]] = dict(result[name][projectDefaults[index][0]].items() + projectDefaults[index][1].items())
         try:
             if result[name]['debug_extras']['dump_config_load'] is True:
                 printMessage(result[name])
@@ -404,7 +413,7 @@ def loadConfig(file_path):
         verification_result = verifyConfig(result[name])
 
         if verification_result is not True:
-            printMessage("Invalid configuration loaded: <" + unicode(verification_result) + ">",status=True)
+            printMessage("Invalid configuration loaded: <" + unicode(verification_result) + ">", status=True)
 
     # merge with generics
     final = dict(coreConfig + {"connections": result}.items())
@@ -525,7 +534,6 @@ def getConnection(hash, config):
             if present is False:
                 connections[hash].append(connection)
 
-
         # schedule connection timeout
         def closeThisConnection():
             if hash not in usingConnections:
@@ -546,7 +554,7 @@ def getConnection(hash, config):
 #
 # @global connections
 def closeConnection(hash):
-    if type(hash) is not str and type(hash) is not unicode:
+    if isString(hash) is False:
         printMessage("Error closing connection: connection hash must be a string, " + unicode(type(hash)) + " given")
         return
 
@@ -620,7 +628,6 @@ def getRemoteMetadata(file_path, config_file_path, whitelistConnections=[]):
     usingConnections.append(config_hash)
 
     index = -1
-    failed = False
     results = []
 
     for name in config['connections']:
@@ -648,7 +655,6 @@ def getRemoteMetadata(file_path, config_file_path, whitelistConnections=[]):
 
             printMessage(message, name, False, True)
 
-
     if config_hash in usingConnections:
         usingConnections.remove(config_hash)
 
@@ -656,7 +662,6 @@ def getRemoteMetadata(file_path, config_file_path, whitelistConnections=[]):
 
 
 # ==== Executive functions ======================================================================
-
 
 # Generic synchronization command
 class SyncCommand(object):
@@ -666,7 +671,7 @@ class SyncCommand(object):
         self.file_path = file_path
         self.config_file_path = config_file_path
 
-        if type(config_file_path) is not str and type(config_file_path) is not unicode:
+        if isString(config_file_path) is False:
             printMessage("Cancelling " + unicode(self.__class__.__name__) + ": invalid config_file_path given (type: " + unicode(type(config_file_path)) + ")")
             self.close()
             return
@@ -677,15 +682,12 @@ class SyncCommand(object):
         self.config_hash = getFilepathHash(self.config_file_path)
         self.connections = getConnection(self.config_hash, self.config)
 
-
     def close(self):
         self.closed = True
-
 
     def __del__(self):
         if hasattr(self, 'config_hash') and self.config_hash in usingConnections:
             usingConnections.remove(self.config_hash)
-
 
 
 # Transfer-related sychronization command
@@ -713,13 +715,12 @@ class SyncCommandTransfer(SyncCommand):
 
             # ignore
             if disregardIgnore is False and self.config['connections'][name]['ignore'] is not None and re.search(self.config['connections'][name]['ignore'], file_path):
-                printMessage("file ignored by rule: {" + basename + "}", name, True)
+                printMessage("file ignored by rule: {" + self.basename + "}", name, True)
                 self.config['connections'].remove(name)
 
             # whitelist
             if len(whitelistConnections) > 0 and name not in whitelistConnections:
                 self.config['connections'].remove(name)
-
 
 
 # Upload command
@@ -756,7 +757,6 @@ class SyncCommandUpload(SyncCommandTransfer):
             dumpMessage(getProgressMessage(stored, self.progress, "uploaded", self.basename))
 
 
-
 # Download command
 class SyncCommandDownload(SyncCommandTransfer):
 
@@ -767,24 +767,20 @@ class SyncCommandDownload(SyncCommandTransfer):
         self.forced = False
         self.skip = False
 
-
     def setIsDir(self, isDir=True):
         self.isDir = isDir
 
         return self
-
 
     def setForced(self, forced=True):
         self.forced = forced
 
         return self
 
-
     def setSkip(self, skip=True):
         self.skip = skip
 
         return self
-
 
     def execute(self):
         if self.closed is True or len(self.config['connections']) == 0:
@@ -839,179 +835,52 @@ class SyncCommandDownload(SyncCommandTransfer):
                 printMessage("SyncCommandDownload exception: " + unicode(e))
                 printMessage("download of {" + self.basename + "} failed <Exception: " + unicode(e) + ">", name, False, True)
 
-
         if len(stored) > 0:
             dumpMessage(getProgressMessage(stored, self.progress, "downloaded", self.basename))
 
 
+# Rename command
+class SyncCommandRename(SyncCommandTransfer):
 
+    def __init__(self, file_path, config_file_path, new_name):
+        if isString(self.new_name) is False:
+            printMessage("Cancelling SyncCommandRename: invalid new_name given (type: " + unicode(type(new_name)) + ")")
+            self.close()
+            return
 
-# Renames given file
-def performSyncRename(file_path, config_file, new_name):
-    config = loadConfig(config_file)
-    basename = os.path.basename(file_path)
-    dirname = os.path.dirname(file_path)
-    config_hash = getFilepathHash(config_file)
-    connections = getConnection(config_hash, config)
+        self.new_name = new_name
+        self.dirname = os.path.dirname(file_path)
+        SyncCommand.__init__(self, file_path, config_file_path)
 
-    usingConnections.append(config_hash)
+    def execute(self):
+        if self.closed is True or len(self.config['connections']) == 0:
+            return
 
-    index = -1
-    failed = False
-    renamed = []
+        usingConnections.append(self.config_hash)
+        index = -1
+        renamed = []
 
-    for name in config['connections']:
-        index += 1
+        for name in self.config['connections']:
+            index += 1
 
-        try:
-            connections[index]
-        except IndexError:
-            continue
-
-        try:
-            uploaded = connections[index].rename(file_path, new_name)
-
-            if type(uploaded) is str or type(uploaded) is unicode:
-                printMessage("renamed {" + basename + "} -> {" + new_name + "}", name)
+            try:
+                self.connections[index].rename(self.file_path, self.new_name)
+                printMessage("renamed {" + self.basename + "} -> {" + self.new_name + "}", name)
                 renamed.append(name)
-            else:
-                failed = type(uploaded)
 
-        except Exception, e:
-            failed = e
+            except IndexError:
+                continue
 
-            printMessage("performSyncRename exception: " + unicode(e))
+            except Exception, e:
+                printMessage("SyncCommandRename exception: " + unicode(e))
+                printMessage("renaming failed: {" + self.basename + "} -> {" + self.new_name + "} <Exception: " + unicode(e) + ">", name, False, True)
 
-        if failed:
-            message = "renaming failed: {" + basename + "} -> {" + new_name + "}"
+        # rename file
+        os.rename(self.file_path, os.path.join(self.dirname, self.new_name))
 
-            if type(failed) is Exception:
-                message += "<Exception: " + unicode(failed) + ">"
-            else:
-                message += "<Error: " + unicode(failed) + ">"
-
-            printMessage(message, name, False, True)
-
-    # rename file
-    os.rename(file_path, os.path.join(dirname, new_name))
-
-    # message
-    if len(renamed) > 0:
-        printMessage("remotely renamed {" + basename + "} -> {" + new_name + "}", "remotes: " + ','.join(renamed), status=True)
-
-    if config_hash in usingConnections:
-        usingConnections.remove(config_hash)
-
-
-# Downloads given file
-#
-# @type file_path: string
-# @type config_file_path: string
-# @type disregardIgnore: bool
-# @type progress: Progress
-# @type isDir: bool
-# @param isDir: whether the downloaded entry is a folder
-# @type forced: bool
-# @param forced: whether it should download even if older or same size
-# @type skip: bool
-# @param skip: used with forced=False, should skip the download (the rest is needed though, for progress etc.)
-# @type whitelistConnections: list<connection_name: string>
-# @param whitelistConnections: if not empty then only these connection names can be used
-def performSyncDown(file_path, config_file_path, disregardIgnore=False, progress=None, isDir=None,forced=False,skip=False, whitelistConnections=[]):
-    if progress is not None and isDir is not True:
-        progress.progress()
-
-    config = loadConfig(config_file_path)
-    basename = os.path.basename(file_path)
-
-    if disregardIgnore is False and ignore is not None and re_ignore.search(file_path) is not None:
-        return printMessage("file globally ignored: {" + basename + "}", onlyVerbose=True)
-
-    config_hash = getFilepathHash(config_file_path)
-    connections = getConnection(config_hash, config)
-
-    usingConnections.append(config_hash)
-
-    index = -1
-    stored = []
-    failed = False
-
-    for name in config['connections']:
-        index += 1
-
-        if len(whitelistConnections) > 0 and name not in whitelistConnections:
-            continue
-
-        try:
-            connections[index]
-        except IndexError:
-            continue
-
-        if disregardIgnore is False and config['connections'][name]['ignore'] is not None and re.search(config['connections'][name]['ignore'], file_path):
-            printMessage("file ignored by rule: {" + basename + "}", name, True)
-            continue
-
-        try:
-
-            contents = connections[index].list(file_path)
-
-            if isDir or os.path.isdir(file_path):
-                if os.path.exists(file_path) is False:
-                    os.mkdir(file_path)
-
-                for entry in contents:
-                    if entry.isDirectory() is False:
-                        progress.add([entry.getName()])
-
-                for entry in contents:
-                    full_name = os.path.join(file_path, entry.getName())
-
-                    if entry.isDirectory() is True:
-                        performSyncDown(full_name, config_file_path, disregardIgnore, progress, True, forced=forced)
-                    else:
-                        completed = False
-
-                        if not forced and entry.isNewerThan(full_name) is False:
-                            completed = True
-
-                        performSyncDown(full_name, config_file_path, disregardIgnore, progress, forced=forced, skip=completed)
-
-                return
-            else:
-                if skip:
-                    downloaded = name
-                else:
-                    downloaded = connections[index].get(file_path)
-
-            if type(downloaded) is str or type(downloaded) is unicode:
-                stored.append(downloaded)
-                printMessage("downloaded {" + basename + "}", name)
-
-            else:
-                failed = type(downloaded)
-
-        except Exception, e:
-            failed = e
-
-            printMessage("performSyncDown exception: " + unicode(e))
-
-        if failed:
-            message = "download of {" + basename + "} failed"
-
-            if type(failed) is Exception:
-                message += "<Exception: " + unicode(failed) + ">"
-            else:
-                message += "<Error: " + unicode(failed) + ">"
-
-            printMessage(message, name, False, True)
-        else:
-            break
-
-    if len(stored) > 0:
-        dumpMessage(getProgressMessage(stored, progress, "downloaded", basename))
-
-    if config_hash in usingConnections:
-        usingConnections.remove(config_hash)
+        # message
+        if len(renamed) > 0:
+            printMessage("remotely renamed {" + self.basename + "} -> {" + self.new_name + "}", "remotes: " + ','.join(renamed), status=True)
 
 
 def performRemoteCheck(file_path, window, forced=False):
@@ -1051,7 +920,6 @@ def performRemoteCheck(file_path, window, forced=False):
     newest = []
     oldest = []
     every = []
-    extra = []
 
     for entry in metadata:
         if entry['metadata'].isNewerThan(file_path):
@@ -1110,13 +978,13 @@ def performRemoteCheck(file_path, window, forced=False):
         printMessage("All remote versions of {" + basename + "} are of same size and older", status=True)
 
 
-
 # ==== Watching ===========================================================================
 
 # list of file paths to be checked on load
 checksScheduled = []
 # pre_save x post_save upload prevention
 preventUpload = []
+
 
 # File watching
 class RemoteSync(sublime_plugin.EventListener):
@@ -1136,8 +1004,7 @@ class RemoteSync(sublime_plugin.EventListener):
         index = 0
 
         for entry in metadata:
-            if config['connections'][ entry['connection'] ]['upload_on_save'] is True and config['connections'][ entry['connection'] ]['check_time'] is True and entry['metadata'].isNewerThan(file_path):
-                skipped = True
+            if config['connections'][entry['connection']]['upload_on_save'] is True and config['connections'][entry['connection']]['check_time'] is True and entry['metadata'].isNewerThan(file_path):
                 newer.append(entry['connection'])
 
                 if newest is None or newest > entry['metadata'].getLastModified():
@@ -1162,14 +1029,16 @@ class RemoteSync(sublime_plugin.EventListener):
 
             window = view.window()
             if window is None:
-                window = sublime.active_window() # only in main thread!
+                window = sublime.active_window()  # only in main thread!
 
             sublime.set_timeout(lambda: window.show_quick_panel(items, sync), 1)
 
     def on_post_save(self, view):
         file_path = view.file_name()
 
-
+        if file_path in preventUpload:
+            preventUpload.remove(file_path)
+            return
 
         RemoteSyncCall(file_path, getConfigFile(file_path), True).start()
 
@@ -1202,7 +1071,6 @@ class RemoteSync(sublime_plugin.EventListener):
             sublime.set_timeout(check, download_on_open_delay)
 
 
-
 # ==== Threading ===========================================================================
 
 def fillProgress(progress, entry):
@@ -1214,6 +1082,7 @@ def fillProgress(progress, entry):
             fillProgress(progress, item)
     elif os.path.isfile(entry):
         progress.add([entry])
+
 
 class RemoteSyncCall(threading.Thread):
     def __init__(self, file_path, config, onSave, disregardIgnore=False, whitelistConnections=[]):
@@ -1234,7 +1103,6 @@ class RemoteSyncCall(threading.Thread):
             SyncCommandUpload(target, self.config, onSave=self.onSave, disregardIgnore=self.disregardIgnore, whitelistConnections=self.whitelistConnections).execute()
 
         elif type(target) is list:
-            total = len(target)
             progress = Progress()
             fillProgress(progress, target)
 
@@ -1243,12 +1111,12 @@ class RemoteSyncCall(threading.Thread):
 
 
 class RemoteSyncDownCall(threading.Thread):
-    def __init__(self, file_path, config, disregardIgnore=False,forced=False,whitelistConnections=[]):
+    def __init__(self, file_path, config, disregardIgnore=False, forced=False, whitelistConnections=[]):
         self.file_path = file_path
         self.config = config
         self.disregardIgnore = disregardIgnore
         self.forced = forced
-        self.whitelistConnections=[]
+        self.whitelistConnections = []
         threading.Thread.__init__(self)
 
     def run(self):
@@ -1278,7 +1146,7 @@ class RemoteSyncRename(threading.Thread):
         threading.Thread.__init__(self)
 
     def run(self):
-        performSyncRename(self.file_path, self.config, self.new_name)
+        SyncCommandRename(self.file_path, self.config, self.new_name)
 
 
 class RemoteSyncCheck(threading.Thread):
@@ -1290,7 +1158,6 @@ class RemoteSyncCheck(threading.Thread):
 
     def run(self):
         performRemoteCheck(self.file_path, self.window, self.forced)
-
 
 
 # ==== Commands ===========================================================================
