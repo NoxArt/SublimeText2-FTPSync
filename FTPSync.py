@@ -855,6 +855,11 @@ class SyncCommandRename(SyncCommandTransfer):
             self.close()
             return
 
+        if len(new_name) == 0:
+            printMessage("Cancelling SyncCommandRename: empty new_name given")
+            self.close()
+            return
+
         self.new_name = new_name
         self.dirname = os.path.dirname(file_path)
         SyncCommand.__init__(self, file_path, config_file_path)
