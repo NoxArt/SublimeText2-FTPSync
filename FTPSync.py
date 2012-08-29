@@ -734,7 +734,12 @@ class SyncCommandTransfer(SyncCommand):
 class SyncCommandUpload(SyncCommandTransfer):
 
     def execute(self):
-        if self.closed is True or len(self.config['connections']) == 0:
+        if self.closed is True:
+            printMessage("Cancelling " + unicode(self.__class__.__name__) + ": command is closed")
+            return
+
+        if len(self.config['connections']) == 0:
+            printMessage("Cancelling " + unicode(self.__class__.__name__) + ": zero connections apply")
             return
 
         if self.progress is not None:
@@ -790,7 +795,12 @@ class SyncCommandDownload(SyncCommandTransfer):
         return self
 
     def execute(self):
-        if self.closed is True or len(self.config['connections']) == 0:
+        if self.closed is True:
+            printMessage("Cancelling " + unicode(self.__class__.__name__) + ": command is closed")
+            return
+
+        if len(self.config['connections']) == 0:
+            printMessage("Cancelling " + unicode(self.__class__.__name__) + ": zero connections apply")
             return
 
         if self.progress is not None and self.isDir is not True:
@@ -865,7 +875,12 @@ class SyncCommandRename(SyncCommandTransfer):
         SyncCommand.__init__(self, file_path, config_file_path)
 
     def execute(self):
-        if self.closed is True or len(self.config['connections']) == 0:
+        if self.closed is True:
+            printMessage("Cancelling " + unicode(self.__class__.__name__) + ": command is closed")
+            return
+
+        if len(self.config['connections']) == 0:
+            printMessage("Cancelling " + unicode(self.__class__.__name__) + ": zero connections apply")
             return
 
         usingConnections.append(self.config_hash)
