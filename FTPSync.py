@@ -707,20 +707,27 @@ class SyncCommandTransfer(SyncCommand):
         self.disregardIgnore = False
         self.progress = progress
 
+        toBeRemoved = []
         for name in self.config['connections']:
 
             # on save
             if self.config['connections'][name]['upload_on_save'] is False and onSave is True:
-                self.config['connections'].remove(name)
+                toBeRemoved.append(name)
+                continue
 
             # ignore
             if disregardIgnore is False and self.config['connections'][name]['ignore'] is not None and re.search(self.config['connections'][name]['ignore'], file_path):
                 printMessage("file ignored by rule: {" + self.basename + "}", name, True)
-                self.config['connections'].remove(name)
+                toBeRemoved.append(name)
+                continue
 
             # whitelist
             if len(whitelistConnections) > 0 and name not in whitelistConnections:
-                self.config['connections'].remove(name)
+                toBeRemoved.append(name)
+                continue
+
+        for name in toBeRemoved:
+            self.config['connections'].pop(name)
 
 
 # Upload command
@@ -843,7 +850,7 @@ class SyncCommandDownload(SyncCommandTransfer):
 class SyncCommandRename(SyncCommandTransfer):
 
     def __init__(self, file_path, config_file_path, new_name):
-        if isString(self.new_name) is False:
+        if isString(new_name) is False:
             printMessage("Cancelling SyncCommandRename: invalid new_name given (type: " + unicode(type(new_name)) + ")")
             self.close()
             return
@@ -1146,7 +1153,7 @@ class RemoteSyncRename(threading.Thread):
         threading.Thread.__init__(self)
 
     def run(self):
-        SyncCommandRename(self.file_path, self.config, self.new_name)
+        SyncCommandRename(self.file_path, self.config, self.new_name).execute()
 
 
 class RemoteSyncCheck(threading.Thread):

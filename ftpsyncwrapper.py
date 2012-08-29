@@ -287,24 +287,25 @@ class FTPSConnection(AbstractConnection):
             try:
                 self.connection.voidcmd("RNFR " + base)
             except Exception, e:
-                if self.__isError(e, 'cwdNoFileOrDirectory') or self.__isError(e, 'fileNotExist'):
+                if self.__isError(e, 'rnfrExists'):
+                    self.connection.voidcmd("RNTO " + new_name)
+                    return
+                elif self.__isError(e, 'cwdNoFileOrDirectory') or self.__isError(e, 'fileNotExist'):
                     self.put(file_path, new_name)
-                    return base
+                    return
                 else:
                     raise e
 
             try:
                 self.connection.voidcmd("RNFR " + base)
             except:
-                if str(e)[:3] == str(ftpErrors['rnfrExists']) and str(e).find('Aborting previous'):
+                if self.__isError(e, 'rnfrExists') and str(e).find('Aborting previous'):
                     self.connection.voidcmd("RNTO " + new_name)
-                    return base
+                    return
                 else:
                     raise e
 
             self.connection.voidcmd("RNTO " + new_name)
-
-            return base
 
         return self.__execute(action)
 
