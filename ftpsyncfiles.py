@@ -87,7 +87,7 @@ class Metafile:
         if os.path.exists(file_path) is False:
             return True
 
-        return os.path.getmtime(file_path) - self.lastModified < timeDifferenceTolerance
+        return self.lastModified > os.path.getmtime(file_path)
 
     def isDifferentSizeThan(self, file_path):
         if os.path.exists(file_path) is False:

@@ -624,6 +624,13 @@ class SyncCommand(object):
         self.config_hash = getFilepathHash(self.config_file_path)
         self.connections = getConnection(self.config_hash, self.config)
 
+    def _localizePath(self, config, remote_path):
+        path = remote_path
+        if path.find(config['path']) == 0:
+            path = os.path.abspath(os.path.join(os.path.dirname(self.config_file_path), remote_path[len(config['path']):]))
+
+        return path
+
     def execute(self):
         raise NotImplementedError("Abstract method")
 
@@ -631,7 +638,12 @@ class SyncCommand(object):
         self.closed = True
 
     def whitelistConnections(self, whitelistConnections):
-        for name in whitelistConnections:
+        toBeRemoved = []
+        for name in self.config['connections']:
+            if name not in whitelistConnections:
+                toBeRemoved.append(name)
+
+        for name in toBeRemoved:
             self.config['connections'].pop(name)
 
         return self
@@ -747,6 +759,8 @@ class SyncCommandDownload(SyncCommandTransfer):
         return self
 
     def execute(self):
+        self.forced = True
+
         if self.progress is not None and self.isDir is not True:
             self.progress.progress()
 
@@ -766,36 +780,41 @@ class SyncCommandDownload(SyncCommandTransfer):
             index += 1
 
             try:
-
-                contents = self.connections[index].list(self.file_path)
-
                 if self.isDir or os.path.isdir(self.file_path):
-                    if os.path.exists(self.file_path) is False:
-                        os.mkdir(self.file_path)
+                    file_path = self._localizePath(self.config['connections'][name], self.file_path)
+
+                    contents = self.connections[index].list(file_path)
+
+                    if os.path.exists(file_path) is False:
+                        os.mkdir(file_path)
 
                     for entry in contents:
                         if entry.isDirectory() is False:
                             self.progress.add([entry.getName()])
 
                     for entry in contents:
-                        full_name = os.path.join(self.file_path, entry.getName())
+                        full_name = os.path.join(file_path, entry.getName())
 
                         if entry.isDirectory() is True:
                             SyncCommandDownload(full_name, self.config_file_path, progress=self.progress, disregardIgnore=self.disregardIgnore).setIsDir().setForced(self.forced).execute()
                         else:
                             completed = False
 
-                            if not self.forced and entry.isNewerThan(full_name) is False:
+                            if not self.forced and entry.isNewerThan(full_name) is True:
                                 completed = True
 
-                            SyncCommandDownload(full_name, self.config_file_path, progress=self.progress, disregardIgnore=self.disregardIgnore).setIsDir().setForced(self.forced).setSkip(completed).execute()
+                            SyncCommandDownload(full_name, self.config_file_path, progress=self.progress, disregardIgnore=self.disregardIgnore).setForced(self.forced).setSkip(not completed).execute()
 
                     return
 
-                elif not self.skip:
-                    self.connections[index].get(self.file_path)
+                else:
+                    if not self.skip:
+                        self.connections[index].get(self.file_path)
+                        printMessage("downloaded {" + self.basename + "}", name)
+                    else:
+                        printMessage("skipping {" + self.basename + "}", name)
+
                     stored.append(name)
-                    printMessage("downloaded {" + self.basename + "}", name)
 
             except IndexError:
                 continue
@@ -894,6 +913,7 @@ class SyncCommandGetMetadata(SyncCommand):
                 continue
 
             except Exception, e:
+                printMessage("SyncCommandGetMetadata exception: " + unicode(e))
                 printMessage("getting metadata failed: {" + self.basename + "} <Exception: " + unicode(e) + ">", name, False, True)
 
         return results
@@ -930,6 +950,9 @@ def performRemoteCheck(file_path, window, forced=False):
     except Exception, e:
         printMessage("Error when getting metadata: " + unicode(e))
         metadata = []
+
+    if type(metadata) is not list:
+        return printMessage("Invalid metadata response, expected list, got " + unicode(type(metadata)))
 
     if len(metadata) == 0:
         return printMessage("No version of {" + basename + "} found on any server", status=True)

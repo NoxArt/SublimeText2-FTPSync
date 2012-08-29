@@ -261,8 +261,8 @@ class FTPSConnection(AbstractConnection):
 
             command = "RETR " + path
 
+            downloaded = open(file_path, "wb")
             try:
-                downloaded = open(file_path, "wb")
                 self.connection.retrbinary(command, lambda data: downloaded.write(data))
             finally:
                 downloaded.close()
@@ -298,7 +298,7 @@ class FTPSConnection(AbstractConnection):
 
             try:
                 self.connection.voidcmd("RNFR " + base)
-            except:
+            except Exception, e:
                 if self.__isError(e, 'rnfrExists') and str(e).find('Aborting previous'):
                     self.connection.voidcmd("RNTO " + new_name)
                     return
@@ -427,6 +427,8 @@ class FTPSConnection(AbstractConnection):
                     self.connection.mkd(folder)
                     self.chmod(folder, self.config['default_folder_permissions'])
                     self.connection.cwd(folder)
+                else:
+                    raise e
 
 
 #class SSHConnection():
