@@ -619,7 +619,7 @@ class SyncCommand(object):
             return
 
         self.config = loadConfig(config_file_path)
-        self.basename = os.path.basename(file_path)
+        self.basename = os.path.relpath(file_path, os.path.dirname(config_file_path))
 
         self.config_hash = getFilepathHash(self.config_file_path)
         self.connections = getConnection(self.config_hash, self.config)
@@ -646,6 +646,8 @@ class SyncCommandTransfer(SyncCommand):
 
     def __init__(self, file_path, config_file_path, progress=None, onSave=False, disregardIgnore=False, whitelistConnections=[]):
 
+        self.progress = progress
+
         # global ignore
         if disregardIgnore is False and ignore is not None and re_ignore.search(file_path) is not None:
             printMessage("file globally ignored: {" + os.path.basename(file_path) + "}", onlyVerbose=True)
@@ -656,7 +658,6 @@ class SyncCommandTransfer(SyncCommand):
 
         self.onSave = False
         self.disregardIgnore = False
-        self.progress = progress
 
         toBeRemoved = []
         for name in self.config['connections']:
