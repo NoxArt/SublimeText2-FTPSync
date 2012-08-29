@@ -603,64 +603,6 @@ def getProgressMessage(stored, progress, action, basename):
     return base + action + " {" + basename + "}"
 
 
-# Uploads given file
-#
-# @type file_path: string
-# @type config_file_path: string
-# @type onSave: bool
-# @param onSave: whether this is a regular upload or upload on save
-# @type disregardIgnore: bool
-# @type progress: Progress
-# @type whitelistConnections: list<connection_name: string>
-# @param whitelistConnections: if not empty then only these connection names can be used
-#
-# @return [{ connection: string (connection_name), metadata: Metafile }]
-def getRemoteMetadata(file_path, config_file_path, whitelistConnections=[]):
-    config = loadConfig(config_file_path)
-    basename = os.path.basename(file_path)
-
-    if ignore is not None and re_ignore.search(file_path) is not None:
-        return []
-
-    config_hash = getFilepathHash(config_file_path)
-    connections = getConnection(config_hash, config)
-
-    usingConnections.append(config_hash)
-
-    index = -1
-    results = []
-
-    for name in config['connections']:
-        index += 1
-
-        if len(whitelistConnections) > 0 and name not in whitelistConnections:
-            continue
-
-        try:
-            connections[index]
-        except IndexError:
-            continue
-
-        try:
-            metadata = connections[index].list(file_path)
-
-            if len(metadata) > 0:
-                results.append({
-                    'connection': name,
-                    'metadata': metadata[0]
-                })
-
-        except Exception, e:
-            message = "getting metadata failed: {" + basename + "} <Exception: " + unicode(e) + ">"
-
-            printMessage(message, name, False, True)
-
-    if config_hash in usingConnections:
-        usingConnections.remove(config_hash)
-
-    return results
-
-
 # ==== Executive functions ======================================================================
 
 # Generic synchronization command
@@ -684,6 +626,10 @@ class SyncCommand(object):
 
     def close(self):
         self.closed = True
+
+    def _whitelistConnections(self, whitelistConnections):
+        for name in whitelistConnections:
+            self.config['connections'].pop(name)
 
     def __del__(self):
         if hasattr(self, 'config_hash') and self.config_hash in usingConnections:
@@ -857,7 +803,7 @@ class SyncCommandDownload(SyncCommandTransfer):
 
 
 # Rename command
-class SyncCommandRename(SyncCommandTransfer):
+class SyncCommandRename(SyncCommand):
 
     def __init__(self, file_path, config_file_path, new_name):
         if isString(new_name) is False:
@@ -910,6 +856,43 @@ class SyncCommandRename(SyncCommandTransfer):
             printMessage("remotely renamed {" + self.basename + "} -> {" + self.new_name + "}", "remotes: " + ','.join(renamed), status=True)
 
 
+# Rename command
+class SyncCommandGetMetadata(SyncCommand):
+
+    def execute(self):
+        if self.closed is True:
+            printMessage("Cancelling " + unicode(self.__class__.__name__) + ": command is closed")
+            return
+
+        if len(self.config['connections']) == 0:
+            printMessage("Cancelling " + unicode(self.__class__.__name__) + ": zero connections apply")
+            return
+
+        usingConnections.append(self.config_hash)
+        index = -1
+        results = []
+
+        for name in self.config['connections']:
+            index += 1
+
+            try:
+                metadata = self.connections[index].list(self.file_path)
+
+                if len(metadata) > 0:
+                    results.append({
+                        'connection': name,
+                        'metadata': metadata[0]
+                    })
+
+            except IndexError:
+                continue
+
+            except Exception, e:
+                printMessage("getting metadata failed: {" + self.basename + "} <Exception: " + unicode(e) + ">", name, False, True)
+
+        return results
+
+
 def performRemoteCheck(file_path, window, forced=False):
     if type(file_path) is not str and type(file_path) is not unicode:
         return
@@ -937,7 +920,7 @@ def performRemoteCheck(file_path, window, forced=False):
             return
 
     try:
-        metadata = getRemoteMetadata(file_path, config_file_path, checking)
+        metadata = SyncCommandGetMetadata(file_path, config_file_path).whitelistConnections(checking).execute()
     except:
         metadata = []
 
@@ -1024,7 +1007,7 @@ class RemoteSync(sublime_plugin.EventListener):
             return
 
         config = loadConfig(config_file_path)
-        metadata = getRemoteMetadata(file_path, config_file_path)
+        metadata = SyncCommandGetMetadata(file_path, config_file_path).execute()
 
         newest = None
         newer = []
