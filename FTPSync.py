@@ -624,12 +624,17 @@ class SyncCommand(object):
         self.config_hash = getFilepathHash(self.config_file_path)
         self.connections = getConnection(self.config_hash, self.config)
 
+    def execute(self):
+        raise NotImplementedError("Abstract method")
+
     def close(self):
         self.closed = True
 
-    def _whitelistConnections(self, whitelistConnections):
+    def whitelistConnections(self, whitelistConnections):
         for name in whitelistConnections:
             self.config['connections'].pop(name)
+
+        return self
 
     def __del__(self):
         if hasattr(self, 'config_hash') and self.config_hash in usingConnections:
@@ -680,6 +685,9 @@ class SyncCommandTransfer(SyncCommand):
 class SyncCommandUpload(SyncCommandTransfer):
 
     def execute(self):
+        if self.progress is not None:
+            self.progress.progress()
+
         if self.closed is True:
             printMessage("Cancelling " + unicode(self.__class__.__name__) + ": command is closed")
             return
@@ -687,9 +695,6 @@ class SyncCommandUpload(SyncCommandTransfer):
         if len(self.config['connections']) == 0:
             printMessage("Cancelling " + unicode(self.__class__.__name__) + ": zero connections apply")
             return
-
-        if self.progress is not None:
-            self.progress.progress()
 
         usingConnections.append(self.config_hash)
         stored = []
@@ -741,6 +746,9 @@ class SyncCommandDownload(SyncCommandTransfer):
         return self
 
     def execute(self):
+        if self.progress is not None and self.isDir is not True:
+            self.progress.progress()
+
         if self.closed is True:
             printMessage("Cancelling " + unicode(self.__class__.__name__) + ": command is closed")
             return
@@ -748,9 +756,6 @@ class SyncCommandDownload(SyncCommandTransfer):
         if len(self.config['connections']) == 0:
             printMessage("Cancelling " + unicode(self.__class__.__name__) + ": zero connections apply")
             return
-
-        if self.progress is not None and self.isDir is not True:
-            self.progress.progress()
 
         usingConnections.append(self.config_hash)
         index = -1
@@ -921,7 +926,8 @@ def performRemoteCheck(file_path, window, forced=False):
 
     try:
         metadata = SyncCommandGetMetadata(file_path, config_file_path).whitelistConnections(checking).execute()
-    except:
+    except Exception, e:
+        printMessage("Error when getting metadata: " + unicode(e))
         metadata = []
 
     if len(metadata) == 0:
