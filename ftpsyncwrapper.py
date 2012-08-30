@@ -40,16 +40,20 @@ from ftpsyncfiles import Metafile, isTextFile
 # ==== Initialization and optimization =====================================================
 
 # to extract data from FTP LIST http://stackoverflow.com/questions/2443007/ftp-list-format
-ftpListParse = re.compile("^([d-])[rxws-]{9}\s+\d+\s+[\w\d]+\s+[\w\d]+\s+(\d+)\s+(\w{1,3}\s+\d+\s+(?:\d+:\d+|\d{2,4}))\s+(.*?)$", re.M | re.I | re.U | re.L)
+re_ftpListParse = re.compile("^([d-])[rxws-]{9}\s+\d+\s+[\w\d]+\s+[\w\d]+\s+(\d+)\s+(\w{1,3}\s+\d+\s+(?:\d+:\d+|\d{2,4}))\s+(.*?)$", re.M | re.I | re.U | re.L)
+
+# error code - first 3-digit number https://tools.ietf.org/html/rfc959#page-39
+re_errorCode = re.compile("[1-5]\d\d")
 
 # For FTP LIST entries with {last modified} timestamp earlier than 6 months, see http://stackoverflow.com/questions/2443007/ftp-list-format
 currentYear = int(time.strftime("%Y", time.gmtime()))
 
 # List of FTP errors of interest
-ftpErrors = {
-    'noFileOrDirectory': 553,
-    'cwdNoFileOrDirectory': 550,
-    'rnfrExists': 350
+ftpError = {
+    'fileNotAllowed': 553,
+    'fileUnavailible': 550,
+    'pendingInformation': 350,
+    'ok': 200
 }
 
 ftpErrors = {
@@ -126,7 +130,10 @@ class AbstractConnection:
     #
     # @return string remote file path
     def _postprocessPath(self, path):
-        return path.replace('\\', '/')
+        path = path.replace('\\\\', '\\')
+        path = path.replace('\\', '/')
+        path = path.replace('//','/')
+        return path
 
 
 # FTP(S) connection
@@ -213,10 +220,6 @@ class FTPSConnection(AbstractConnection):
     #
     # @type self: FTPSConnection
     # @type file_path: string
-    #
-    # @return string|None name of this connection or None
-    #
-    # @global ftpErrors
     def put(self, file_path, new_name = None, failed=False):
 
         def action():
@@ -225,21 +228,17 @@ class FTPSConnection(AbstractConnection):
                 remote_file = self._postprocessPath(os.path.join(os.path.split(file_path)[0], new_name))
 
             path = self._getMappedPath(remote_file)
-
             command = "STOR " + path
+            uploaded = open(file_path, "rb")
 
             try:
-                uploaded = open(file_path, "rb")
                 self.connection.storbinary(command, uploaded)
-
             except Exception, e:
-                if self.__isError(e, 'noFileOrDirectory') and failed is False:
-                    self.__makePath(path)
-
-                    self.put(file_path, failed=True)
+                if self.__isErrorCode(e, 'fileNotAllowed') and failed is False:
+                    self.__ensurePath(path)
+                    self.put(file_path, new_name, True)
                 else:
                     raise e
-
             finally:
                 uploaded.close()
 
@@ -250,19 +249,14 @@ class FTPSConnection(AbstractConnection):
     #
     # @type self: FTPSConnection
     # @type file_path: string
-    #
-    # @return string|None name of this connection or None
-    #
-    # @global ftpErrors
     def get(self, file_path):
 
         def action():
             path = self._getMappedPath(file_path)
-
             command = "RETR " + path
+            downloaded = open(file_path, "wb")
 
             try:
-                downloaded = open(file_path, "wb")
                 self.connection.retrbinary(command, lambda data: downloaded.write(data))
             finally:
                 downloaded.close()
@@ -270,6 +264,13 @@ class FTPSConnection(AbstractConnection):
         return self.__execute(action)
 
 
+    # Renames a file on remote server
+    #
+    # @type self: FTPSConnection
+    # @type file_path: string
+    # @type new_name: string
+    #
+    # @global ftpErrors
     def rename(self, file_path, new_name):
 
         def action():
@@ -279,8 +280,8 @@ class FTPSConnection(AbstractConnection):
             try:
                 self.cwd(path)
             except Exception, e:
-                if self.__isError(e, 'noFileOrDirectory'):
-                    self.__makePath(path)
+                if self.__isErrorCode(e, 'fileUnavailible'):
+                    self.__ensurePath(path)
                 else:
                     raise e
 
@@ -309,10 +310,20 @@ class FTPSConnection(AbstractConnection):
         return self.__execute(action)
 
 
+    # Changes a current path on remote server
+    #
+    # @type self: FTPSConnection
+    # @type path: string
     def cwd(self, path):
         self.connection.cwd(path)
 
 
+    # Returns a list of content of a given path
+    #
+    # @type self: FTPSConnection
+    # @type file_path: string
+    #
+    # @return list<Metafile>
     def list(self, file_path):
 
         def action():
@@ -328,7 +339,7 @@ class FTPSConnection(AbstractConnection):
                 except KeyError:
                     pass
 
-                split = ftpListParse.search(content)
+                split = re_ftpListParse.search(content)
 
                 if split is None:
                     continue
@@ -348,6 +359,11 @@ class FTPSConnection(AbstractConnection):
         return self.__execute(action)
 
 
+    # Closes a connection
+    #
+    # @type self: FTPSConnection
+    # @type connections: dict<hash => list<connection>
+    # @type hash: string
     def close(self, connections=[], hash=None):
         try:
             self.connection.quit()
@@ -363,35 +379,62 @@ class FTPSConnection(AbstractConnection):
                 return
 
 
+    # Changes permissions for a remote file
+    #
+    # @type self: FTPSConnection
+    # @type filename: string
+    # @type permissions: string
     def chmod(self, filename, permissions):
         command = "SITE CHMOD " + str(permissions) + " " + str(filename)
 
         self.connection.voidcmd(command)
 
 
+    # Executes an action while handling common errors
+    #
+    # @type self: FTPSConnection
+    # @type callback: callback
+    #
+    # @return unknown
     def __execute(self, callback):
         try:
             return callback()
         except Exception, e:
 
+            # bad write - repeat command
             if str(e).find(sslErrors['badWrite']) is True:
                 return callback()
+            # disconnected - close itself to be refreshed
             elif self.__isError(e, 'disconnected') is True:
                 self.close()
                 raise e
+            # timeout - retry
             elif self.__isError(e, 'timeout') is True:
                 return callback()
-            elif self.__isError(e, 'typeIsNow') is True:
+            # only informative message
+            elif self.__isErrorCode(e, 'ok') is True:
                 return
+            # other exception
             else:
                 raise e
 
 
+    # Throws exception if closed
+    #
+    # @type self: FTPSConnection
     def __checkClosed(self):
         if self.isClosed is True:
             raise ConnectionClosedException
 
 
+    # Parses string time
+    #
+    # @see http://stackoverflow.com/questions/2443007/ftp-list-format
+    #
+    # @type self: FTPSConnection
+    # @type: time_val: string
+    #
+    # @return unix timestamp
     def __parseTime(self, time_val):
         if time_val.find(':') is -1:
             struct = time.strptime(time_val + str(" 00:00"), "%b %d %Y %H:%M")
@@ -401,18 +444,51 @@ class FTPSConnection(AbstractConnection):
         return time.mktime(struct)
 
 
+    # Integer code error comparison
+    #
+    # @type self: FTPSConnection
+    # @type exception: Exception
+    # @type error: string
+    # @param error: key of ftpError dict
+    #
+    # @return boolean
+    #
+    # @global ftpError
+    # @global re_errorCode
+    def __isErrorCode(self, exception, error):
+        code = re_errorCode.search(str(exception))
+
+        if code is None:
+            return False
+
+        return int(code.group(0)) == ftpError[error]
+
+
+    # Textual error comparison
+    #
+    # @type self: FTPSConnection
+    # @type exception: Exception
+    # @type error: string
+    # @param error: key of ftpErrors dict
+    #
+    # @return boolean
+    #
+    # @global ftpErrors
     def __isError(self, exception, error):
         return str(exception).find(ftpErrors[error]) != -1
 
 
-    def __makePath(self, path):
+    # Ensures the given path is existing and accessible
+    #
+    # @type self: FTPSConnection
+    # @type path: string
+    def __ensurePath(self, path):
         self.connection.cwd(self.config['path'])
 
         relative = os.path.relpath(path, self.config['path'])
 
-        folders = relative.split("\\")
-        if type(folders) is str:
-            folders = relative.split("/")
+        folders = self._postprocessPath(folders)
+        folders = relative.split("/")
 
         index = 0
         for folder in folders:
@@ -422,9 +498,19 @@ class FTPSConnection(AbstractConnection):
                 if index < len(folders):
                     self.connection.cwd(folder)
             except Exception, e:
-                if self.__isError(e, 'cwdNoFileOrDirectory'):
-                    self.connection.mkd(folder)
-                    self.chmod(folder, self.config['default_folder_permissions'])
+                if self.__isErrorCode(e, 'fileUnavailible'):
+
+                    try:
+                        # create folder
+                        self.connection.mkd(folder)
+                    except Exception, e:
+                        if self.__isErrorCode(e, 'fileUnavailible'):
+                            # exists, but not proper permissions
+                            self.chmod(folder, self.config['default_folder_permissions'])
+                        else:
+                            raise e
+
+                    # move down
                     self.connection.cwd(folder)
 
 

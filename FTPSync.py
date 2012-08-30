@@ -774,15 +774,15 @@ def performSync(file_path, config_file_path, onSave, disregardIgnore=False, prog
 
 
 # Renames given file
-def performSyncRename(file_path, config_file, new_name):
+def performSyncRename(file_path, config_file_path, new_name):
     if config_file_path is None:
         printMessage("Cancelling renaming of {" + file_path + "} - no settings file found")
         return
 
-    config = loadConfig(config_file)
+    config = loadConfig(config_file_path)
     basename = os.path.basename(file_path)
     dirname = os.path.dirname(file_path)
-    config_hash = getFilepathHash(config_file)
+    config_hash = getFilepathHash(config_file_path)
     connections = getConnection(config_hash, config)
 
     usingConnections.append(config_hash)
