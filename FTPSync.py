@@ -42,6 +42,8 @@ import json
 import threading
 import re
 import copy
+import traceback
+import sys
 
 # FTPSync libraries
 from ftpsyncwrapper import CreateConnection
@@ -120,6 +122,13 @@ scheduledUploads = {}
 def isString(var):
     var_type = type(var)
     return var_type is str or var_type is unicode
+
+# Dumps the exception to console
+def handleException(exception):
+    print "FTPSync > Exception in user code:"
+    print '-' * 60
+    traceback.print_exc(file=sys.stdout)
+    print '-' * 60
 
 
 # ==== Messaging ===========================================================================
@@ -390,6 +399,7 @@ def loadConfig(file_path):
         config = parseJson(file_path)
     except Exception, e:
         printMessage("Failed parsing configuration file: {" + file_path + "} (commas problem?) <Exception: " + unicode(e) + ">", status=True)
+        handleException(e)
         return None
 
     result = {}
@@ -405,7 +415,7 @@ def loadConfig(file_path):
         try:
             if result[name]['debug_extras']['dump_config_load'] is True:
                 printMessage(result[name])
-        except:
+        except KeyError:
             pass
 
         result[name] = updateConfig(result[name])
@@ -477,6 +487,7 @@ def getConnection(hash, config):
                 connection = CreateConnection(config, name)
             except Exception, e:
                 printMessage("Connection initialization failed <Exception: " + unicode(e) + ">", name, status=True)
+                handleException(e)
 
                 continue
 
@@ -486,6 +497,7 @@ def getConnection(hash, config):
             except Exception, e:
                 printMessage("Connection failed <Exception: " + unicode(e) + ">", name, status=True)
                 connection.close(connections, hash)
+                handleException(e)
 
                 continue
 
@@ -497,6 +509,7 @@ def getConnection(hash, config):
                     printMessage("Authentication processed", name)
             except Exception, e:
                 printMessage("Authentication failed <Exception: " + unicode(e) + ">", name, status=True)
+                handleException(e)
 
                 continue
 
@@ -506,6 +519,7 @@ def getConnection(hash, config):
                     connection.login()
                 except Exception, e:
                     printMessage("Login failed <Exception: " + unicode(e) + ">", name, status=True)
+                    handleException(e)
 
                     continue
 
@@ -522,6 +536,7 @@ def getConnection(hash, config):
                 connection.cwd(properties['path'])
             except Exception, e:
                 printMessage("Failed to set path (probably connection failed) <Exception: " + unicode(e) + ">", name)
+                handleException(e)
 
                 continue
 
@@ -571,6 +586,7 @@ def closeConnection(hash):
 
     except Exception, e:
         printMessage("Error when closing connection (key: " + hash + ") <Exception: " + unicode(e) + ">")
+        handleException(e)
 
 
 # Creates a process message with progress bar (to be used in status bar)
@@ -697,6 +713,11 @@ class SyncCommandTransfer(SyncCommand):
 # Upload command
 class SyncCommandUpload(SyncCommandTransfer):
 
+    def __init__(self, file_path, config_file_path, progress=None, onSave=False, disregardIgnore=False, whitelistConnections=[]):
+        SyncCommandTransfer.__init__(self, file_path, config_file_path, progress, onSave, disregardIgnore, whitelistConnections)
+
+        self.delayed = False
+
     def execute(self):
         if self.progress is not None:
             self.progress.progress()
@@ -717,20 +738,59 @@ class SyncCommandUpload(SyncCommandTransfer):
             index += 1
 
             try:
-                self.connections[index].put(self.file_path)
+                # identification
+                connection = self.connections[index]
+                id = os.urandom(32)
+                scheduledUploads[self.file_path] = id
 
-                stored.append(name)
-                printMessage("uploaded " + self.basename, name)
+                # action
+                def action():
+                    try:
+
+                        # cancelled
+                        if scheduledUploads[self.file_path] != id:
+                            return
+
+                        # process
+                        connection.put(self.file_path)
+                        stored.append(name)
+                        printMessage("uploaded " + self.basename, name)
+
+                        # cleanup
+                        scheduledUploads.pop(self.file_path)
+
+                        if self.delayed is True:
+                            self.delayed = False
+                            self.__del__()
+
+                        # no need to handle progress, delay action only happens with single uploads
+
+                    except Exception, e:
+                        printMessage("upload failed: {" + self.basename + "} <Exception: " + unicode(e) + ">", name, False, True)
+                        handleException(e)
+
+
+                # delayed
+                if self.onSave is True and self.config['connections'][name]['upload_delay'] > 0:
+                    self.delayed = True
+                    printMessage("delaying upload of " + self.basename + " by " + unicode(self.config['connections'][name]['upload_delay']) + " seconds", name, onlyVerbose=True)
+                    sublime.set_timeout(action, self.config['connections'][name]['upload_delay'] * 1000)
+                else:
+                    action()
 
             except IndexError:
                 continue
 
             except Exception, e:
-                printMessage("SyncCommandUp exception: " + unicode(e))
                 printMessage("upload failed: {" + self.basename + "} <Exception: " + unicode(e) + ">", name, False, True)
+                handleException(e)
 
         if len(stored) > 0:
             dumpMessage(getProgressMessage(stored, self.progress, "uploaded", self.basename))
+
+    def __del__(self):
+        if self.delayed is False:
+            SyncCommand.__del__(self)
 
 
 # Download command
@@ -820,8 +880,8 @@ class SyncCommandDownload(SyncCommandTransfer):
                 continue
 
             except Exception, e:
-                printMessage("SyncCommandDownload exception: " + unicode(e))
                 printMessage("download of {" + self.basename + "} failed <Exception: " + unicode(e) + ">", name, False, True)
+                handleException(e)
 
         if len(stored) > 0:
             dumpMessage(getProgressMessage(stored, self.progress, "downloaded", self.basename))
@@ -870,8 +930,8 @@ class SyncCommandRename(SyncCommand):
                 continue
 
             except Exception, e:
-                printMessage("SyncCommandRename exception: " + unicode(e))
                 printMessage("renaming failed: {" + self.basename + "} -> {" + self.new_name + "} <Exception: " + unicode(e) + ">", name, False, True)
+                handleException(e)
 
         # rename file
         os.rename(self.file_path, os.path.join(self.dirname, self.new_name))
@@ -949,6 +1009,7 @@ def performRemoteCheck(file_path, window, forced=False):
         metadata = SyncCommandGetMetadata(file_path, config_file_path).whitelistConnections(checking).execute()
     except Exception, e:
         printMessage("Error when getting metadata: " + unicode(e))
+        handleException(e)
         metadata = []
 
     if type(metadata) is not list:
