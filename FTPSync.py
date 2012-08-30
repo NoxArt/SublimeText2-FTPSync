@@ -42,6 +42,8 @@ import json
 import threading
 import re
 import copy
+import traceback
+import sys
 
 # FTPSync libraries
 from ftpsyncwrapper import CreateConnection
@@ -112,6 +114,16 @@ usingConnections = []
 configs = {}
 # scheduled delayed uploads, file_path => action id
 scheduledUploads = {}
+
+
+# ==== Generic ===========================================================================
+
+# Dumps the exception to console
+def handleException(exception):
+    print "FTPSync > Exception in user code:"
+    print '-' * 60
+    traceback.print_exc(file=sys.stdout)
+    print '-' * 60
 
 
 # ==== Messaging ===========================================================================
@@ -383,6 +395,7 @@ def loadConfig(file_path):
         config = parseJson(file_path)
     except Exception, e:
         printMessage("Failed parsing configuration file: {" + file_path + "} (commas problem?) <Exception: " + unicode(e) + ">", status=True)
+        handleException(e)
         return None
 
     result = {}
@@ -398,7 +411,7 @@ def loadConfig(file_path):
         try:
             if result[name]['debug_extras']['dump_config_load'] is True:
                 printMessage(result[name])
-        except:
+        except KeyError:
             pass
 
         result[name] = updateConfig(result[name])
@@ -470,6 +483,7 @@ def getConnection(hash, config):
                 connection = CreateConnection(config, name)
             except Exception, e:
                 printMessage("Connection initialization failed <Exception: " + unicode(e) + ">", name, status=True)
+                handleException(e)
 
                 continue
 
@@ -479,6 +493,7 @@ def getConnection(hash, config):
             except Exception, e:
                 printMessage("Connection failed <Exception: " + unicode(e) + ">", name, status=True)
                 connection.close(connections, hash)
+                handleException(e)
 
                 continue
 
@@ -490,6 +505,7 @@ def getConnection(hash, config):
                     printMessage("Authentication processed", name)
             except Exception, e:
                 printMessage("Authentication failed <Exception: " + unicode(e) + ">", name, status=True)
+                handleException(e)
 
                 continue
 
@@ -499,6 +515,7 @@ def getConnection(hash, config):
                     connection.login()
                 except Exception, e:
                     printMessage("Login failed <Exception: " + unicode(e) + ">", name, status=True)
+                    handleException(e)
 
                     continue
 
@@ -515,6 +532,7 @@ def getConnection(hash, config):
                 connection.cwd(properties['path'])
             except Exception, e:
                 printMessage("Failed to set path (probably connection failed) <Exception: " + unicode(e) + ">", name)
+                handleException(e)
 
                 continue
 
@@ -565,6 +583,7 @@ def closeConnection(hash):
 
     except Exception, e:
         printMessage("Error when closing connection (key: " + hash + ") <Exception: " + unicode(e) + ">")
+        handleException(e)
 
 
 # Creates a process message with progress bar (to be used in status bar)
@@ -649,6 +668,7 @@ def getRemoteMetadata(file_path, config_file_path, whitelistConnections=[]):
             message = "getting metadata failed: {" + basename + "} <Exception: " + unicode(e) + ">"
 
             printMessage(message, name, False, True)
+            handleException(e)
 
 
     if config_hash in usingConnections:
@@ -743,8 +763,8 @@ def performSync(file_path, config_file_path, onSave, disregardIgnore=False, prog
             else:
                 action()
         except Exception, e:
-            printMessage("performSync exception: " + unicode(e))
             printMessage("upload failed: {" + basename + "} <Exception: " + unicode(e) + ">", name, False, True)
+            handleException(e)
 
     if len(stored) > 0:
         dumpMessage(getProgressMessage(stored, progress, "uploaded", basename))
@@ -783,8 +803,8 @@ def performSyncRename(file_path, config_file, new_name):
             printMessage("renamed {" + basename + "} -> {" + new_name + "}", name)
             renamed.append(name)
         except Exception, e:
-            printMessage("performSyncRename exception: " + unicode(e))
-            printMessage("renaming failed: {" + basename + "} -> {" + new_name + "} <Exception: " + unicode(failed) + ">", name, False, True)
+            printMessage("renaming failed: {" + basename + "} -> {" + new_name + "} <Exception: " + unicode(e) + ">", name, False, True)
+            handleException(e)
 
     # rename file
     os.rename(file_path, os.path.join(dirname, new_name))
@@ -882,8 +902,8 @@ def performSyncDown(file_path, config_file_path, disregardIgnore=False, progress
                 printMessage("downloaded {" + basename + "}", name)
 
         except Exception, e:
-            printMessage("performSyncDown exception: " + unicode(e))
-            printMessage("download of {" + basename + "} failed <Exception: " + unicode(failed) + ">", name, False, True)
+            printMessage("download of {" + basename + "} failed <Exception: " + unicode(e) + ">", name, False, True)
+            handleException(e)
 
     if len(stored) > 0:
         dumpMessage(getProgressMessage(stored, progress, "downloaded", basename))
@@ -921,7 +941,8 @@ def performRemoteCheck(file_path, window, forced=False):
 
     try:
         metadata = getRemoteMetadata(file_path, config_file_path, checking)
-    except:
+    except Exception, e:
+        handleException(e)
         metadata = []
 
     if len(metadata) == 0:
