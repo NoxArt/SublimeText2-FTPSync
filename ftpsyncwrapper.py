@@ -488,7 +488,7 @@ class FTPSConnection(AbstractConnection):
         relative = os.path.relpath(path, self.config['path'])
 
         folders = self._postprocessPath(relative)
-        folders = relative.split("/")
+        folders = folders.split("/")
 
         index = 0
         for folder in folders:
