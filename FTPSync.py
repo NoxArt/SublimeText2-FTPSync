@@ -973,8 +973,8 @@ class SyncCommandGetMetadata(SyncCommand):
                 continue
 
             except Exception, e:
-                printMessage("SyncCommandGetMetadata exception: " + unicode(e))
                 printMessage("getting metadata failed: {" + self.basename + "} <Exception: " + unicode(e) + ">", name, False, True)
+                handleException(e)
 
         return results
 
