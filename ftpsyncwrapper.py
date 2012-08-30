@@ -228,6 +228,10 @@ class FTPSConnection(AbstractConnection):
                 remote_file = self._postprocessPath(os.path.join(os.path.split(file_path)[0], new_name))
 
             path = self._getMappedPath(remote_file)
+
+            if os.path.isdir(file_path):
+                return self.__ensurePath(path, True)
+
             command = "STOR " + path
             uploaded = open(file_path, "rb")
 
@@ -275,7 +279,9 @@ class FTPSConnection(AbstractConnection):
     def rename(self, file_path, new_name):
 
         def action():
-            path = self._getMappedPath(os.path.dirname(file_path))
+            is_dir = os.path.isdir(file_path)
+            dirname = os.path.dirname(file_path)
+            path = self._getMappedPath(dirname)
             base = os.path.basename(file_path)
 
             try:
@@ -293,7 +299,10 @@ class FTPSConnection(AbstractConnection):
                     self.connection.voidcmd("RNTO " + new_name)
                     return
                 elif self.__isError(e, 'cwdNoFileOrDirectory') or self.__isError(e, 'fileNotExist'):
-                    self.put(file_path, new_name)
+                    if is_dir:
+                        self.__ensurePath( path + '/' + new_name, True )
+                    else:
+                        self.put(file_path, new_name)
                     return
                 else:
                     raise e
@@ -484,7 +493,7 @@ class FTPSConnection(AbstractConnection):
     #
     # @type self: FTPSConnection
     # @type path: string
-    def __ensurePath(self, path):
+    def __ensurePath(self, path, isFolder=False):
         self.connection.cwd(self.config['path'])
 
         relative = os.path.relpath(path, self.config['path'])
@@ -497,7 +506,7 @@ class FTPSConnection(AbstractConnection):
             index += 1
 
             try:
-                if index < len(folders):
+                if index < len(folders) or (isFolder and index <= len(folders)):
                     self.connection.cwd(folder)
             except Exception, e:
                 if self.__isErrorCode(e, 'fileUnavailible'):

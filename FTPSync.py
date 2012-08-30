@@ -684,7 +684,7 @@ class SyncCommandTransfer(SyncCommand):
 
         SyncCommand.__init__(self, file_path, config_file_path)
 
-        self.onSave = False
+        self.onSave = onSave
         self.disregardIgnore = False
 
         toBeRemoved = []
@@ -754,7 +754,7 @@ class SyncCommandUpload(SyncCommandTransfer):
                         # process
                         connection.put(self.file_path)
                         stored.append(name)
-                        printMessage("uploaded " + self.basename, name)
+                        printMessage("uploaded {" + self.basename + "}", name)
 
                         # cleanup
                         scheduledUploads.pop(self.file_path)
@@ -803,18 +803,18 @@ class SyncCommandDownload(SyncCommandTransfer):
         self.forced = False
         self.skip = False
 
-    def setIsDir(self, isDir=True):
-        self.isDir = isDir
+    def setIsDir(self):
+        self.isDir = True
 
         return self
 
-    def setForced(self, forced=True):
-        self.forced = forced
+    def setForced(self):
+        self.forced = True
 
         return self
 
-    def setSkip(self, skip=True):
-        self.skip = skip
+    def setSkip(self):
+        self.skip = True
 
         return self
 
@@ -855,20 +855,22 @@ class SyncCommandDownload(SyncCommandTransfer):
                     for entry in contents:
                         full_name = os.path.join(file_path, entry.getName())
 
+                        command = SyncCommandDownload(full_name, self.config_file_path, progress=self.progress, disregardIgnore=self.disregardIgnore)
+
+                        if self.forced:
+                            command.setForced()
+
                         if entry.isDirectory() is True:
-                            SyncCommandDownload(full_name, self.config_file_path, progress=self.progress, disregardIgnore=self.disregardIgnore).setIsDir().setForced(self.forced).execute()
-                        else:
-                            completed = False
+                            command.setIsDir()
+                        elif not self.forced and entry.isNewerThan(full_name) is True:
+                            command.setSkip()
 
-                            if not self.forced and entry.isNewerThan(full_name) is True:
-                                completed = True
-
-                            SyncCommandDownload(full_name, self.config_file_path, progress=self.progress, disregardIgnore=self.disregardIgnore).setForced(self.forced).setSkip(not completed).execute()
+                        command.execute()
 
                     return
 
                 else:
-                    if not self.skip:
+                    if not self.skip or self.forced:
                         self.connections[index].get(self.file_path)
                         printMessage("downloaded {" + self.basename + "}", name)
                     else:
@@ -1175,13 +1177,16 @@ class RemoteSync(sublime_plugin.EventListener):
 # ==== Threading ===========================================================================
 
 def fillProgress(progress, entry):
+    if len(entry) == 0:
+        return
+
     if type(entry[0]) is str or type(entry[0]) is unicode:
         entry = entry[0]
 
     if type(entry) is list:
         for item in entry:
             fillProgress(progress, item)
-    elif os.path.isfile(entry):
+    else:
         progress.add([entry])
 
 
@@ -1200,10 +1205,10 @@ class RemoteSyncCall(threading.Thread):
         if (type(target) is str or type(target) is unicode) and self.config is None:
             return False
 
-        if type(target) is str or type(target) is unicode:
+        elif type(target) is str or type(target) is unicode:
             SyncCommandUpload(target, self.config, onSave=self.onSave, disregardIgnore=self.disregardIgnore, whitelistConnections=self.whitelistConnections).execute()
 
-        elif type(target) is list:
+        elif type(target) is list and len(target) > 0:
             progress = Progress()
             fillProgress(progress, target)
 
@@ -1226,9 +1231,14 @@ class RemoteSyncDownCall(threading.Thread):
         if (type(target) is str or type(target) is unicode) and self.config is None:
             return False
 
-        if type(target) is str or type(target) is unicode:
-            SyncCommandDownload(target, self.config, disregardIgnore=self.disregardIgnore, whitelistConnections=self.whitelistConnections).setForced(self.forced).execute()
-        else:
+        elif type(target) is str or type(target) is unicode:
+            command = SyncCommandDownload(target, self.config, disregardIgnore=self.disregardIgnore, whitelistConnections=self.whitelistConnections)
+
+            if self.forced:
+                command.setForced()
+
+            command.execute()
+        elif type(target) is list and len(target) > 0:
             total = len(target)
             progress = Progress(total)
 
@@ -1236,7 +1246,12 @@ class RemoteSyncDownCall(threading.Thread):
                 if os.path.isfile(file_path):
                     progress.add([file_path])
 
-                SyncCommandDownload(file_path, config, disregardIgnore=self.disregardIgnore, progress=progress, whitelistConnections=self.whitelistConnections).setForced(self.forced).execute()
+                command = SyncCommandDownload(file_path, config, disregardIgnore=self.disregardIgnore, progress=progress, whitelistConnections=self.whitelistConnections)
+
+                if self.forced:
+                    command.setForced()
+
+                command.execute()
 
 
 class RemoteSyncRename(threading.Thread):
@@ -1295,10 +1310,24 @@ class FtpSyncTarget(sublime_plugin.TextCommand):
                 if target not in fileNames:
                     syncFiles.append([target, getConfigFile(target)])
             elif os.path.isdir(target):
+                empty = True
+
                 for root, dirs, files in os.walk(target):
                     for file_path in files:
+                        empty = False
+
                         if file_path not in fileNames:
                             syncFiles.append([os.path.join(root, file_path), getConfigFile(os.path.join(root, file_path))])
+
+                    for folder in dirs:
+                        path = os.path.join(root, folder)
+
+                        if not os.listdir(path):
+                            syncFiles.append([path, getConfigFile(path)])
+
+
+                if empty is True:
+                    syncFiles.append([target, getConfigFile(target)])
 
         # sync
         RemoteSyncCall(syncFiles, None, False).start()

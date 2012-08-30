@@ -85,6 +85,8 @@ class Progress:
         total = self.getTotal()
         if total is 0:
             total = self.current
+        if total is 0:
+            total = 1
 
         percent = int(math.ceil(float(self.current) / float(total) * 100))
         percent = math.ceil(percent / division)
