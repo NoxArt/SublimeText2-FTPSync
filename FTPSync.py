@@ -665,7 +665,7 @@ def getRemoteMetadata(file_path, config_file_path, whitelistConnections=[]):
         try:
             metadata = connections[index].list(file_path)
 
-            if len(metadata) > 0:
+            if type(metadata) is list and len(metadata) > 0:
                 results.append({
                     'connection': name,
                     'metadata': metadata[0]
