@@ -972,7 +972,7 @@ class SyncCommandGetMetadata(SyncCommand):
             try:
                 metadata = self.connections[index].list(self.file_path)
 
-                if len(metadata) > 0:
+                if type(metadata) is list and len(metadata) > 0:
                     results.append({
                         'connection': name,
                         'metadata': metadata[0]
