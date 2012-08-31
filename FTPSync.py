@@ -131,6 +131,11 @@ def handleException(exception):
     print '-' * 60
 
 
+# Safer print of exception message
+def stringifyException(exception):
+    return unicode(exception, 'utf-8', 'replace')
+
+
 # ==== Messaging ===========================================================================
 
 # Shows a message into Sublime's status bar
@@ -398,7 +403,7 @@ def loadConfig(file_path):
     try:
         config = parseJson(file_path)
     except Exception, e:
-        printMessage("Failed parsing configuration file: {" + file_path + "} (commas problem?) <Exception: " + unicode(e) + ">", status=True)
+        printMessage("Failed parsing configuration file: {" + file_path + "} (commas problem?) <Exception: " + stringifyException(e) + ">", status=True)
         handleException(e)
         return None
 
@@ -486,7 +491,7 @@ def getConnection(hash, config):
             try:
                 connection = CreateConnection(config, name)
             except Exception, e:
-                printMessage("Connection initialization failed <Exception: " + unicode(e) + ">", name, status=True)
+                printMessage("Connection initialization failed <Exception: " + stringifyException(e) + ">", name, status=True)
                 handleException(e)
 
                 continue
@@ -495,7 +500,7 @@ def getConnection(hash, config):
             try:
                 connection.connect()
             except Exception, e:
-                printMessage("Connection failed <Exception: " + unicode(e) + ">", name, status=True)
+                printMessage("Connection failed <Exception: " + stringifyException(e) + ">", name, status=True)
                 connection.close(connections, hash)
                 handleException(e)
 
@@ -508,7 +513,7 @@ def getConnection(hash, config):
                 if connection.authenticate():
                     printMessage("Authentication processed", name)
             except Exception, e:
-                printMessage("Authentication failed <Exception: " + unicode(e) + ">", name, status=True)
+                printMessage("Authentication failed <Exception: " + stringifyException(e) + ">", name, status=True)
                 handleException(e)
 
                 continue
@@ -518,7 +523,7 @@ def getConnection(hash, config):
                 try:
                     connection.login()
                 except Exception, e:
-                    printMessage("Login failed <Exception: " + unicode(e) + ">", name, status=True)
+                    printMessage("Login failed <Exception: " + stringifyException(e) + ">", name, status=True)
                     handleException(e)
 
                     continue
@@ -535,7 +540,7 @@ def getConnection(hash, config):
             try:
                 connection.cwd(properties['path'])
             except Exception, e:
-                printMessage("Failed to set path (probably connection failed) <Exception: " + unicode(e) + ">", name)
+                printMessage("Failed to set path (probably connection failed) <Exception: " + stringifyException(e) + ">", name)
                 handleException(e)
 
                 continue
@@ -585,7 +590,7 @@ def closeConnection(hash):
             connections.pop(hash)
 
     except Exception, e:
-        printMessage("Error when closing connection (key: " + hash + ") <Exception: " + unicode(e) + ">")
+        printMessage("Error when closing connection (key: " + hash + ") <Exception: " + stringifyException(e) + ">")
         handleException(e)
 
 
@@ -766,7 +771,7 @@ class SyncCommandUpload(SyncCommandTransfer):
                         # no need to handle progress, delay action only happens with single uploads
 
                     except Exception, e:
-                        printMessage("upload failed: {" + self.basename + "} <Exception: " + unicode(e) + ">", name, False, True)
+                        printMessage("upload failed: {" + self.basename + "} <Exception: " + stringifyException(e) + ">", name, False, True)
                         handleException(e)
 
 
@@ -782,7 +787,7 @@ class SyncCommandUpload(SyncCommandTransfer):
                 continue
 
             except Exception, e:
-                printMessage("upload failed: {" + self.basename + "} <Exception: " + unicode(e) + ">", name, False, True)
+                printMessage("upload failed: {" + self.basename + "} <Exception: " + stringifyException(e) + ">", name, False, True)
                 handleException(e)
 
         if len(stored) > 0:
@@ -882,7 +887,7 @@ class SyncCommandDownload(SyncCommandTransfer):
                 continue
 
             except Exception, e:
-                printMessage("download of {" + self.basename + "} failed <Exception: " + unicode(e) + ">", name, False, True)
+                printMessage("download of {" + self.basename + "} failed <Exception: " + stringifyException(e) + ">", name, False, True)
                 handleException(e)
 
         if len(stored) > 0:
@@ -932,7 +937,7 @@ class SyncCommandRename(SyncCommand):
                 continue
 
             except Exception, e:
-                printMessage("renaming failed: {" + self.basename + "} -> {" + self.new_name + "} <Exception: " + unicode(e) + ">", name, False, True)
+                printMessage("renaming failed: {" + self.basename + "} -> {" + self.new_name + "} <Exception: " + stringifyException(e) + ">", name, False, True)
                 handleException(e)
 
         # rename file
@@ -975,7 +980,7 @@ class SyncCommandGetMetadata(SyncCommand):
                 continue
 
             except Exception, e:
-                printMessage("getting metadata failed: {" + self.basename + "} <Exception: " + unicode(e) + ">", name, False, True)
+                printMessage("getting metadata failed: {" + self.basename + "} <Exception: " + stringifyException(e) + ">", name, False, True)
                 handleException(e)
 
         return results
@@ -1010,7 +1015,7 @@ def performRemoteCheck(file_path, window, forced=False):
     try:
         metadata = SyncCommandGetMetadata(file_path, config_file_path).whitelistConnections(checking).execute()
     except Exception, e:
-        printMessage("Error when getting metadata: " + unicode(e))
+        printMessage("Error when getting metadata: " + stringifyException(e))
         handleException(e)
         metadata = []
 
