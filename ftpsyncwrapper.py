@@ -240,7 +240,9 @@ class FTPSConnection(AbstractConnection):
             try:
                 self.connection.storbinary(command, uploaded)
             except Exception, e:
-                if self.__isErrorCode(e, 'fileNotAllowed') and failed is False:
+                if self.__isErrorCode(e, 'ok') is True:
+                    self.connection.storbinary(command, uploaded)
+                elif self.__isErrorCode(e, 'fileNotAllowed') and failed is False:
                     self.__ensurePath(path)
                     self.put(file_path, new_name, True)
                 else:
@@ -424,9 +426,6 @@ class FTPSConnection(AbstractConnection):
             # timeout - retry
             elif self.__isError(e, 'timeout') is True:
                 return callback()
-            # only informative message
-            elif self.__isErrorCode(e, 'ok') is True:
-                return
             # other exception
             else:
                 raise e
