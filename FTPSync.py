@@ -133,7 +133,7 @@ def handleException(exception):
 
 # Safer print of exception message
 def stringifyException(exception):
-    return unicode(exception, 'utf-8', 'replace')
+    return unicode(exception)
 
 
 # ==== Messaging ===========================================================================
