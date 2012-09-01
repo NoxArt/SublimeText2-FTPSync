@@ -3,6 +3,12 @@ SublimeText2-FTPSync
 
 Simple and free plugin for FTP syncing. Just hit the _save_ as usual and it's upped.
 
+Recently new
+* Rewritten core execution code for brevity and clarity
+* Able to upload solely folders as well
+* Full relative path in status bar
+* Added protection from overwriting remote file by renaming
+
 What's there for you?
 * Multiple named upload targets
 * Ignored file regex patterns
@@ -13,9 +19,8 @@ What's there for you?
 * Progress bar for multiple up/download
 
 Current focus:
-* Downloading from more locations
+* Downloading from selected location
 * Safer downloading/uploading of files (tempfile)
-* Refactoring of syncing code
 * SFTP support (hopefully soon)
 
 
