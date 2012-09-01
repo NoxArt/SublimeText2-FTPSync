@@ -42,7 +42,7 @@ from ftpsyncfiles import Metafile, isTextFile
 # ==== Initialization and optimization =====================================================
 
 # to extract data from FTP LIST http://stackoverflow.com/questions/2443007/ftp-list-format
-re_ftpListParse = re.compile("^([d-])[rxws-]{9}\s+\d+\s+[\w\d]+\s+[\w\d]+\s+(\d+)\s+(\w{1,3}\s+\d+\s+(?:\d+:\d+|\d{2,4}))\s+(.*?)$", re.M | re.I | re.U | re.L)
+re_ftpListParse = re.compile("^([d-])[rxws-]{9}\s+\d+\s+\S+\s+\S+\s+(\d+)\s+(\w{1,3}\s+\d+\s+(?:\d+:\d+|\d{2,4}))\s+(.*?)$", re.M | re.I | re.U | re.L)
 
 # error code - first 3-digit number https://tools.ietf.org/html/rfc959#page-39
 re_errorCode = re.compile("[1-5]\d\d")
