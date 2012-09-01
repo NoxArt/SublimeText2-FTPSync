@@ -48,7 +48,7 @@ import traceback
 import sys
 
 # FTPSync libraries
-from ftpsyncwrapper import CreateConnection
+from ftpsyncwrapper import CreateConnection, TargetAlreadyExists
 from ftpsyncprogress import Progress
 from ftpsyncfiles import getFolders, findFile, getFiles, formatTimestamp
 
@@ -927,27 +927,61 @@ class SyncCommandRename(SyncCommand):
         index = -1
         renamed = []
 
+        exists = []
+        remote_new_name = os.path.join( os.path.split(self.file_path)[0], self.new_name)
         for name in self.config['connections']:
             index += 1
 
-            try:
-                self.connections[index].rename(self.file_path, self.new_name)
-                printMessage("renamed {" + self.basename + "} -> {" + self.new_name + "}", name)
-                renamed.append(name)
+            check = self.connections[index].list(remote_new_name)
 
-            except IndexError:
-                continue
+            if type(check) is list and len(check) > 0:
+                exists.append(name)
 
-            except Exception, e:
-                printMessage("renaming failed: {" + self.basename + "} -> {" + self.new_name + "} <Exception: " + stringifyException(e) + ">", name, False, True)
-                handleException(e)
+        def action(forced=False):
+            index = -1
 
-        # rename file
-        os.rename(self.file_path, os.path.join(self.dirname, self.new_name))
+            for name in self.config['connections']:
+                index += 1
 
-        # message
-        if len(renamed) > 0:
-            printMessage("remotely renamed {" + self.basename + "} -> {" + self.new_name + "}", "remotes: " + ','.join(renamed), status=True)
+                try:
+                    self.connections[index].rename(self.file_path, self.new_name, forced)
+                    printMessage("renamed {" + self.basename + "} -> {" + self.new_name + "}", name)
+                    renamed.append(name)
+
+                except IndexError:
+                    continue
+
+                except TargetAlreadyExists, e:
+                    printMessage(stringifyException(e))
+
+                except Exception, e:
+                    printMessage("renaming failed: {" + self.basename + "} -> {" + self.new_name + "} <Exception: " + stringifyException(e) + ">", name, False, True)
+                    handleException(e)
+
+            # rename file
+            os.rename(self.file_path, os.path.join(self.dirname, self.new_name))
+
+            # message
+            if len(renamed) > 0:
+                printMessage("remotely renamed {" + self.basename + "} -> {" + self.new_name + "}", "remotes: " + ','.join(renamed), status=True)
+
+
+        if len(exists) == 0:
+            action()
+        else:
+            def sync(index):
+                if index is 1:
+                    printMessage("Renaming: overwriting target")
+                    action(True)
+                else:
+                    printMessage("Renaming: keeping original")
+
+            items = [
+                "Such file already exists in <" + ','.join(exists) + "> - cancel rename?",
+                "Overwrite target"
+            ]
+
+            sublime.set_timeout(lambda: sublime.active_window().show_quick_panel(items, sync), 1)
 
 
 # Rename command
@@ -1315,6 +1349,7 @@ class FtpSyncTarget(sublime_plugin.TextCommand):
         for target in paths:
             if os.path.isfile(target):
                 if target not in fileNames:
+                    fileNames.append(target)
                     syncFiles.append([target, getConfigFile(target)])
             elif os.path.isdir(target):
                 empty = True
@@ -1324,12 +1359,14 @@ class FtpSyncTarget(sublime_plugin.TextCommand):
                         empty = False
 
                         if file_path not in fileNames:
+                            fileNames.append(target)
                             syncFiles.append([os.path.join(root, file_path), getConfigFile(os.path.join(root, file_path))])
 
                     for folder in dirs:
                         path = os.path.join(root, folder)
 
-                        if not os.listdir(path):
+                        if not os.listdir(path) and path not in fileNames:
+                            fileNames.append(path)
                             syncFiles.append([path, getConfigFile(path)])
 
 

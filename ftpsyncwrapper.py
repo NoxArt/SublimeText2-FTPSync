@@ -84,6 +84,9 @@ defaultFolderPermissions = "755"
 class ConnectionClosedException(Exception):
     pass
 
+class TargetAlreadyExists(Exception):
+    pass
+
 
 # ==== Content =============================================================================
 
@@ -280,7 +283,7 @@ class FTPSConnection(AbstractConnection):
     # @type new_name: string
     #
     # @global ftpErrors
-    def rename(self, file_path, new_name):
+    def rename(self, file_path, new_name, forced=False):
 
         def action():
             is_dir = os.path.isdir(file_path)
@@ -295,6 +298,17 @@ class FTPSConnection(AbstractConnection):
                     self.__ensurePath(path)
                 else:
                     raise e
+
+            if not forced:
+                try:
+                    self.connection.voidcmd("MLST " + new_name)
+
+                    raise TargetAlreadyExists("Remote target {" + new_name + "} already exists")
+                except Exception, e:
+                    if self.__isErrorCode(e, 'fileUnavailible'):
+                        pass
+                    else:
+                        raise e
 
             try:
                 self.connection.voidcmd("RNFR " + base)
