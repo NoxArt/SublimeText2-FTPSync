@@ -26,6 +26,8 @@
 		"default_folder_permissions": "755",
 		"line_separator": "\n",
 
+		"after_save_watch": null,
+
 		"debug_extras": {
 			"print_list_result": false,
 			"dump_config_load": false
