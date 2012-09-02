@@ -71,7 +71,11 @@
 		// line separator for text files
 		//"line_separator": "\n",
 
-		// list of pathnames to folders to be watched for change in between delay (upload_delay)
+		// list of lists with pathnames and filenames to folders to be watched for change in between delay (upload_delay)
+		//
+		// example:
+		//    after_save_watch: [ [ "code/assets/css", "*.css" ], [ "code/assets/", "*.jpg, *.png, *.gif" ] ]
+		//
 		//"after_save_watch": []
 
 	}
