@@ -73,8 +73,10 @@
 
 		// list of lists with pathnames and filenames to folders to be watched for change in between delay (upload_delay)
 		//
-		// example:
+		// ** example:
 		//    after_save_watch: [ [ "code/assets/css", "*.css" ], [ "code/assets/", "*.jpg, *.png, *.gif" ] ]
+		//
+		// ** Used only in conjunction with upload_on_save and upload_delay **
 		//
 		//"after_save_watch": []
 

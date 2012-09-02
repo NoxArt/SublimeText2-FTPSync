@@ -101,3 +101,7 @@ You can either use *download_on_open=true* to check files upon openning or *FTPS
         		ignore: "/locale/(?!cz)\\w+/.*"
         	}
         }
+
+* **Using file compilation? Want to upload as well?**
+
+You can use *after_save_watch* option to setup files to be watched for change after uploading on save. [Learn how to use in Wiki](https://github.com/NoxArt/SublimeText2-FTPSync/wiki/Why-and-how-to-use-afterwatch).
