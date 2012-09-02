@@ -32,6 +32,8 @@
 # Python's built-in libraries
 import os
 import datetime
+import fnmatch
+import re
 
 
 # ==== Initialization and optimization =====================================================
@@ -64,14 +66,18 @@ isTextCache = {}
 # A file representation with helper methods
 class Metafile:
 
-    def __init__(self, name, isDir, lastModified, filesize):
+    def __init__(self, name, isDir, lastModified, filesize, path=None):
         self.name = name
         self.isDir = bool(isDir)
         self.lastModified = float(lastModified)
         self.filesize = float(filesize)
+        self.path = path
 
     def getName(self):
         return self.name
+
+    def getPath(self):
+        return self.path
 
     def isDirectory(self):
         return self.isDir
@@ -85,17 +91,48 @@ class Metafile:
     def getFilesize(self):
         return self.filesize
 
-    def isNewerThan(self, file_path):
-        if os.path.exists(file_path) is False:
-            return True
+    def isNewerThan(self, compared_file):
+        if type(compared_file) is str or type(compared_file) is unicode:
+            if os.path.exists(compared_file) is False:
+                return False
 
-        return self.lastModified > os.path.getmtime(file_path)
+            lastModified = os.path.getmtime(compared_file)
+        elif isinstance(compared_file, Metafile):
+            lastModified = compared_file.getLastModified()
+        else:
+            raise TypeError("Compared_file must be either string (file_path) or Metafile instance")
 
-    def isDifferentSizeThan(self, file_path):
-        if os.path.exists(file_path) is False:
-            return True
+        return self.lastModified > lastModified
 
-        return self.filesize != os.path.getsize(file_path)
+    def isDifferentSizeThan(self, compared_file):
+        if type(compared_file) is str or type(compared_file) is unicode:
+            if os.path.exists(compared_file) is False:
+                return False
+
+            lastModified = os.path.getsize(compared_file)
+        elif isinstance(compared_file, Metafile):
+            lastModified = compared_file.getLastModified()
+        else:
+            raise TypeError("Compared_file must be either string (file_path) or Metafile instance")
+
+        return self.filesize != os.path.getsize(compared_file)
+
+
+
+# Converts file_path to Metafile
+#
+# @type file_path: string
+#
+# @return Metafile
+def fileToMetafile(file_path):
+    name = os.path.basename(file_path)
+    path = file_path
+    isDir = os.path.isdir(file_path)
+    lastModified = os.path.getmtime(file_path)
+    filesize = os.path.getsize(file_path)
+
+    return Metafile(name, isDir, lastModified, filesize, path)
+
 
 
 # Returns a timestamp formatted for humans
@@ -180,9 +217,57 @@ def getFiles(paths, getConfigFile):
 
     for target in paths:
         if target not in fileNames:
+            fileNames.append(target)
             files.append([target, getConfigFile(target)])
 
     return files
+
+
+
+# Goes through paths using glob and returns list of Metafiles
+#
+# @type pattern: string
+# @param pattern: glob-like filename pattern
+# @type root: string
+# @param root: top searched directory
+#
+# @return list<Metafiles>
+def gatherMetafiles(pattern, root):
+    if pattern is None:
+        return []
+
+    result = {}
+    file_names = []
+
+    for subroot, dirnames, filenames in os.walk(root):
+        for filename in fnmatch.filter(filenames, pattern):
+            target = os.path.join(subroot, filename)
+
+            if target not in file_names:
+                file_names.append(target)
+                result[target] = fileToMetafile(target)
+
+        for folder in dirnames:
+            result = dict(result.items() + gatherMetafiles(pattern, os.path.join(root, folder)).items())
+
+    return result
+
+
+
+# Returns difference using lastModified between file dicts
+#
+# @type metafilesBefore: dict
+# @type metafilesAfter: dict
+#
+# @return list<Metafiles>
+def getChangedFiles(metafilesBefore, metafilesAfter):
+    changed = []
+    for file_path in metafilesAfter:
+        if file_path in metafilesBefore and metafilesAfter[file_path].isNewerThan(metafilesBefore[file_path]):
+                changed.append(metafilesAfter[file_path])
+
+    return changed
+
 
 
 # Guesses whether given file is textual or not

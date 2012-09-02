@@ -50,7 +50,7 @@ import sys
 # FTPSync libraries
 from ftpsyncwrapper import CreateConnection, TargetAlreadyExists
 from ftpsyncprogress import Progress
-from ftpsyncfiles import getFolders, findFile, getFiles, formatTimestamp
+from ftpsyncfiles import getFolders, findFile, getFiles, formatTimestamp, gatherMetafiles, getChangedFiles
 
 
 # ==== Initialization and optimization =====================================================
@@ -316,7 +316,7 @@ def verifyConfig(config):
     if type(config) is not dict:
         return "Config is not a {dict} type"
 
-    keys = ["username", "password", "private_key", "private_key_pass", "path", "tls", "upload_on_save", "port", "timeout", "ignore", "check_time", "download_on_open", "upload_delay"]
+    keys = ["username", "password", "private_key", "private_key_pass", "path", "tls", "upload_on_save", "port", "timeout", "ignore", "check_time", "download_on_open", "upload_delay", "after_save_watch"]
 
     for key in keys:
         if key not in config:
@@ -357,6 +357,9 @@ def verifyConfig(config):
 
     if type(config['upload_delay']) is not int and type(config['upload_delay']) is not long:
         return "Config entry 'upload_delay' must be integer or long, " + unicode(type(config['upload_delay'])) + " given"
+
+    if config['after_save_watch'] is not None and type(config['after_save_watch']) is not list:
+        return "Config entry 'after_save_watch' must be null or list, " + unicode(type(config['after_save_watch'])) + " given"
 
     if type(config['port']) is not int and type(config['port']) is not long:
         return "Config entry 'port' must be an integer or long, " + unicode(type(config['port'])) + " given"
@@ -724,6 +727,18 @@ class SyncCommandUpload(SyncCommandTransfer):
         SyncCommandTransfer.__init__(self, file_path, config_file_path, progress, onSave, disregardIgnore, whitelistConnections)
 
         self.delayed = False
+        self.afterwatch = None
+
+
+    def scanWatched(self, event, name, properties):
+            root = os.path.dirname(self.config_file_path)
+            watch = properties['after_save_watch']
+            self.afterwatch[event][name] = {}
+
+            if type(watch) is list and len(watch) > 0 and properties['upload_delay'] > 0:
+                for folder, filepattern in watch:
+                    self.afterwatch[event][name] = dict(self.afterwatch[event][name].items() + gatherMetafiles(filepattern, os.path.join(root, folder)).items())
+
 
     def execute(self):
         if self.progress is not None:
@@ -736,6 +751,21 @@ class SyncCommandUpload(SyncCommandTransfer):
         if len(self.config['connections']) == 0:
             printMessage("Cancelling " + unicode(self.__class__.__name__) + ": zero connections apply")
             return
+
+        # afterwatch
+        if self.onSave is True:
+            self.afterwatch = {
+                'before': {},
+                'after': {}
+            }
+
+            index = -1
+
+            for name in self.config['connections']:
+                index += 1
+                self.scanWatched('before', name, self.config['connections'][name])
+
+            print self.afterwatch
 
         usingConnections.append(self.config_hash)
         stored = []
@@ -767,6 +797,14 @@ class SyncCommandUpload(SyncCommandTransfer):
                         scheduledUploads.pop(self.file_path)
 
                         if self.delayed is True:
+                            # afterwatch
+                            self.afterwatch['after'][name] = {}
+                            self.scanWatched('after', name, self.config['connections'][name])
+                            changed = getChangedFiles(self.afterwatch['before'][name], self.afterwatch['after'][name])
+                            for change in changed:
+                                change = change.getPath()
+                                SyncCommandUpload(change, getConfigFile(change), None, False, True, [name]).execute()
+
                             self.delayed = False
                             self.__del__()
 
