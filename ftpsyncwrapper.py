@@ -249,7 +249,7 @@ class FTPSConnection(AbstractConnection):
                     self.__ensurePath(path)
                     self.put(file_path, new_name, True)
                 else:
-                    raise e
+                    raise
             finally:
                 uploaded.close()
 
@@ -297,7 +297,7 @@ class FTPSConnection(AbstractConnection):
                 if self.__isErrorCode(e, 'fileUnavailible'):
                     self.__ensurePath(path)
                 else:
-                    raise e
+                    raise
 
             if not forced:
                 try:
@@ -308,7 +308,7 @@ class FTPSConnection(AbstractConnection):
                     if self.__isErrorCode(e, 'fileUnavailible'):
                         pass
                     else:
-                        raise e
+                        raise
 
             try:
                 self.connection.voidcmd("RNFR " + base)
@@ -323,7 +323,7 @@ class FTPSConnection(AbstractConnection):
                         self.put(file_path, new_name)
                     return
                 else:
-                    raise e
+                    raise
 
             try:
                 self.connection.voidcmd("RNFR " + base)
@@ -332,7 +332,7 @@ class FTPSConnection(AbstractConnection):
                     self.connection.voidcmd("RNTO " + new_name)
                     return
                 else:
-                    raise e
+                    raise
 
             self.connection.voidcmd("RNTO " + new_name)
 
@@ -436,13 +436,13 @@ class FTPSConnection(AbstractConnection):
             # disconnected - close itself to be refreshed
             elif self.__isError(e, 'disconnected') is True:
                 self.close()
-                raise e
+                raise
             # timeout - retry
             elif self.__isError(e, 'timeout') is True:
                 return callback()
             # other exception
             else:
-                raise e
+                raise
 
 
     # Throws exception if closed
@@ -534,12 +534,12 @@ class FTPSConnection(AbstractConnection):
                             # exists, but not proper permissions
                             self.chmod(folder, self.config['default_folder_permissions'])
                         else:
-                            raise e
+                            raise
 
                     # move down
                     self.connection.cwd(folder)
                 else:
-                    raise e
+                    raise
 
 
 #class SSHConnection():
