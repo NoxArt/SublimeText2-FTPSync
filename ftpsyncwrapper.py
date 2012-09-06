@@ -301,7 +301,7 @@ class FTPSConnection(AbstractConnection):
 
             if not forced:
                 try:
-                    self.connection.voidcmd("MLST " + new_name)
+                    self.connection.voidcmd("LIST " + new_name)
 
                     raise TargetAlreadyExists("Remote target {" + new_name + "} already exists")
                 except Exception, e:
