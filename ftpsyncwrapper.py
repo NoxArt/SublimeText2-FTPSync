@@ -365,21 +365,14 @@ class FTPSConnection(AbstractConnection):
             path = self._getMappedPath(file_path)
             contents = []
             result = []
-            error = False
 
             try:
                 self.connection.dir(path, lambda data: contents.append(data))
             except Exception, e:
                 if self.__isErrorCode(e, ['ok', 'passive']):
-                    error = True
                     self.connection.dir(path, lambda data: contents.append(data))
-                    pass
                 else:
                     raise
-
-            if error:
-                print file_path
-                print contents
 
             for content in contents:
                 try:
