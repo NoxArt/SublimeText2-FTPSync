@@ -502,7 +502,7 @@ class FTPSConnection(AbstractConnection):
 
         if type(error) is list:
             for code in error:
-                if int(code.group(0)) == ftpError[error]
+                if int(code.group(0)) == ftpError[code]:
                     return True
             return False
         else:
