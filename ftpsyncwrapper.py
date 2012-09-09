@@ -55,7 +55,8 @@ ftpError = {
     'fileNotAllowed': 553,
     'fileUnavailible': 550,
     'pendingInformation': 350,
-    'ok': 200
+    'ok': 200,
+    'passive': 227
 }
 
 ftpErrors = {
@@ -243,7 +244,7 @@ class FTPSConnection(AbstractConnection):
             try:
                 self.connection.storbinary(command, uploaded)
             except Exception, e:
-                if self.__isErrorCode(e, 'ok') is True:
+                if self.__isErrorCode(e, ['ok', 'passive']) is True:
                     self.connection.storbinary(command, uploaded)
                 elif self.__isErrorCode(e, 'fileNotAllowed') and failed is False:
                     self.__ensurePath(path)
@@ -270,6 +271,11 @@ class FTPSConnection(AbstractConnection):
             downloaded = open(file_path, "wb")
             try:
                 self.connection.retrbinary(command, lambda data: downloaded.write(data))
+            except Exception, e:
+                if self.__isErrorCode(e, ['ok', 'passive']):
+                    self.connection.retrbinary(command, lambda data: downloaded.write(data))
+                else:
+                    raise
             finally:
                 downloaded.close()
 
@@ -359,7 +365,21 @@ class FTPSConnection(AbstractConnection):
             path = self._getMappedPath(file_path)
             contents = []
             result = []
-            self.connection.dir(path, lambda data: contents.append(data))
+            error = False
+
+            try:
+                self.connection.dir(path, lambda data: contents.append(data))
+            except Exception, e:
+                if self.__isErrorCode(e, ['ok', 'passive']):
+                    error = True
+                    self.connection.dir(path, lambda data: contents.append(data))
+                    pass
+                else:
+                    raise
+
+            if error:
+                print file_path
+                print contents
 
             for content in contents:
                 try:
@@ -487,7 +507,13 @@ class FTPSConnection(AbstractConnection):
         if code is None:
             return False
 
-        return int(code.group(0)) == ftpError[error]
+        if type(error) is list:
+            for code in error:
+                if int(code.group(0)) == ftpError[error]
+                    return True
+            return False
+        else:
+            return int(code.group(0)) == ftpError[error]
 
 
     # Textual error comparison

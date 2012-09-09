@@ -459,7 +459,7 @@ def getConnection(hash, config):
         if connections[hash] and len(connections[hash]) > 0:
             printMessage("Connection cache hit (key: " + hash + ")", None, True)
 
-        if len(connections[hash]) < len(config['connections']):
+        if type(connections[hash]) is not list or len(connections[hash]) < len(config['connections']):
             raise KeyError
 
         # has config changed?
