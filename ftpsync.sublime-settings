@@ -25,6 +25,7 @@
 		"upload_delay": 0,
 		"default_folder_permissions": "755",
 		"line_separator": "\n",
+		"time_offset": 0,
 
 		"after_save_watch": null,
 
