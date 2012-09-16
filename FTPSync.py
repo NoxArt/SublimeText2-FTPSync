@@ -666,6 +666,9 @@ class SyncCommand(object):
     def close(self):
         self.closed = True
 
+    def _closeConnection(self):
+        closeConnection(getFilepathHash(self.config_file_path))
+
     def whitelistConnections(self, whitelistConnections):
         toBeRemoved = []
         for name in self.config['connections']:
@@ -829,6 +832,10 @@ class SyncCommandUpload(SyncCommandTransfer):
             except IndexError:
                 continue
 
+            except EOFError:
+                printMessage("Connection has been terminated, please retry your action", name, False, True)
+                self._closeConnection()
+
             except Exception, e:
                 printMessage("upload failed: {" + self.basename + "} <Exception: " + stringifyException(e) + ">", name, False, True)
                 handleException(e)
@@ -929,6 +936,10 @@ class SyncCommandDownload(SyncCommandTransfer):
             except IndexError:
                 continue
 
+            except EOFError:
+                printMessage("Connection has been terminated, please retry your action", name, False, True)
+                self._closeConnection()
+
             except Exception, e:
                 printMessage("download of {" + self.basename + "} failed <Exception: " + stringifyException(e) + ">", name, False, True)
                 handleException(e)
@@ -995,6 +1006,10 @@ class SyncCommandRename(SyncCommand):
                 except TargetAlreadyExists, e:
                     printMessage(stringifyException(e))
 
+                except EOFError:
+                    printMessage("Connection has been terminated, please retry your action", name, False, True)
+                    self._closeConnection()
+
                 except Exception, e:
                     printMessage("renaming failed: {" + self.basename + "} -> {" + self.new_name + "} <Exception: " + stringifyException(e) + ">", name, False, True)
                     handleException(e)
@@ -1055,6 +1070,10 @@ class SyncCommandGetMetadata(SyncCommand):
 
             except IndexError:
                 continue
+
+            except EOFError:
+                printMessage("Connection has been terminated, please retry your action", name, False, True)
+                self._closeConnection()
 
             except Exception, e:
                 printMessage("getting metadata failed: {" + self.basename + "} <Exception: " + stringifyException(e) + ">", name, False, True)
