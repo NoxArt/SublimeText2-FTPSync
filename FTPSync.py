@@ -316,7 +316,7 @@ def verifyConfig(config):
     if type(config) is not dict:
         return "Config is not a {dict} type"
 
-    keys = ["username", "password", "private_key", "private_key_pass", "path", "tls", "upload_on_save", "port", "timeout", "ignore", "check_time", "download_on_open", "upload_delay", "after_save_watch"]
+    keys = ["username", "password", "private_key", "private_key_pass", "path", "tls", "upload_on_save", "port", "timeout", "ignore", "check_time", "download_on_open", "upload_delay", "after_save_watch","time_offset"]
 
     for key in keys:
         if key not in config:
@@ -366,6 +366,9 @@ def verifyConfig(config):
 
     if type(config['timeout']) is not int and type(config['timeout']) is not long:
         return "Config entry 'timeout' must be an integer or long, " + unicode(type(config['timeout'])) + " given"
+
+    if type(config['time_offset']) is not int and type(config['time_offset']) is not long:
+        return "Config entry 'time_offset' must be an integer or long, " + unicode(type(config['time_offset'])) + " given"
 
     return True
 
