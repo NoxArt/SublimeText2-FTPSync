@@ -771,8 +771,6 @@ class SyncCommandUpload(SyncCommandTransfer):
                 index += 1
                 self.scanWatched('before', name, self.config['connections'][name])
 
-            print self.afterwatch
-
         usingConnections.append(self.config_hash)
         stored = []
         index = -1
