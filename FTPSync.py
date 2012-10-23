@@ -1199,6 +1199,15 @@ class RemoteSync(sublime_plugin.EventListener):
             return
 
         config = loadConfig(config_file_path)
+        blacklistConnections = []
+        for connection in config['connections']:
+            if config['connections'][connection]['upload_on_save'] is False:
+                blacklistConnections.append(connection)
+
+
+        if len(blacklistConnections) == len(config['connections']):
+            return
+
         metadata = SyncCommandGetMetadata(file_path, config_file_path).execute()
 
         newest = None
@@ -1206,7 +1215,7 @@ class RemoteSync(sublime_plugin.EventListener):
         index = 0
 
         for entry in metadata:
-            if config['connections'][entry['connection']]['upload_on_save'] is True and config['connections'][entry['connection']]['check_time'] is True and entry['metadata'].isNewerThan(file_path):
+            if entry['connection'] not in blacklistConnections and config['connections'][entry['connection']]['check_time'] is True and entry['metadata'].isNewerThan(file_path):
                 newer.append(entry['connection'])
 
                 if newest is None or newest > entry['metadata'].getLastModified():
