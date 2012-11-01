@@ -1208,7 +1208,15 @@ class RemoteSync(sublime_plugin.EventListener):
         if len(blacklistConnections) == len(config['connections']):
             return
 
-        metadata = SyncCommandGetMetadata(file_path, config_file_path).execute()
+        try:
+            metadata = SyncCommandGetMetadata(file_path, config_file_path).execute()
+        except Exception, e:
+            if str(e).find('No such file'):
+                printMessage("No version of {" + basename + "} found on any server", status=True)
+            else:
+                printMessage("Error when getting metadata: " + stringifyException(e))
+                handleException(e)
+            metadata = []
 
         newest = None
         newer = []
