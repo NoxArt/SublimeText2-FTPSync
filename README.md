@@ -31,7 +31,7 @@ Format:
     		username: {null|string=null}, // null means anonymous manipulation
     		password: {null|string=""},
 
-    		path: {string="/"}, // remote root for these files
+    		path: {string="/"}, // your project's root path on the _server_
 
             upload_on_save: true, // whether upload on save or manually
             download_on_open: false, // checks whether there's a newer remote file on opening a file

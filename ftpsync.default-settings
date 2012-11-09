@@ -37,7 +37,8 @@
 		"username": "your_login",  // or null for anonymous login
 		"password": "your_password",
 
-		// path to the folder matching the folder in which this file resides
+		// server path to your project (example: /www/)
+		// start with "/" and then append all the folders you'd need to open to get to your project from topmost folder
 		"path": "/"
 
 		// true = secured FTP connection
