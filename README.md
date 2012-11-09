@@ -3,11 +3,6 @@ SublimeText2-FTPSync
 
 Simple and free plugin for FTP syncing. Just hit the _save_ as usual and it's upped.
 
-Recently new
-* Added time_offset for adjusting for different timezones by [mikedoug](https://github.com/mikedoug)
-* Added protection from overwriting remote file by renaming
-* AfterSaveWatch for uploading changed files
-
 What's there for you?
 * Multiple named upload targets
 * Ignored file regex patterns
@@ -17,11 +12,7 @@ What's there for you?
 * Local&remote renaming
 * Progress bar for multiple up/download
 
-Current focus:
-* Downloading from selected location
-* Safer downloading/uploading of files (tempfile)
-* SFTP support (hopefully soon)
-
+**I apologize for slower development at the moment, have a little time spare due to school and work duties.** Trying to fix the bugs though. The project is of course open so anyone is free to contribute improvements/fixes.
 
 For more info look into [Wiki](https://github.com/NoxArt/SublimeText2-FTPSync/wiki/_pages)
 
