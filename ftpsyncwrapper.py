@@ -246,6 +246,9 @@ class FTPSConnection(AbstractConnection):
             except Exception, e:
                 if self.__isErrorCode(e, ['ok', 'passive']) is True:
                     self.connection.storbinary(command, uploaded)
+                elif self.__isErrorCode(e, 'fileUnavailible') and failed is False:
+                    self.__ensurePath(path)
+                    self.put(file_path, new_name, True)
                 elif self.__isErrorCode(e, 'fileNotAllowed') and failed is False:
                     self.__ensurePath(path)
                     self.put(file_path, new_name, True)
