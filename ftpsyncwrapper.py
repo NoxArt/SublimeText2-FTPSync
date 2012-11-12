@@ -47,6 +47,9 @@ re_ftpListParse = re.compile("^([d-])[rxws-]{9}\s+\d+\s+\S+\s+\S+\s+(\d+)\s+(\w{
 # error code - first 3-digit number https://tools.ietf.org/html/rfc959#page-39
 re_errorCode = re.compile("[1-5]\d\d")
 
+# 20x ok code
+re_errorOk = re.compile("2\d\d");
+
 # For FTP LIST entries with {last modified} timestamp earlier than 6 months, see http://stackoverflow.com/questions/2443007/ftp-list-format
 currentYear = int(time.strftime("%Y", time.gmtime()))
 
@@ -245,7 +248,7 @@ class FTPSConnection(AbstractConnection):
                 self.connection.storbinary(command, uploaded)
             except Exception, e:
                 if self.__isErrorCode(e, ['ok', 'passive']) is True:
-                    self.connection.storbinary(command, uploaded)
+                    pass
                 elif self.__isErrorCode(e, 'fileUnavailible') and failed is False:
                     self.__ensurePath(path)
                     self.put(file_path, new_name, True)
@@ -447,7 +450,9 @@ class FTPSConnection(AbstractConnection):
         except Exception, e:
 
             # bad write - repeat command
-            if str(e).find(sslErrors['badWrite']) is True:
+            if re_errorOk.search(str(e)) is not None:
+                return
+            elif str(e).find(sslErrors['badWrite']) is True:
                 return callback()
             # disconnected - close itself to be refreshed
             elif self.__isError(e, 'disconnected') is True:
@@ -534,9 +539,11 @@ class FTPSConnection(AbstractConnection):
         self.connection.cwd(self.config['path'])
 
         relative = os.path.relpath(path, self.config['path'])
+        relative = self._postprocessPath(relative)
 
-        folders = self._postprocessPath(relative)
-        folders = folders.split("/")
+        folders = relative.split("/")
+        if self.config['debug_extras']['print_ensure_folders'] is True:
+            print relative, folders
 
         index = 0
         for folder in folders:
@@ -553,7 +560,7 @@ class FTPSConnection(AbstractConnection):
                         self.connection.mkd(folder)
                     except Exception, e:
                         if self.__isErrorCode(e, 'fileUnavailible'):
-                            # exists, but not proper permissions
+                            # not proper permissions
                             self.chmod(folder, self.config['default_folder_permissions'])
                         else:
                             raise
@@ -562,6 +569,8 @@ class FTPSConnection(AbstractConnection):
                     self.connection.cwd(folder)
                 else:
                     raise
+
+        self.connection.cwd(self.config['path'])
 
 
 #class SSHConnection():
