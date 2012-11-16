@@ -542,7 +542,7 @@ class FTPSConnection(AbstractConnection):
         relative = self._postprocessPath(relative)
 
         folders = relative.split("/")
-        if self.config['debug_extras']['print_ensure_folders'] is True:
+        if 'debug_extras' in self.config and 'print_ensure_folders' in self.config['debug_extras'] and self.config['debug_extras']['print_ensure_folders'] is True:
             print relative, folders
 
         index = 0
