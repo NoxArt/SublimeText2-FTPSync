@@ -1,0 +1,5 @@
+[
+	{ "keys": [""], "command": "ftp_sync_current" },
+	{ "keys": [""], "command": "ftp_sync_down_current" },
+	{ "keys": [""], "command": "ftp_sync_check_current" }
+]
