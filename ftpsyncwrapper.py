@@ -50,6 +50,9 @@ re_errorCode = re.compile("[1-5]\d\d")
 # 20x ok code
 re_errorOk = re.compile("2\d\d");
 
+# trailing .
+trailingDot = re.compile("/.\Z");
+
 # For FTP LIST entries with {last modified} timestamp earlier than 6 months, see http://stackoverflow.com/questions/2443007/ftp-list-format
 currentYear = int(time.strftime("%Y", time.gmtime()))
 
@@ -188,6 +191,14 @@ class FTPSConnection(AbstractConnection):
         self.connection.set_pasv(self.config['passive'])
 
 
+    # Sets passive connection if configured to do so
+    #
+    # @type self: FTPSConnection
+    def _makePassive(self):
+        if self.config['passive']:
+            self.connection.voidcmd("PASV")
+
+
     # Authenticates if necessary
     #
     # @type self: FTPSConnection
@@ -213,7 +224,7 @@ class FTPSConnection(AbstractConnection):
     #
     # @type self: FTPSConnection
     def keepAlive(self):
-        self.connection.voidcmd("NOOP")
+        self.voidcmd("NOOP")
 
 
     # Returns whether the connection is active
@@ -297,7 +308,7 @@ class FTPSConnection(AbstractConnection):
     # @global ftpErrors
     def rename(self, file_path, new_name, forced=False):
 
-        def action():
+        try:
             is_dir = os.path.isdir(file_path)
             dirname = os.path.dirname(file_path)
             path = self._getMappedPath(dirname)
@@ -311,22 +322,14 @@ class FTPSConnection(AbstractConnection):
                 else:
                     raise
 
-            if not forced:
-                try:
-                    self.connection.voidcmd("LIST " + new_name)
-
-                    raise TargetAlreadyExists("Remote target {" + new_name + "} already exists")
-                except Exception, e:
-                    if self.__isErrorCode(e, 'fileUnavailible'):
-                        pass
-                    else:
-                        raise
+            if not forced and self.fileExists(new_name):
+                raise TargetAlreadyExists("Remote target {" + new_name + "} already exists")
 
             try:
-                self.connection.voidcmd("RNFR " + base)
+                self.voidcmd("RNFR " + base)
             except Exception, e:
                 if self.__isError(e, 'rnfrExists'):
-                    self.connection.voidcmd("RNTO " + new_name)
+                    self.voidcmd("RNTO " + new_name)
                     return
                 elif self.__isError(e, 'cwdNoFileOrDirectory') or self.__isError(e, 'fileNotExist'):
                     if is_dir:
@@ -338,17 +341,25 @@ class FTPSConnection(AbstractConnection):
                     raise
 
             try:
-                self.connection.voidcmd("RNFR " + base)
+                self.voidcmd("RNFR " + base)
             except Exception, e:
                 if self.__isError(e, 'rnfrExists') and str(e).find('Aborting previous'):
-                    self.connection.voidcmd("RNTO " + new_name)
+                    self.voidcmd("RNTO " + new_name)
                     return
                 else:
                     raise
 
-            self.connection.voidcmd("RNTO " + new_name)
+            self.voidcmd("RNTO " + new_name)
 
-        return self.__execute(action)
+        except Exception, e:
+
+            # disconnected - close itself to be refreshed
+            if self.__isError(e, 'disconnected') is True:
+                self.close()
+                raise
+            # other exception
+            else:
+                raise
 
 
     # Changes a current path on remote server
@@ -356,7 +367,36 @@ class FTPSConnection(AbstractConnection):
     # @type self: FTPSConnection
     # @type path: string
     def cwd(self, path):
+        self._makePassive()
         self.connection.cwd(path)
+
+
+    # Void command without return
+    #
+    # Passivates if configured to do so
+    #
+    # @type self: FTPSConnection
+    # @type path: string
+    def voidcmd(self, command):
+        self._makePassive()
+        self.connection.voidcmd(command)
+
+
+    # Returns whether file or folder info
+    #
+    # @type self: FTPSConnection
+    # @type path: string
+    def fileExists(self, path):
+        try:
+            self._makePassive()
+            self.voidcmd("SIZE " + path)
+
+            return True
+        except Exception, e:
+            if self.__isErrorCode(e, 'fileUnavailible'):
+                return False
+            else:
+                raise
 
 
     # Returns a list of content of a given path
@@ -435,7 +475,7 @@ class FTPSConnection(AbstractConnection):
     def chmod(self, filename, permissions):
         command = "SITE CHMOD " + str(permissions) + " " + str(filename)
 
-        self.connection.voidcmd(command)
+        self.voidcmd(command)
 
 
     # Executes an action while handling common errors
@@ -572,5 +612,3 @@ class FTPSConnection(AbstractConnection):
 
         self.connection.cwd(self.config['path'])
 
-
-#class SSHConnection():
