@@ -726,6 +726,10 @@ class SyncCommandTransfer(SyncCommand):
             self.config['connections'].pop(name)
 
 
+    def getConnectionsApplied(self):
+        return self.config['connections']
+
+
 # Upload command
 class SyncCommandUpload(SyncCommandTransfer):
 
@@ -1080,7 +1084,7 @@ class SyncCommandGetMetadata(SyncCommand):
         return results
 
 
-def performRemoteCheck(file_path, window, forced=False):
+def performRemoteCheck(file_path, window):
     if type(file_path) is not str and type(file_path) is not unicode:
         return
 
@@ -1093,21 +1097,11 @@ def performRemoteCheck(file_path, window, forced=False):
 
     config_file_path = getConfigFile(file_path)
     if config_file_path is None:
-        return printMessage("Found no config > for file: " + file_path, status=forced)
+        return printMessage("Found no config > for file: " + file_path)
 
     config = loadConfig(config_file_path)
-    checking = []
-
-    if forced is False:
-        for name in config['connections']:
-            if config['connections'][name]['download_on_open'] is True:
-                checking.append(name)
-
-        if len(checking) is 0:
-            return
-
     try:
-        metadata = SyncCommandGetMetadata(file_path, config_file_path).whitelistConnections(checking).execute()
+        metadata = SyncCommandGetMetadata(file_path, config_file_path).execute()
     except Exception, e:
         printMessage("Error when getting metadata: " + stringifyException(e))
         handleException(e)
@@ -1385,11 +1379,10 @@ class RemoteSyncCheck(threading.Thread):
     def __init__(self, file_path, window, forced=False):
         self.file_path = file_path
         self.window = window
-        self.forced = forced
         threading.Thread.__init__(self)
 
     def run(self):
-        performRemoteCheck(self.file_path, self.window, self.forced)
+        performRemoteCheck(self.file_path, self.window)
 
 
 # ==== Commands ===========================================================================
