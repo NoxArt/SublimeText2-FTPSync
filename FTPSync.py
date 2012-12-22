@@ -121,6 +121,10 @@ workerLimit = settings.get('max_threads')
 debugWorkers = settings.get('debug_threads')
 
 
+# overwrite cancelled
+overwriteCancelled = []
+
+
 # ==== Generic =============================================================================
 
 # Returns whether the variable is some form os string
@@ -1376,7 +1380,7 @@ class RemoteSync(sublime_plugin.EventListener):
         index = 0
 
         for entry in metadata:
-            if entry['connection'] not in blacklistConnections and config['connections'][entry['connection']]['check_time'] is True and entry['metadata'].isNewerThan(file_path):
+            if (entry['connection'] not in blacklistConnections and config['connections'][entry['connection']]['check_time'] is True and entry['metadata'].isNewerThan(file_path)) or file_path in overwriteCancelled:
                 newer.append(entry['connection'])
 
                 if newest is None or newest > entry['metadata'].getLastModified():
@@ -1388,22 +1392,35 @@ class RemoteSync(sublime_plugin.EventListener):
             preventUpload.append(file_path)
 
             def sync(index):
-                if index is 1:
+                if index is 0:
                     printMessage("Overwrite prevention: overwriting")
+
+                    if file_path in overwriteCancelled:
+                        overwriteCancelled.remove(file_path)
+
                     self.on_post_save(view)
                 else:
                     printMessage("Overwrite prevention: cancelled upload")
 
-            items = [
-                "Newer entry in <" + ','.join(newer) + "> - cancel upload?",
-                "Overwrite, newest: " + metadata[newest]['metadata'].getLastModifiedFormatted()
-            ]
+                    if file_path not in overwriteCancelled:
+                        overwriteCancelled.append(file_path)
+
+            yes = []
+            yes.append("Yes, overwrite newer")
+            yes.append("Last modified: " + metadata[newest]['metadata'].getLastModifiedFormatted())
+
+            for entry in newer:
+                yes.append(entry + " [" + config['connections'][entry]['host'] + "]")
+
+            no = []
+            no.append("No")
+            no.append("Cancel uploading")
 
             window = view.window()
             if window is None:
                 window = sublime.active_window()  # only in main thread!
 
-            sublime.set_timeout(lambda: window.show_quick_panel(items, sync), 1)
+            sublime.set_timeout(lambda: window.show_quick_panel([ yes, no ], sync), 1)
 
     def on_post_save(self, view):
         file_path = view.file_name().encode('utf-8')
@@ -1574,7 +1591,7 @@ class RemoteSyncDelete(threading.Thread):
 
         no = []
         no.append("No")
-        no.append("Cancel the operation")
+        no.append("Cancel deletion")
 
         sublime.set_timeout(lambda: sublime.active_window().show_quick_panel([yes, no], sync), 1)
 
