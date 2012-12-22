@@ -14,6 +14,8 @@ What's there for you?
 
 Recently
 * Added empty shortcuts [wiki entry](https://github.com/NoxArt/SublimeText2-FTPSync/wiki/Key-bindings)
+* Fixed Renaming feature
+* Added Delete feature (confirm dialogue inspired by [SideBarEnhancements](https://github.com/titoBouzout/SideBarEnhancements))
 
 **I apologize for slower development at the moment, have a little time spare due to school and work duties.** Trying to fix the bugs though. The project is of course open so anyone is free to contribute improvements/fixes.
 
@@ -75,6 +77,9 @@ Thanks to [castus](https://github.com/castus), [tommymarshall](https://github.co
 
 Tips
 ----
+
+* **Renaming and deleting**
+Please keep in mind that for deleting and renaming on server you need to use `FTPSync > Rename` and `FTPSync > Delete` features, not those in Sublime Text 2 or SideBarEnhancements.
 
 * **Working from more places? Or in team?**
 

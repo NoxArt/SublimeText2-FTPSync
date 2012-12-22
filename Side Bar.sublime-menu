@@ -9,6 +9,8 @@
 			{ "caption": "-" },
 			{ "caption": "Rename", "command": "ftp_sync_rename", "args": {"paths": []} },
 			{ "caption": "-" },
+			{ "caption": "Delete", "command": "ftp_sync_delete", "args": {"paths": []} },
+			{ "caption": "-" },
 			{ "caption": "Setup FTPSync in this folder", "command": "ftp_sync_new_settings", "args": {"dirs": []} }
 		]
 	}

@@ -262,6 +262,46 @@ def getFilepathHash(file_path):
     return hashlib.md5(file_path).hexdigest()
 
 
+# Gathers all entries from selected paths
+#
+# @type  file_path: list<string>
+# @param file_path: list of file/folder paths
+#
+# @return list of file/folder paths
+def gatherFiles(paths):
+    syncFiles = []
+    fileNames = []
+
+    for target in paths:
+        if os.path.isfile(target):
+            if target not in fileNames:
+                fileNames.append(target)
+                syncFiles.append([target, getConfigFile(target)])
+        elif os.path.isdir(target):
+            empty = True
+
+            for root, dirs, files in os.walk(target):
+                for file_path in files:
+                    empty = False
+
+                    if file_path not in fileNames:
+                        fileNames.append(target)
+                        syncFiles.append([os.path.join(root, file_path), getConfigFile(os.path.join(root, file_path))])
+
+                for folder in dirs:
+                    path = os.path.join(root, folder)
+
+                    if not os.listdir(path) and path not in fileNames:
+                        fileNames.append(path)
+                        syncFiles.append([path, getConfigFile(path)])
+
+
+            if empty is True:
+                syncFiles.append([target, getConfigFile(target)])
+
+    return syncFiles
+
+
 # Returns hash of configuration contents
 #
 # @type config: dict
@@ -1042,6 +1082,65 @@ class SyncCommandRename(SyncCommand):
             sublime.set_timeout(lambda: sublime.active_window().show_quick_panel(items, sync), 1)
 
 
+# Upload command
+class SyncCommandDelete(SyncCommandTransfer):
+
+    def __init__(self, file_path, config_file_path, progress=None, onSave=False, disregardIgnore=False, whitelistConnections=[]):
+        SyncCommandTransfer.__init__(self, file_path, config_file_path, progress, False, False, whitelistConnections)
+
+    def execute(self):
+        if self.progress is not None:
+            self.progress.progress()
+
+        if self.closed is True:
+            printMessage("Cancelling " + unicode(self.__class__.__name__) + ": command is closed")
+            return
+
+        if len(self.config['connections']) == 0:
+            printMessage("Cancelling " + unicode(self.__class__.__name__) + ": zero connections apply")
+            return
+
+        # afterwatch
+        usingConnections.append(self.config_hash)
+        deleted = []
+        index = -1
+
+        for name in self.config['connections']:
+            index += 1
+
+            try:
+                # identification
+                connection = self.connections[index]
+
+                # action
+                try:
+                    # process
+                    connection.delete(self.file_path)
+                    deleted.append(name)
+                    printMessage("deleted {" + self.basename + "}", name)
+                except Exception, e:
+                    printMessage("delete failed: {" + self.basename + "} <Exception: " + stringifyException(e) + ">", name, False, True)
+                    handleException(e)
+
+            except IndexError:
+                continue
+
+            except EOFError:
+                printMessage("Connection has been terminated, please retry your action", name, False, True)
+                self._closeConnection()
+
+            except Exception, e:
+                printMessage("delete failed: {" + self.basename + "} <Exception: " + stringifyException(e) + ">", name, False, True)
+                handleException(e)
+
+        if len(deleted) > 0:
+            if os.path.isdir(self.file_path):
+                shutil.rmtree(self.file_path)
+            else:
+                os.remove(self.file_path)
+            dumpMessage(getProgressMessage(deleted, self.progress, "deleted", self.basename))
+
+
 # Rename command
 class SyncCommandGetMetadata(SyncCommand):
 
@@ -1384,6 +1483,45 @@ class RemoteSyncCheck(threading.Thread):
     def run(self):
         performRemoteCheck(self.file_path, self.window)
 
+class RemoteSyncDelete(threading.Thread):
+    def __init__(self, file_paths):
+        self.file_path = file_paths
+        threading.Thread.__init__(self)
+
+    def run(self):
+        target = self.file_path
+
+        if (type(target) is str or type(target) is unicode) and self.config is None:
+            return False
+        elif type(target) is str or type(target) is unicode:
+            self.file_path = [ target ]
+
+        def sync(index):
+            if index is 0:
+                self.delete()
+            else:
+                printMessage("Deleting: cancelled")
+
+        yes = []
+        yes.append("Yes, delete the selected items [also remotely]")
+        for entry in self.file_path:
+            yes.append(entry)
+
+        no = []
+        no.append("No")
+        no.append("Cancel the operation")
+
+        sublime.set_timeout(lambda: sublime.active_window().show_quick_panel([yes, no], sync), 1)
+
+    def delete(self):
+        target = self.file_path
+        progress = Progress()
+        fillProgress(progress, target)
+
+        for file_path in target:
+            SyncCommandDelete(file_path, getConfigFile(file_path), progress=progress, onSave=False, disregardIgnore=False, whitelistConnections=[]).execute()
+
+
 
 # ==== Commands ===========================================================================
 
@@ -1410,39 +1548,7 @@ class FtpSyncNewSettings(sublime_plugin.TextCommand):
 # Synchronize up selected file/directory
 class FtpSyncTarget(sublime_plugin.TextCommand):
     def run(self, edit, paths):
-        syncFiles = []
-        fileNames = []
-
-        # gather files
-        for target in paths:
-            if os.path.isfile(target):
-                if target not in fileNames:
-                    fileNames.append(target)
-                    syncFiles.append([target, getConfigFile(target)])
-            elif os.path.isdir(target):
-                empty = True
-
-                for root, dirs, files in os.walk(target):
-                    for file_path in files:
-                        empty = False
-
-                        if file_path not in fileNames:
-                            fileNames.append(target)
-                            syncFiles.append([os.path.join(root, file_path), getConfigFile(os.path.join(root, file_path))])
-
-                    for folder in dirs:
-                        path = os.path.join(root, folder)
-
-                        if not os.listdir(path) and path not in fileNames:
-                            fileNames.append(path)
-                            syncFiles.append([path, getConfigFile(path)])
-
-
-                if empty is True:
-                    syncFiles.append([target, getConfigFile(target)])
-
-        # sync
-        RemoteSyncCall(syncFiles, None, False).start()
+        RemoteSyncCall(gatherFiles(paths), None, False).start()
 
 
 # Synchronize up current file
@@ -1468,6 +1574,25 @@ class FtpSyncCheckCurrent(sublime_plugin.TextCommand):
         view = sublime.active_window()
 
         RemoteSyncCheck(file_path, view, True).start()
+
+# Checks whether there's a different version of the file on server
+class FtpSyncRenameCurrent(sublime_plugin.TextCommand):
+    def run(self, edit):
+        view = sublime.active_window()
+
+        self.original_path = sublime.active_window().active_view().file_name()
+        self.folder = os.path.dirname(self.original_path)
+        self.original_name = os.path.basename(self.original_path)
+
+        if self.original_path in checksScheduled:
+            checksScheduled.remove(self.original_path)
+
+        view.show_input_panel('Enter new name', self.original_name, self.rename, None, None)
+
+        RemoteSyncCheck(file_path, view, True).start()
+
+    def rename(self, new_name):
+        RemoteSyncRename(self.original_path, getConfigFile(self.original_path), new_name).start()
 
 
 # Synchronize down selected file/directory
@@ -1495,4 +1620,4 @@ class FtpSyncRename(sublime_plugin.TextCommand):
 # Removes given file(s) or folders
 class FtpSyncDelete(sublime_plugin.TextCommand):
     def run(self, edit, paths):
-        pass
+        RemoteSyncDelete(paths).start()

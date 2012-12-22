@@ -48,10 +48,13 @@ re_ftpListParse = re.compile("^([d-])[rxws-]{9}\s+\d+\s+\S+\s+\S+\s+(\d+)\s+(\w{
 re_errorCode = re.compile("[1-5]\d\d")
 
 # 20x ok code
-re_errorOk = re.compile("2\d\d");
+re_errorOk = re.compile("2\d\d")
 
 # trailing .
-trailingDot = re.compile("/.\Z");
+trailingDot = re.compile("/.\Z")
+
+# trailing /
+trailingSlash = re.compile("/\Z")
 
 # For FTP LIST entries with {last modified} timestamp earlier than 6 months, see http://stackoverflow.com/questions/2443007/ftp-list-format
 currentYear = int(time.strftime("%Y", time.gmtime()))
@@ -283,7 +286,6 @@ class FTPSConnection(AbstractConnection):
         def action():
             path = self._getMappedPath(file_path)
             command = "RETR " + path
-            downloaded = open(file_path, "wb")
 
             downloaded = open(file_path, "wb")
             try:
@@ -297,6 +299,73 @@ class FTPSConnection(AbstractConnection):
                 downloaded.close()
 
         return self.__execute(action)
+
+
+
+    # Deletes a file from remote server
+    #
+    # @type self: FTPSConnection
+    # @type file_path: string
+    def delete(self, file_path, remote=False):
+
+        def action():
+            isDir = os.path.isdir(file_path)
+            dirname = os.path.dirname(file_path)
+
+            if remote is False:
+                path = self._getMappedPath(dirname)
+            else:
+                path = dirname
+
+            path = trailingDot.sub("", path)
+            base = os.path.basename(file_path)
+
+            if isDir:
+                for entry in self.list(file_path):
+                    self.__delete(path + '/' + base, entry)
+
+                self.cwd(path)
+                self.voidcmd("RMD " + base)
+            else:
+                self.cwd(path)
+                self.voidcmd("DELE " + base)
+
+        return self.__execute(action)
+
+
+
+    # Deletes a file purely from remote server
+    #
+    # @type self: FTPSConnection
+    # @type file_path: string
+    def __delete(self, root, metafile):
+        if metafile is None:
+            return
+
+        name = self.__basename(metafile.getName())
+        if name is None:
+            return
+
+        path = root + '/' + name
+
+        if metafile.isDirectory():
+            self.cwd(path)
+            for entry in self.list(path, True):
+                self.__delete(path, entry)
+
+            self.cwd(root)
+            try:
+                self.voidcmd("RMD " + name)
+            except Exception, e:
+                print e
+
+                if self.__isErrorCode(e, 'fileUnavailible'):
+                    return False
+                else:
+                    raise
+        else:
+            self.voidcmd("DELE " + name)
+
 
 
     # Renames a file on remote server
@@ -403,12 +472,18 @@ class FTPSConnection(AbstractConnection):
     #
     # @type self: FTPSConnection
     # @type file_path: string
+    # @type mapped: bool
+    # @param mapped: whether it's remote path (True) or not
     #
     # @return list<Metafile>
-    def list(self, file_path):
+    def list(self, file_path, mapped=False):
 
         def action():
-            path = self._getMappedPath(file_path)
+            if mapped:
+                path = file_path
+            else:
+                path = self._getMappedPath(file_path)
+
             contents = []
             result = []
 
@@ -437,9 +512,8 @@ class FTPSConnection(AbstractConnection):
                 lastModified = split.group(3)
                 name = split.group(4)
 
-                data = Metafile(name, isDir, self.__parseTime(lastModified) + int(self.config['time_offset']), filesize)
-
                 if name != "." and name != "..":
+                    data = Metafile(name, isDir, self.__parseTime(lastModified) + int(self.config['time_offset']), filesize)
                     result.append(data)
 
             return result
@@ -569,6 +643,22 @@ class FTPSConnection(AbstractConnection):
     # @global ftpErrors
     def __isError(self, exception, error):
         return str(exception).find(ftpErrors[error]) != -1
+
+
+    # Returns base name
+    #
+    # @type self: FTPSConnection
+    # @type remote_path: string
+    # @param remote_path: remote file path
+    #
+    # @return string
+    #
+    # @global trailingSlash
+    def __basename(self, remote_path):
+        if remote_path is None:
+            return
+
+        return trailingSlash.sub("", remote_path).split("/")[-1]
 
 
     # Ensures the given path is existing and accessible

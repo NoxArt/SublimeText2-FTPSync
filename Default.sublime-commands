@@ -15,5 +15,9 @@
     {
         "caption": "FTPSync: Check current file",
         "command": "ftp_sync_check_current"
+    },
+    {
+        "caption": "FTPSync: Rename current file",
+        "command": "ftp_sync_rename_current"
     }
 ]
