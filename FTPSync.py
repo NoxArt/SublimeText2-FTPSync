@@ -249,7 +249,7 @@ def getConfigFile(file_path):
 
             config = os.path.join(configFolder, configName)
             configs[file_path] = config
-            return config
+            return config.encode('utf-8')
 
         except AttributeError:
             return None
@@ -262,7 +262,7 @@ def getConfigFile(file_path):
 #
 # @return hash of filepath
 def getFilepathHash(file_path):
-    return hashlib.md5(unicode(file_path)).hexdigest()
+    return hashlib.md5(file_path.encode('utf-8')).hexdigest()
 
 
 # Gathers all entries from selected paths
@@ -1346,7 +1346,7 @@ class RemoteSync(sublime_plugin.EventListener):
 
     # @todo - put into thread
     def on_pre_save(self, view):
-        file_path = view.file_name()
+        file_path = view.file_name().encode('utf-8')
         config_file_path = getConfigFile(file_path)
         if config_file_path is None:
             return
@@ -1406,7 +1406,7 @@ class RemoteSync(sublime_plugin.EventListener):
             sublime.set_timeout(lambda: window.show_quick_panel(items, sync), 1)
 
     def on_post_save(self, view):
-        file_path = view.file_name()
+        file_path = view.file_name().encode('utf-8')
 
         if file_path in preventUpload:
             preventUpload.remove(file_path)
@@ -1415,7 +1415,7 @@ class RemoteSync(sublime_plugin.EventListener):
         RemoteSyncCall(file_path, getConfigFile(file_path), True).start()
 
     def on_close(self, view):
-        file_path = view.file_name()
+        file_path = view.file_name().encode('utf-8')
 
         config_file_path = getConfigFile(file_path)
 
@@ -1428,7 +1428,7 @@ class RemoteSync(sublime_plugin.EventListener):
     # When a file is loaded and at least 1 connection has download_on_open enabled
     # it will check those enabled if the remote version is newer and offers the newest to download
     def on_load(self, view):
-        file_path = view.file_name()
+        file_path = view.file_name().encode('utf-8')
 
         if ignore is not None and re_ignore.search(file_path) is not None:
             return
@@ -1475,7 +1475,7 @@ class RemoteSyncCall(threading.Thread):
             return False
 
         elif type(target) is str or type(target) is unicode:
-            SyncCommandUpload(target, self.config, onSave=self.onSave, disregardIgnore=self.disregardIgnore, whitelistConnections=self.whitelistConnections).execute()
+            SyncCommandUpload(target.encode('utf-8'), self.config.encode('utf-8'), onSave=self.onSave, disregardIgnore=self.disregardIgnore, whitelistConnections=self.whitelistConnections).execute()
 
         elif type(target) is list and len(target) > 0:
             progress = Progress()
@@ -1484,7 +1484,7 @@ class RemoteSyncCall(threading.Thread):
             queue = createWorker()
 
             for file_path, config in target:
-                command = SyncCommandUpload(file_path, config, progress=progress, onSave=self.onSave, disregardIgnore=self.disregardIgnore, whitelistConnections=self.whitelistConnections)
+                command = SyncCommandUpload(file_path.encode('utf-8'), config.encode('utf-8'), progress=progress, onSave=self.onSave, disregardIgnore=self.disregardIgnore, whitelistConnections=self.whitelistConnections)
 
                 queue.addCommand(command, config)
 
@@ -1505,7 +1505,7 @@ class RemoteSyncDownCall(threading.Thread):
             return False
 
         elif type(target) is str or type(target) is unicode:
-            command = SyncCommandDownload(target, self.config, disregardIgnore=self.disregardIgnore, whitelistConnections=self.whitelistConnections)
+            command = SyncCommandDownload(target.encode('utf-8'), self.config.encode('utf-8'), disregardIgnore=self.disregardIgnore, whitelistConnections=self.whitelistConnections)
 
             if self.forced:
                 command.setForced()
@@ -1520,7 +1520,7 @@ class RemoteSyncDownCall(threading.Thread):
                 if os.path.isfile(file_path):
                     progress.add([file_path])
 
-                command = SyncCommandDownload(file_path, config, disregardIgnore=self.disregardIgnore, progress=progress, whitelistConnections=self.whitelistConnections)
+                command = SyncCommandDownload(file_path.encode('utf-8'), config.encode('utf-8'), disregardIgnore=self.disregardIgnore, progress=progress, whitelistConnections=self.whitelistConnections)
 
                 if self.forced:
                     command.setForced()
@@ -1536,7 +1536,7 @@ class RemoteSyncRename(threading.Thread):
         threading.Thread.__init__(self)
 
     def run(self):
-        SyncCommandRename(self.file_path, self.config, self.new_name).execute()
+        SyncCommandRename(self.file_path.encode('utf-8'), self.config, self.new_name).execute()
 
 
 class RemoteSyncCheck(threading.Thread):
@@ -1546,7 +1546,7 @@ class RemoteSyncCheck(threading.Thread):
         threading.Thread.__init__(self)
 
     def run(self):
-        performRemoteCheck(self.file_path, self.window)
+        performRemoteCheck(self.file_path.encode('utf-8'), self.window)
 
 class RemoteSyncDelete(threading.Thread):
     def __init__(self, file_paths):
@@ -1584,6 +1584,7 @@ class RemoteSyncDelete(threading.Thread):
         fillProgress(progress, target)
 
         for file_path in target:
+            file_path = file_path.encode('utf-8')
             SyncCommandDelete(file_path, getConfigFile(file_path), progress=progress, onSave=False, disregardIgnore=False, whitelistConnections=[]).execute()
 
 
