@@ -1068,18 +1068,21 @@ class SyncCommandRename(SyncCommand):
             action()
         else:
             def sync(index):
-                if index is 1:
+                if index is 0:
                     printMessage("Renaming: overwriting target")
                     action(True)
                 else:
                     printMessage("Renaming: keeping original")
 
-            items = [
-                "Such file already exists in <" + ','.join(exists) + "> - cancel rename?",
-                "Overwrite target"
-            ]
+            overwrite = []
+            overwrite.append("Overwrite remote file? Already exists in:")
+            for remote in exists:
+                overwrite.append(remote + " [" + self.config['connections'][name]['host'] + "]")
 
-            sublime.set_timeout(lambda: sublime.active_window().show_quick_panel(items, sync), 1)
+            cancel = []
+            cancel.append("Cancel renaming")
+
+            sublime.set_timeout(lambda: sublime.active_window().show_quick_panel([ overwrite, cancel ], sync), 1)
 
 
 # Upload command
@@ -1244,7 +1247,11 @@ def performRemoteCheck(file_path, window):
                 RemoteSyncDownCall(file_path, getConfigFile(file_path), True, whitelistConnections=[every[index - 1]['connection']]).start()
 
         filesize = os.path.getsize(file_path)
-        items = ["Keep current (" + unicode(round(float(os.path.getsize(file_path)) / 1024, 3)) + " kB | " + formatTimestamp(os.path.getmtime(file_path)) + ")"]
+        allItems = []
+        items = []
+        items.append("Keep current")
+        items.append("Size: " + unicode(round(float(os.path.getsize(file_path)) / 1024, 3)) + " kB, last modified: " + formatTimestamp(os.path.getmtime(file_path)))
+        allItems.append(items)
         index = 1
 
         for item in every:
@@ -1265,10 +1272,14 @@ def performRemoteCheck(file_path, window):
             else:
                 time += " ~ older"
 
-            items.append(["Get from <" + item['connection'] + "> (" + item_filesize + " | " + time + ")"])
+
+            items = []
+            items.append("Get from " + item['connection'] + " [" + config['connections'][ item['connection'] ]['host'] + "]")
+            items.append("Size: " + item_filesize + ", last modified: " + time)
+            allItems.append(items)
             index += 1
 
-        sublime.set_timeout(lambda: window.show_quick_panel(items, sync), 1)
+        sublime.set_timeout(lambda: window.show_quick_panel(allItems, sync), 1)
     else:
         printMessage("All remote versions of {" + basename + "} are of same size and older", status=True)
 

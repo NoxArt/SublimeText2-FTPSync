@@ -79,6 +79,7 @@ Tips
 ----
 
 * **Renaming and deleting**
+
 Please keep in mind that for deleting and renaming on server you need to use `FTPSync > Rename` and `FTPSync > Delete` features, not those in Sublime Text 2 or SideBarEnhancements.
 
 * **Working from more places? Or in team?**
