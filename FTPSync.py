@@ -262,7 +262,7 @@ def getConfigFile(file_path):
 #
 # @return hash of filepath
 def getFilepathHash(file_path):
-    return hashlib.md5(file_path).hexdigest()
+    return hashlib.md5(unicode(file_path)).hexdigest()
 
 
 # Gathers all entries from selected paths
