@@ -462,7 +462,7 @@ def loadConfig(file_path):
 
     # merge with defaults and check
     for name in config:
-        if config[name] is not dict:
+        if type(config[name]) is not dict:
             printMessage("Failed using configuration: contents are not dictionaries but values", status=True)
             return None
 
