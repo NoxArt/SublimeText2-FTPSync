@@ -20,6 +20,7 @@ Recently
 * Improved dialogues
 * Remembering "overwrite cancelled" decision
 * Working on handling special characters in file path
+* Stability improvement (fresh connection per non-multithreaded command: those use their own connection handling)
 
 **I apologize for slower development at the moment, have a little time spare due to school and work duties.** Trying to fix the bugs though. The project is of course open so anyone is free to contribute improvements/fixes.
 
