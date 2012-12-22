@@ -51,13 +51,12 @@ import sys
 from ftpsyncwrapper import CreateConnection, TargetAlreadyExists
 from ftpsyncprogress import Progress
 from ftpsyncfiles import getFolders, findFile, getFiles, formatTimestamp, gatherMetafiles, getChangedFiles
-
+from ftpsyncworker import Worker
 
 # ==== Initialization and optimization =====================================================
 
 # global config
 settings = sublime.load_settings('ftpsync.sublime-settings')
-
 
 # print debug messages to console?
 isDebug = settings.get('debug')
@@ -116,6 +115,8 @@ usingConnections = []
 configs = {}
 # scheduled delayed uploads, file_path => action id
 scheduledUploads = {}
+# limit of workers
+workerLimit = settings.get('max_threads')
 
 
 # ==== Generic =============================================================================
@@ -486,6 +487,92 @@ def loadConfig(file_path):
 
 # ==== Remote =============================================================================
 
+# Creates a new connection
+#
+# @type  config: object
+# @param config: configuration object
+# @type  hash: string
+# @param hash: connection cache hash (config filepath hash actually)
+#
+# @return list of descendants of AbstractConnection (ftpsyncwrapper.py)
+def makeConnection(config, hash=None):
+
+    result = []
+
+    # for each config
+    for name in config['connections']:
+        properties = config['connections'][name]
+
+        # 1. initialize
+        try:
+            connection = CreateConnection(config, name)
+        except Exception, e:
+            printMessage("Connection initialization failed <Exception: " + stringifyException(e) + ">", name, status=True)
+            handleException(e)
+
+            continue
+
+        # 2. connect
+        try:
+            connection.connect()
+        except Exception, e:
+            printMessage("Connection failed <Exception: " + stringifyException(e) + ">", name, status=True)
+            connection.close(connections, hash)
+            handleException(e)
+
+            continue
+
+        printMessage("Connected to: " + properties['host'] + ":" + unicode(properties['port']) + " (timeout: " + unicode(properties['timeout']) + ") (key: " + unicode(hash) + ")", name)
+
+        # 3. authenticate
+        try:
+            if connection.authenticate():
+                printMessage("Authentication processed", name)
+        except Exception, e:
+            printMessage("Authentication failed <Exception: " + stringifyException(e) + ">", name, status=True)
+            handleException(e)
+
+            continue
+
+        # 4. login
+        if properties['username'] is not None:
+            try:
+                connection.login()
+            except Exception, e:
+                printMessage("Login failed <Exception: " + stringifyException(e) + ">", name, status=True)
+                handleException(e)
+
+                continue
+
+            pass_present = " (using password: NO)"
+            if len(properties['password']) > 0:
+                pass_present = " (using password: YES)"
+
+            printMessage("Logged in as: " + properties['username'] + pass_present, name)
+        else:
+            printMessage("Anonymous connection", name)
+
+        # 5. set initial directory, set name, store connection
+        try:
+            connection.cwd(properties['path'])
+        except Exception, e:
+            printMessage("Failed to set path (probably connection failed) <Exception: " + stringifyException(e) + ">", name)
+            handleException(e)
+
+            continue
+
+        # 6. add to connections list
+        present = False
+        for con in result:
+            if con.name == connection.name:
+                present = True
+
+        if present is False:
+            result.append(connection)
+
+    return result
+
+
 # Returns connection, connects if needed
 #
 # @type  hash: string
@@ -493,7 +580,7 @@ def loadConfig(file_path):
 # @type  config: object
 # @param config: configuration object
 #
-# @return dict of descendants of AbstractConnection (ftpsyncwrapper.py)
+# @return list of descendants of AbstractConnection (ftpsyncwrapper.py)
 #
 # @global connections
 def getConnection(hash, config):
@@ -529,78 +616,7 @@ def getConnection(hash, config):
 
     # cache miss
     except KeyError:
-        connections[hash] = []
-
-        # for each config
-        for name in config['connections']:
-            properties = config['connections'][name]
-
-            # 1. initialize
-            try:
-                connection = CreateConnection(config, name)
-            except Exception, e:
-                printMessage("Connection initialization failed <Exception: " + stringifyException(e) + ">", name, status=True)
-                handleException(e)
-
-                continue
-
-            # 2. connect
-            try:
-                connection.connect()
-            except Exception, e:
-                printMessage("Connection failed <Exception: " + stringifyException(e) + ">", name, status=True)
-                connection.close(connections, hash)
-                handleException(e)
-
-                continue
-
-            printMessage("Connected to: " + properties['host'] + ":" + unicode(properties['port']) + " (timeout: " + unicode(properties['timeout']) + ") (key: " + hash + ")", name)
-
-            # 3. authenticate
-            try:
-                if connection.authenticate():
-                    printMessage("Authentication processed", name)
-            except Exception, e:
-                printMessage("Authentication failed <Exception: " + stringifyException(e) + ">", name, status=True)
-                handleException(e)
-
-                continue
-
-            # 4. login
-            if properties['username'] is not None:
-                try:
-                    connection.login()
-                except Exception, e:
-                    printMessage("Login failed <Exception: " + stringifyException(e) + ">", name, status=True)
-                    handleException(e)
-
-                    continue
-
-                pass_present = " (using password: NO)"
-                if len(properties['password']) > 0:
-                    pass_present = " (using password: YES)"
-
-                printMessage("Logged in as: " + properties['username'] + pass_present, name)
-            else:
-                printMessage("Anonymous connection", name)
-
-            # 5. set initial directory, set name, store connection
-            try:
-                connection.cwd(properties['path'])
-            except Exception, e:
-                printMessage("Failed to set path (probably connection failed) <Exception: " + stringifyException(e) + ">", name)
-                handleException(e)
-
-                continue
-
-            # 6. add to connectins list
-            present = False
-            for con in connections[hash]:
-                if con.name == connection.name:
-                    present = True
-
-            if present is False:
-                connections[hash].append(connection)
+        connections[hash] = makeConnection(config, hash)
 
         # schedule connection timeout
         def closeThisConnection():
@@ -691,7 +707,14 @@ class SyncCommand(object):
         self.basename = os.path.relpath(file_path, os.path.dirname(config_file_path))
 
         self.config_hash = getFilepathHash(self.config_file_path)
-        self.connections = getConnection(self.config_hash, self.config)
+        self.connections = None
+
+    def setConnection(self, connections):
+        self.connections = connections
+
+    def _createConnection(self):
+        if self.connections is None:
+            self.connections = getConnection(self.config_hash, self.config)
 
     def _localizePath(self, config, remote_path):
         path = remote_path
@@ -801,6 +824,8 @@ class SyncCommandUpload(SyncCommandTransfer):
         if len(self.config['connections']) == 0:
             printMessage("Cancelling " + unicode(self.__class__.__name__) + ": zero connections apply")
             return
+
+        self._createConnection()
 
         # afterwatch
         if self.onSave is True:
@@ -929,6 +954,8 @@ class SyncCommandDownload(SyncCommandTransfer):
             printMessage("Cancelling " + unicode(self.__class__.__name__) + ": zero connections apply")
             return
 
+        self._createConnection()
+
         usingConnections.append(self.config_hash)
         index = -1
         stored = []
@@ -1017,6 +1044,8 @@ class SyncCommandRename(SyncCommand):
             printMessage("Cancelling " + unicode(self.__class__.__name__) + ": zero connections apply")
             return
 
+        self._createConnection()
+
         usingConnections.append(self.config_hash)
         index = -1
         renamed = []
@@ -1103,6 +1132,8 @@ class SyncCommandDelete(SyncCommandTransfer):
             printMessage("Cancelling " + unicode(self.__class__.__name__) + ": zero connections apply")
             return
 
+        self._createConnection()
+
         # afterwatch
         usingConnections.append(self.config_hash)
         deleted = []
@@ -1155,6 +1186,8 @@ class SyncCommandGetMetadata(SyncCommand):
         if len(self.config['connections']) == 0:
             printMessage("Cancelling " + unicode(self.__class__.__name__) + ": zero connections apply")
             return
+
+        self._createConnection()
 
         usingConnections.append(self.config_hash)
         index = -1
@@ -1432,8 +1465,12 @@ class RemoteSyncCall(threading.Thread):
             progress = Progress()
             fillProgress(progress, target)
 
+            queue = Worker(workerLimit, makeConnection, loadConfig)
+
             for file_path, config in target:
-                SyncCommandUpload(file_path, config, progress=progress, onSave=self.onSave, disregardIgnore=self.disregardIgnore, whitelistConnections=self.whitelistConnections).execute()
+                command = SyncCommandUpload(file_path, config, progress=progress, onSave=self.onSave, disregardIgnore=self.disregardIgnore, whitelistConnections=self.whitelistConnections)
+
+                queue.addCommand(command, config)
 
 
 class RemoteSyncDownCall(threading.Thread):
@@ -1461,6 +1498,7 @@ class RemoteSyncDownCall(threading.Thread):
         elif type(target) is list and len(target) > 0:
             total = len(target)
             progress = Progress(total)
+            queue = Worker(workerLimit, makeConnection, loadConfig)
 
             for file_path, config in target:
                 if os.path.isfile(file_path):
@@ -1471,7 +1509,7 @@ class RemoteSyncDownCall(threading.Thread):
                 if self.forced:
                     command.setForced()
 
-                command.execute()
+                queue.addCommand(command, config)
 
 
 class RemoteSyncRename(threading.Thread):
