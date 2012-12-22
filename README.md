@@ -13,6 +13,7 @@ What's there for you?
 * Progress bar for multiple up/download
 
 Recently
+* Mutlithreaded upload and download for much better speed (only used for more files); limit of threads `max_threads = 5` is global and applies to one process
 * Added empty shortcuts [wiki entry](https://github.com/NoxArt/SublimeText2-FTPSync/wiki/Key-bindings)
 * Fixed Renaming feature
 * Added Delete feature (confirm dialogue inspired by [SideBarEnhancements](https://github.com/titoBouzout/SideBarEnhancements))
