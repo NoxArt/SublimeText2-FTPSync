@@ -117,6 +117,8 @@ configs = {}
 scheduledUploads = {}
 # limit of workers
 workerLimit = settings.get('max_threads')
+# debug workers?
+debugWorkers = settings.get('debug_threads')
 
 
 # ==== Generic =============================================================================
@@ -686,6 +688,16 @@ def getProgressMessage(stored, progress, action, basename):
         base += " " + unicode(progress.current) + "/" + unicode(progress.getTotal()) + "] "
 
     return base + action + " {" + basename + "}"
+
+
+# Returns a new worker
+def createWorker():
+    queue = Worker(workerLimit, makeConnection, loadConfig)
+
+    if debugWorkers and isDebug:
+        queue.enableDebug()
+
+    return queue
 
 
 # ==== Executive functions ======================================================================
@@ -1465,7 +1477,7 @@ class RemoteSyncCall(threading.Thread):
             progress = Progress()
             fillProgress(progress, target)
 
-            queue = Worker(workerLimit, makeConnection, loadConfig)
+            queue = createWorker()
 
             for file_path, config in target:
                 command = SyncCommandUpload(file_path, config, progress=progress, onSave=self.onSave, disregardIgnore=self.disregardIgnore, whitelistConnections=self.whitelistConnections)
@@ -1498,7 +1510,7 @@ class RemoteSyncDownCall(threading.Thread):
         elif type(target) is list and len(target) > 0:
             total = len(target)
             progress = Progress(total)
-            queue = Worker(workerLimit, makeConnection, loadConfig)
+            queue = createWorker()
 
             for file_path, config in target:
                 if os.path.isfile(file_path):
