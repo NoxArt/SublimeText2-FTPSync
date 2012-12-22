@@ -17,6 +17,9 @@ Recently
 * Added empty shortcuts [wiki entry](https://github.com/NoxArt/SublimeText2-FTPSync/wiki/Key-bindings)
 * Fixed Renaming feature
 * Added Delete feature (confirm dialogue inspired by [SideBarEnhancements](https://github.com/titoBouzout/SideBarEnhancements))
+* Improved dialog features
+* Remebered overwrite cancelled state
+* Working on handling special characters in file path
 
 **I apologize for slower development at the moment, have a little time spare due to school and work duties.** Trying to fix the bugs though. The project is of course open so anyone is free to contribute improvements/fixes.
 
