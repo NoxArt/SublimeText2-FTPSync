@@ -182,10 +182,10 @@ def printMessage(text, name=None, onlyVerbose=False, status=False):
     message = "FTPSync"
 
     if name is not None:
-        message += " [" + unicode(name) + "]"
+        message += " [" + unicode(name.encode('utf-8')) + "]"
 
     message += " > "
-    message += unicode(text)
+    message += unicode(text.encode('utf-8'))
 
     if isDebug and (onlyVerbose is False or isDebugVerbose is True):
         print message
