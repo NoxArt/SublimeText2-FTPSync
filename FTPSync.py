@@ -1316,7 +1316,7 @@ class RemoteSync(sublime_plugin.EventListener):
             metadata = SyncCommandGetMetadata(file_path, config_file_path).execute()
         except Exception, e:
             if str(e).find('No such file'):
-                printMessage("No version of {" + basename + "} found on any server", status=True)
+                printMessage("No version of {" + os.path.basename(file_path) + "} found on any server", status=True)
             else:
                 printMessage("Error when getting metadata: " + stringifyException(e))
                 handleException(e)
