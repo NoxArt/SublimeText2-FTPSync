@@ -589,11 +589,16 @@ def makeConnection(config, hash=None):
 # @param hash: connection cache hash (config filepath hash actually)
 # @type  config: object
 # @param config: configuration object
+# @type  shared: bool
+# @param shared: whether to use shared connection
 #
 # @return list of descendants of AbstractConnection (ftpsyncwrapper.py)
 #
 # @global connections
-def getConnection(hash, config):
+def getConnection(hash, config, shared=True):
+    if shared is False:
+        return makeConnection(config, hash)
+
     # try cache
     try:
         if connections[hash] and len(connections[hash]) > 0:
@@ -728,13 +733,15 @@ class SyncCommand(object):
 
         self.config_hash = getFilepathHash(self.config_file_path)
         self.connections = None
+        self.ownConnection = False
 
     def setConnection(self, connections):
         self.connections = connections
 
     def _createConnection(self):
         if self.connections is None:
-            self.connections = getConnection(self.config_hash, self.config)
+            self.connections = getConnection(self.config_hash, self.config, False)
+            self.ownConnection = True
 
     def _localizePath(self, config, remote_path):
         path = remote_path
@@ -766,6 +773,10 @@ class SyncCommand(object):
     def __del__(self):
         if hasattr(self, 'config_hash') and self.config_hash in usingConnections:
             usingConnections.remove(self.config_hash)
+
+        if self.ownConnection:
+            for connection in self.connections:
+                connection.close()
 
 
 # Transfer-related sychronization command
