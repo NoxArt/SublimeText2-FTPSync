@@ -17,7 +17,7 @@
                         [
                             {
                                 "command": "open_file",
-                                "args": {"file": "${packages}/FTPSync/ftpsync.sublime-settings"},
+                                "args": {"file": "${packages}/FTPSync/FTPSync.sublime-settings"},
                                 "caption": "Settings – Default"
                             },
                             {

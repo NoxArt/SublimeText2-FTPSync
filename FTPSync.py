@@ -56,7 +56,7 @@ from ftpsyncworker import Worker
 # ==== Initialization and optimization =====================================================
 
 # global config
-settings = sublime.load_settings('ftpsync.sublime-settings')
+settings = sublime.load_settings('FTPSync.sublime-settings')
 
 # print debug messages to console?
 isDebug = settings.get('debug')
