@@ -269,6 +269,16 @@ def getFilepathHash(file_path):
     return hashlib.md5(file_path.encode('utf-8')).hexdigest()
 
 
+# Returns path of file from its config file
+#
+# @type  file_path: string
+# @param file_path: file path to the file of which we want the hash
+#
+# @return file path from settings root
+def getRootPath(file_path, prefix = ''):
+    return prefix + os.path.relpath(file_path, os.path.dirname(getConfigFile(file_path))).replace('\\', '/')
+
+
 # Gathers all entries from selected paths
 #
 # @type  file_path: list<string>
@@ -720,6 +730,7 @@ class SyncCommand(object):
 
     def __init__(self, file_path, config_file_path):
         self.closed = False
+        self.ownConnection = False
         self.file_path = file_path
         self.config_file_path = config_file_path
 
@@ -733,7 +744,6 @@ class SyncCommand(object):
 
         self.config_hash = getFilepathHash(self.config_file_path)
         self.connections = None
-        self.ownConnection = False
 
     def setConnection(self, connections):
         self.connections = connections
@@ -1313,8 +1323,10 @@ def performRemoteCheck(file_path, window):
         filesize = os.path.getsize(file_path)
         allItems = []
         items = []
-        items.append("Keep current")
-        items.append("Size: " + unicode(round(float(os.path.getsize(file_path)) / 1024, 3)) + " kB, last modified: " + formatTimestamp(os.path.getmtime(file_path)))
+        items.append("Keep current " + os.path.basename(file_path))
+        items.append("Path: " + getRootPath(file_path))
+        items.append("Size: " + unicode(round(float(os.path.getsize(file_path)) / 1024, 3)) + " kB")
+        items.append("Last modified: " + formatTimestamp(os.path.getmtime(file_path)))
         allItems.append(items)
         index = 1
 
@@ -1339,7 +1351,8 @@ def performRemoteCheck(file_path, window):
 
             items = []
             items.append("Get from " + item['connection'] + " [" + config['connections'][ item['connection'] ]['host'] + "]")
-            items.append("Size: " + item_filesize + ", last modified: " + time)
+            items.append("Size: " + item_filesize)
+            items.append("Last modified: " + time)
             allItems.append(items)
             index += 1
 
@@ -1514,7 +1527,10 @@ class RemoteSyncCall(threading.Thread):
             for file_path, config in target:
                 command = SyncCommandUpload(file_path.encode('utf-8'), config.encode('utf-8'), progress=progress, onSave=self.onSave, disregardIgnore=self.disregardIgnore, whitelistConnections=self.whitelistConnections)
 
-                queue.addCommand(command, config)
+                if workerLimit > 1:
+                    queue.addCommand(command, config)
+                else:
+                    command.execute()
 
 
 class RemoteSyncDownCall(threading.Thread):
@@ -1553,7 +1569,10 @@ class RemoteSyncDownCall(threading.Thread):
                 if self.forced:
                     command.setForced()
 
-                queue.addCommand(command, config)
+                if workerLimit > 1:
+                    queue.addCommand(command, config)
+                else:
+                    command.execute()
 
 
 class RemoteSyncRename(threading.Thread):
@@ -1598,7 +1617,7 @@ class RemoteSyncDelete(threading.Thread):
         yes = []
         yes.append("Yes, delete the selected items [also remotely]")
         for entry in self.file_path:
-            yes.append(entry)
+            yes.append( getRootPath(entry, '/') )
 
         no = []
         no.append("No")
