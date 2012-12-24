@@ -274,9 +274,24 @@ def getFilepathHash(file_path):
 # @type  file_path: string
 # @param file_path: file path to the file of which we want the hash
 #
-# @return file path from settings root
+# @return string file path from settings root
 def getRootPath(file_path, prefix = ''):
     return prefix + os.path.relpath(file_path, os.path.dirname(getConfigFile(file_path))).replace('\\', '/')
+
+
+# Returns a file path associated with view
+#
+# @type  file_path: string
+# @param file_path: file path to the file of which we want the hash
+#
+# @return string file path
+def getFileName(view):
+    file_path = view.file_name()
+
+    if file_path is not None:
+        file_path = file_path.encode('utf-8')
+
+    return file_path
 
 
 # Gathers all entries from selected paths
@@ -747,6 +762,7 @@ class SyncCommand(object):
 
     def setConnection(self, connections):
         self.connections = connections
+        self.ownConnection = False
 
     def _createConnection(self):
         if self.connections is None:
@@ -784,7 +800,7 @@ class SyncCommand(object):
         if hasattr(self, 'config_hash') and self.config_hash in usingConnections:
             usingConnections.remove(self.config_hash)
 
-        if self.ownConnection:
+        if hasattr(self, 'ownConnection') and self.ownConnection:
             for connection in self.connections:
                 connection.close()
 
@@ -1374,7 +1390,7 @@ class RemoteSync(sublime_plugin.EventListener):
 
     # @todo - put into thread
     def on_pre_save(self, view):
-        file_path = view.file_name().encode('utf-8')
+        file_path = getFileName(view)
         config_file_path = getConfigFile(file_path)
         if config_file_path is None:
             return
@@ -1447,7 +1463,7 @@ class RemoteSync(sublime_plugin.EventListener):
             sublime.set_timeout(lambda: window.show_quick_panel([ yes, no ], sync), 1)
 
     def on_post_save(self, view):
-        file_path = view.file_name().encode('utf-8')
+        file_path = getFileName(view)
 
         if file_path in preventUpload:
             preventUpload.remove(file_path)
@@ -1456,7 +1472,7 @@ class RemoteSync(sublime_plugin.EventListener):
         RemoteSyncCall(file_path, getConfigFile(file_path), True).start()
 
     def on_close(self, view):
-        file_path = view.file_name().encode('utf-8')
+        file_path = getFileName(view)
 
         config_file_path = getConfigFile(file_path)
 
@@ -1469,7 +1485,7 @@ class RemoteSync(sublime_plugin.EventListener):
     # When a file is loaded and at least 1 connection has download_on_open enabled
     # it will check those enabled if the remote version is newer and offers the newest to download
     def on_load(self, view):
-        file_path = view.file_name().encode('utf-8')
+        file_path = getFileName(view)
 
         if ignore is not None and re_ignore.search(file_path) is not None:
             return
