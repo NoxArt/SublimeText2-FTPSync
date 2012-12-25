@@ -5,7 +5,7 @@
 	"time_format": "%Y-%m-%d %H:%M",
 	"download_on_open_delay": 5000,
 	"keep_alive_interval": 5,
-	"max_threads": 1,
+	"max_threads": 5,
 	"debug_threads": false,
 
 	"project_defaults_name": "default",
