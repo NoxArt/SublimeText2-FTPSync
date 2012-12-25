@@ -112,7 +112,7 @@ class Worker(object):
 
             self.__waitCommand(command)
         else:
-            if len(self.connections) < self.limit:
+            if len(self.connections) <= self.limit:
                 self.addConnection(self.makeConnection(self.makeConfig(config)))
 
                 if self.debug:

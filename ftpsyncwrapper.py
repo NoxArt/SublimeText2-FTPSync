@@ -243,7 +243,13 @@ class FTPSConnection(AbstractConnection):
     #
     # @type self: FTPSConnection
     # @type file_path: string
-    def put(self, file_path, new_name = None, failed=False):
+    # @type new_name: string
+    # @param new_name: uploads a file under a different name
+    # @type failed: bool
+    # @param failed: retry flag
+    # @type blockCallback: callback
+    # @param blockCallback: callback called on every block transferred
+    def put(self, file_path, new_name = None, failed = False, blockCallback = None):
 
         def action():
             remote_file = file_path
@@ -258,8 +264,12 @@ class FTPSConnection(AbstractConnection):
             command = "STOR " + path
             uploaded = open(file_path, "rb")
 
+            def perBlock(data):
+                if blockCallback is not None:
+                    blockCallback()
+
             try:
-                self.connection.storbinary(command, uploaded)
+                self.connection.storbinary(command, uploaded, callback = perBlock)
             except Exception, e:
                 if self.__isErrorCode(e, ['ok', 'passive']) is True:
                     pass
@@ -281,22 +291,35 @@ class FTPSConnection(AbstractConnection):
     #
     # @type self: FTPSConnection
     # @type file_path: string
-    def get(self, file_path):
+    # @type blockCallback: callback
+    # @type blockCallback: callback called on every block transferred
+    def get(self, file_path, blockCallback):
 
         def action():
             path = self._getMappedPath(file_path)
             command = "RETR " + path
 
             def download(tempfile):
+
+                def perBlock(data):
+                    tempfile.write(data)
+
+                    if blockCallback is not None:
+                        blockCallback()
+
                 try:
-                    self.connection.retrbinary(command, lambda data: tempfile.write(data))
+                    self.connection.retrbinary(command, perBlock)
                 except Exception, e:
                     if self.__isErrorCode(e, ['ok', 'passive']):
-                        self.connection.retrbinary(command, lambda data: tempfile.write(data))
+                        self.connection.retrbinary(command, perBlock)
                     else:
                         raise
 
-            viaTempfile(file_path, download)
+            if self.config['use_tempfile']:
+                viaTempfile(file_path, download)
+            else:
+                with open(file_path, 'wb') as destination:
+                    download(destination)
 
         return self.__execute(action)
 

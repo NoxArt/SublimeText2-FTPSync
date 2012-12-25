@@ -277,8 +277,6 @@ def getChangedFiles(metafilesBefore, metafilesAfter):
 # @param source: source file path
 # @type destination: string
 # @param destination: destination file path
-#
-# @return void
 def replace(source, destination):
     destinationTemp = destination + '.bak'
     try:
@@ -299,8 +297,6 @@ def replace(source, destination):
 #
 # @type source: callback(file)
 # @param source: operation performed on temporary file
-#
-# @return void
 def viaTempfile(file_path, operation):
     exceptionOccured = None
     temp = tempfile.NamedTemporaryFile('wb', delete = False)

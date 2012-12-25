@@ -73,6 +73,15 @@ class Progress:
             self.current = self.getTotal()
 
 
+    # Returns whether the process has been finished
+    #
+    # @type  self: Progress
+    #
+    # @return bool
+    def isFinished(self):
+        return self.current >= self.getTotal()
+
+
     # Get percentage of the progress bar, maybe rounded, see @return
     #
     # @type  self: Progress

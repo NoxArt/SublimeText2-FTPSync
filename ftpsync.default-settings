@@ -41,19 +41,26 @@
 		// start with "/" and then append all the folders you'd need to open to get to your project from topmost folder
 		"path": "/"
 
-		// true = secured FTP connection
+		// Whether to use secured FTP connection
+		// 'true' is recommended
 		//"tls": false,
 
 		// set whether the connection will be passive or active
 		//"passive": true,
 
+		// whether to use temporary files for more stable transfer
+		// has only a very small performance impact when transfering large amounts of files
+		// 'true' is highly recommended
+		//"use_tempfile": true,
+
 		// true = upload on save, false = upload only manually
 		// "upload_on_save": true,
 
-		// how long until connection closes [seconds]
+		// how long until connection closes [seconds], unless closed immediately
 		//"timeout": 30,
 
 		// regular expression, when matches the file path of the file-to-be-uploaded, it cancels its upload
+		// recommending using \b in general and /.../ for folders to avoid matching substrings
 		//"ignore": "",
 
 		// whether to check 'last updated' of the target file on server

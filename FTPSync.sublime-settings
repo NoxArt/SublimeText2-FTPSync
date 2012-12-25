@@ -18,6 +18,7 @@
 
 		"tls": false,
 		"passive": true,
+		"use_tempfile": true,
 		"upload_on_save": true,
 		"port": 21,
 		"timeout": 30,

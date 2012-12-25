@@ -418,6 +418,9 @@ def verifyConfig(config):
     if type(config['passive']) is not bool:
         return "Config entry 'passive' must be true or false, " + unicode(type(config['passive'])) + " given"
 
+    if type(config['use_tempfile']) is not bool:
+        return "Config entry 'use_tempfile' must be true or false, " + unicode(type(config['use_tempfile'])) + " given"
+
     if type(config['upload_on_save']) is not bool:
         return "Config entry 'upload_on_save' must be true or false, " + unicode(type(config['upload_on_save'])) + " given"
 
@@ -709,7 +712,7 @@ def closeConnection(hash):
 # @param basename: name of a file connected with the action
 #
 # @return string message
-def getProgressMessage(stored, progress, action, basename):
+def getProgressMessage(stored, progress, action, basename = None):
     base = "FTPSync [remotes: " + ",".join(stored) + "] "
     action = "> " + action + " "
 
@@ -725,7 +728,12 @@ def getProgressMessage(stored, progress, action, basename):
 
         base += " " + unicode(progress.current) + "/" + unicode(progress.getTotal()) + "] "
 
-    return base + action + " {" + basename + "}"
+    base += action
+
+    if basename is not None:
+        base += " {" + basename + "}"
+
+    return base
 
 
 # Returns a new worker
@@ -759,6 +767,10 @@ class SyncCommand(object):
 
         self.config_hash = getFilepathHash(self.config_file_path)
         self.connections = None
+        self.worker = None
+
+    def setWorker(self, worker):
+        self.worker = worker
 
     def setConnection(self, connections):
         self.connections = connections
@@ -800,9 +812,12 @@ class SyncCommand(object):
         if hasattr(self, 'config_hash') and self.config_hash in usingConnections:
             usingConnections.remove(self.config_hash)
 
-        if hasattr(self, 'ownConnection') and self.ownConnection:
-            for connection in self.connections:
-                connection.close()
+        if hasattr(self, 'ownConnection'):
+            if self.ownConnection:
+                for connection in self.connections:
+                    connection.close()
+            elif self.worker is not None:
+                self.worker = None
 
 
 # Transfer-related sychronization command
@@ -965,7 +980,10 @@ class SyncCommandUpload(SyncCommandTransfer):
                 handleException(e)
 
         if len(stored) > 0:
-            dumpMessage(getProgressMessage(stored, self.progress, "uploaded", self.basename))
+            if self.progress.isFinished() and self.progress.getTotal() > 1:
+                dumpMessage(getProgressMessage(stored, self.progress, "uploading finished!"))
+            else:
+                dumpMessage(getProgressMessage(stored, self.progress, "uploaded ", self.basename))
 
     def __del__(self):
         if self.delayed is False:
@@ -1046,13 +1064,17 @@ class SyncCommandDownload(SyncCommandTransfer):
                         elif not self.forced and entry.isNewerThan(full_name) is True:
                             command.setSkip()
 
-                        command.execute()
+                        if self.worker is not None:
+                            command.setWorker(self.worker)
+                            self.worker.addCommand(command, self.config_file_path)
+                        else:
+                            command.execute()
 
                     return
 
                 else:
                     if not self.skip or self.forced:
-                        self.connections[index].get(self.file_path)
+                        self.connections[index].get(self.file_path, blockCallback = lambda: dumpMessage(getProgressMessage([name], self.progress, "downloading", self.basename)))
                         printMessage("downloaded {" + self.basename + "}", name)
                     else:
                         printMessage("skipping {" + self.basename + "}", name)
@@ -1071,7 +1093,10 @@ class SyncCommandDownload(SyncCommandTransfer):
                 handleException(e)
 
         if len(stored) > 0:
-            dumpMessage(getProgressMessage(stored, self.progress, "downloaded", self.basename))
+            if self.progress.isFinished() and self.progress.getTotal() > 1:
+                dumpMessage(getProgressMessage(stored, self.progress, "downloading finished!"))
+            else:
+                dumpMessage(getProgressMessage(stored, self.progress, "downloaded ", self.basename))
 
 
 # Rename command
@@ -1565,12 +1590,18 @@ class RemoteSyncDownCall(threading.Thread):
             return False
 
         elif type(target) is str or type(target) is unicode:
+            queue = createWorker()
+
             command = SyncCommandDownload(target.encode('utf-8'), self.config.encode('utf-8'), disregardIgnore=self.disregardIgnore, whitelistConnections=self.whitelistConnections)
 
             if self.forced:
                 command.setForced()
 
-            command.execute()
+            if workerLimit > 1:
+                command.setWorker(queue)
+                queue.addCommand(command, config)
+            else:
+                command.execute()
         elif type(target) is list and len(target) > 0:
             total = len(target)
             progress = Progress(total)
@@ -1586,6 +1617,7 @@ class RemoteSyncDownCall(threading.Thread):
                     command.setForced()
 
                 if workerLimit > 1:
+                    command.setWorker(queue)
                     queue.addCommand(command, config)
                 else:
                     command.execute()
