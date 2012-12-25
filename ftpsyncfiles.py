@@ -299,7 +299,9 @@ def replace(source, destination):
 # @param source: operation performed on temporary file
 def viaTempfile(file_path, operation):
     exceptionOccured = None
-    temp = tempfile.NamedTemporaryFile('wb', delete = False)
+    directory = os.path.dirname(file_path)
+    temp = tempfile.NamedTemporaryFile('wb', dir = directory, delete = False)
+
     try:
         operation(temp)
     except Exception, exp:
