@@ -68,11 +68,11 @@ isTextCache = {}
 class Metafile:
 
     def __init__(self, name, isDir, lastModified, filesize, path=None):
-        self.name = name
+        self.name = name.encode('utf-8')
         self.isDir = bool(isDir)
         self.lastModified = float(lastModified)
         self.filesize = float(filesize)
-        self.path = path
+        self.path = None if path is None else path.encode('utf-8')
 
     def getName(self):
         return self.name
@@ -126,6 +126,7 @@ class Metafile:
 #
 # @return Metafile
 def fileToMetafile(file_path):
+    file_path = file_path.encode('utf-8')
     name = os.path.basename(file_path)
     path = file_path
     isDir = os.path.isdir(file_path)
@@ -159,7 +160,7 @@ def getFolders(file_path):
     if file_path is None:
         return []
 
-    folders = [file_path]
+    folders = [file_path.encode('utf-8')]
     limit = nestingLimit
 
     while True:
@@ -177,7 +178,7 @@ def getFolders(file_path):
         if len(split[1]) == 0 or limit < 0:
             break
 
-        folders.append(split[0])
+        folders.append(split[0].encode('utf-8'))
 
     return folders
 
@@ -219,7 +220,7 @@ def getFiles(paths, getConfigFile):
     for target in paths:
         if target not in fileNames:
             fileNames.append(target)
-            files.append([target, getConfigFile(target)])
+            files.append([target.encode('utf-8'), getConfigFile(target.encode('utf-8'))])
 
     return files
 
@@ -242,7 +243,7 @@ def gatherMetafiles(pattern, root):
 
     for subroot, dirnames, filenames in os.walk(root):
         for filename in fnmatch.filter(filenames, pattern):
-            target = os.path.join(subroot, filename)
+            target = os.path.join(subroot, filename).encode('utf-8')
 
             if target not in file_names:
                 file_names.append(target)
@@ -264,8 +265,10 @@ def gatherMetafiles(pattern, root):
 def getChangedFiles(metafilesBefore, metafilesAfter):
     changed = []
     for file_path in metafilesAfter:
+        file_path = file_path.encode('utf-8')
+
         if file_path in metafilesBefore and metafilesAfter[file_path].isNewerThan(metafilesBefore[file_path]):
-                changed.append(metafilesAfter[file_path])
+            changed.append(metafilesAfter[file_path])
 
     return changed
 
@@ -299,7 +302,7 @@ def replace(source, destination):
 # @param source: operation performed on temporary file
 def viaTempfile(file_path, operation):
     exceptionOccured = None
-    directory = os.path.dirname(file_path)
+    directory = os.path.dirname(file_path.encode('utf-8'))
     temp = tempfile.NamedTemporaryFile('wb', dir = directory, delete = False)
 
     try:
@@ -311,9 +314,9 @@ def viaTempfile(file_path, operation):
         temp.close()
 
         if exceptionOccured is False:
-            replace(temp.name, file_path)
+            replace(temp.name.encode('utf-8'), file_path)
 
-        os.unlink(temp.name)
+        os.unlink(temp.name.encode('utf-8'))
 
         if exceptionOccured is not None:
             raise exceptionOccured

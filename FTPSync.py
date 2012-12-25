@@ -50,7 +50,7 @@ import sys
 # FTPSync libraries
 from ftpsyncwrapper import CreateConnection, TargetAlreadyExists
 from ftpsyncprogress import Progress
-from ftpsyncfiles import getFolders, findFile, getFiles, formatTimestamp, gatherMetafiles, getChangedFiles
+from ftpsyncfiles import getFolders, findFile, getFiles, formatTimestamp, gatherMetafiles, getChangedFiles, replace
 from ftpsyncworker import Worker
 
 # ==== Initialization and optimization =====================================================
@@ -1168,7 +1168,7 @@ class SyncCommandRename(SyncCommand):
                     handleException(e)
 
             # rename file
-            os.rename(self.file_path, os.path.join(self.dirname, self.new_name))
+            replace(self.file_path, os.path.join(self.dirname, self.new_name))
 
             # message
             if len(renamed) > 0:
@@ -1689,8 +1689,11 @@ class RemoteSyncDelete(threading.Thread):
 # Sets up a config file in a directory
 class FtpSyncNewSettings(sublime_plugin.TextCommand):
     def run(self, edit, dirs):
+        for index in range(len(dirs)):
+            dirs[index] = dirs[index].encode('utf-8')
+
         if len(dirs) == 0:
-            dirs = [os.path.dirname(self.view.file_name())]
+            dirs = [os.path.dirname(self.view.file_name().encode('utf-8'))]
 
         default = os.path.join(sublime.packages_path(), 'FTPSync', connectionDefaultsFilename)
 
@@ -1709,13 +1712,16 @@ class FtpSyncNewSettings(sublime_plugin.TextCommand):
 # Synchronize up selected file/directory
 class FtpSyncTarget(sublime_plugin.TextCommand):
     def run(self, edit, paths):
+        for index in range(len(paths)):
+            paths[index] = paths[index].encode('utf-8')
+
         RemoteSyncCall(gatherFiles(paths), None, False).start()
 
 
 # Synchronize up current file
 class FtpSyncCurrent(sublime_plugin.TextCommand):
     def run(self, edit):
-        file_path = sublime.active_window().active_view().file_name()
+        file_path = sublime.active_window().active_view().file_name().encode('utf-8')
 
         RemoteSyncCall(file_path, getConfigFile(file_path), False).start()
 
@@ -1723,7 +1729,7 @@ class FtpSyncCurrent(sublime_plugin.TextCommand):
 # Synchronize down current file
 class FtpSyncDownCurrent(sublime_plugin.TextCommand):
     def run(self, edit):
-        file_path = sublime.active_window().active_view().file_name()
+        file_path = sublime.active_window().active_view().file_name().encode('utf-8')
 
         RemoteSyncDownCall(file_path, getConfigFile(file_path), False, True).start()
 
@@ -1731,7 +1737,7 @@ class FtpSyncDownCurrent(sublime_plugin.TextCommand):
 # Checks whether there's a different version of the file on server
 class FtpSyncCheckCurrent(sublime_plugin.TextCommand):
     def run(self, edit):
-        file_path = sublime.active_window().active_view().file_name()
+        file_path = sublime.active_window().active_view().file_name().encode('utf-8')
         view = sublime.active_window()
 
         RemoteSyncCheck(file_path, view, True).start()
@@ -1741,7 +1747,7 @@ class FtpSyncRenameCurrent(sublime_plugin.TextCommand):
     def run(self, edit):
         view = sublime.active_window()
 
-        self.original_path = sublime.active_window().active_view().file_name()
+        self.original_path = sublime.active_window().active_view().file_name().encode('utf-8')
         self.folder = os.path.dirname(self.original_path)
         self.original_name = os.path.basename(self.original_path)
 
@@ -1753,19 +1759,43 @@ class FtpSyncRenameCurrent(sublime_plugin.TextCommand):
         RemoteSyncCheck(file_path, view, True).start()
 
     def rename(self, new_name):
-        RemoteSyncRename(self.original_path, getConfigFile(self.original_path), new_name).start()
+        def action():
+            RemoteSyncRename(self.original_path, getConfigFile(self.original_path), new_name).start()
+
+        new_path = os.path.join(os.path.dirname(self.original_path), new_name)
+        if os.path.exists(new_path):
+            def sync(index):
+                if index is 0:
+                    printMessage("Renaming: overwriting local target")
+                    action()
+                else:
+                    printMessage("Renaming: keeping original")
+
+            overwrite = []
+            overwrite.append("Overwrite local file? Already exists in:")
+            overwrite.append("Path: " + new_path)
+
+            cancel = []
+            cancel.append("Cancel renaming")
+
+            sublime.set_timeout(lambda: sublime.active_window().show_quick_panel([ overwrite, cancel ], sync), 1)
+        else:
+            action()
 
 
 # Synchronize down selected file/directory
 class FtpSyncDownTarget(sublime_plugin.TextCommand):
     def run(self, edit, paths, forced=False):
+        for index in range(len(paths)):
+            paths[index] = paths[index].encode('utf-8')
+
         RemoteSyncDownCall(getFiles(paths, getConfigFile), None, forced=forced).start()
 
 
 # Renames a file on disk and in folder
 class FtpSyncRename(sublime_plugin.TextCommand):
     def run(self, edit, paths):
-        self.original_path = paths[0]
+        self.original_path = paths[0].encode('utf-8')
         self.folder = os.path.dirname(self.original_path)
         self.original_name = os.path.basename(self.original_path)
 
@@ -1775,10 +1805,34 @@ class FtpSyncRename(sublime_plugin.TextCommand):
         self.view.window().show_input_panel('Enter new name', self.original_name, self.rename, None, None)
 
     def rename(self, new_name):
-        RemoteSyncRename(self.original_path, getConfigFile(self.original_path), new_name).start()
+        def action():
+            RemoteSyncRename(self.original_path, getConfigFile(self.original_path), new_name).start()
+
+        new_path = os.path.join(os.path.dirname(self.original_path), new_name)
+        if os.path.exists(new_path):
+            def sync(index):
+                if index is 0:
+                    printMessage("Renaming: overwriting local target")
+                    action()
+                else:
+                    printMessage("Renaming: keeping original")
+
+            overwrite = []
+            overwrite.append("Overwrite local file? Already exists in:")
+            overwrite.append("Path: " + new_path)
+
+            cancel = []
+            cancel.append("Cancel renaming")
+
+            sublime.set_timeout(lambda: sublime.active_window().show_quick_panel([ overwrite, cancel ], sync), 1)
+        else:
+            action()
 
 
 # Removes given file(s) or folders
 class FtpSyncDelete(sublime_plugin.TextCommand):
     def run(self, edit, paths):
+        for index in range(len(paths)):
+            paths[index] = paths[index].encode('utf-8')
+
         RemoteSyncDelete(paths).start()
