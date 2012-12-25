@@ -14,13 +14,13 @@ What's there for you?
 
 Recently
 * Now downloading via temporary file for better stability (error during process will not harm the local file)
-* Mutlithreaded upload and download for much better speed (will be enabled by default soon; see `Settings - User: max_threads`)
+* Mutlithreaded upload and download for much better speed
 * Added empty shortcuts [wiki entry](https://github.com/NoxArt/SublimeText2-FTPSync/wiki/Key-bindings)
 * Fixed Renaming feature
 * Added Delete feature (confirm dialogue inspired by [SideBarEnhancements](https://github.com/titoBouzout/SideBarEnhancements))
 * Improved dialogues
 * Remembering "overwrite cancelled" decision
-* Working on handling special characters in file path
+* Fixing special characters in file path
 * Stability improvement (fresh connection per non-multithreaded command: those use their own connection handling)
 
 **I apologize for slower development at the moment, have a little time spare due to school and work duties.** Trying to fix the bugs though. The project is of course open so anyone is free to contribute improvements/fixes.
