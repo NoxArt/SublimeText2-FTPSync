@@ -36,31 +36,31 @@ To mark a folder and descendants for upload insert *ftpsync.settings* file in fo
 Format:
 
     {
-    	<connection_name>: {
-    		host: {string},
+        <connection_name>: {
+            host: {string},
 
-    		username: {null|string=null}, // null means anonymous manipulation
-    		password: {null|string=""},
+            username: {null|string=null}, // null means anonymous manipulation
+            password: {null|string=""},
 
-    		path: {string="/"}, // your project's root path on the _server_
+            path: {string="/"}, // your project's root path on the _server_
 
             upload_on_save: true, // whether upload on save or manually
             download_on_open: false, // checks whether there's a newer remote file on opening a file
             overwrite_newer_prevention: true, // overwrite protection when remote file is newer
             upload_delay: {int=0}, // delays [seconds] upload triggered by upload_on_save
 
-    		port: {int=21}, // remote port, pretty much always 21, unless SFTP
-    		tls: {bool=false}, // set true to use secured transfer, recommended! (server needs to support)
+            port: {int=21}, // remote port, pretty much always 21, unless SFTP
+            tls: {bool=false}, // set true to use secured transfer, recommended! (server needs to support)
             passive: {bool=true}, // whether to use passive or active connection
-    		timeout: {int=30}, // [seconds] to invalidate the cached connection
-    		ignore: {null|string}, // regular expression, matched against file path - not applied for downloading
+            timeout: {int=30}, // [seconds] to invalidate the cached connection
+            ignore: {null|string}, // regular expression, matched against file path - not applied for downloading
             time_offset: {int=0}, // [seconds] to adjust for a different timezone of server
 
             after_save_watch: {null|list<list<subfolder, filepatter>>=null} // after save watch
             // example: [ [ "code/assets/css", "*.css" ], [ "code/assets/", "*.jpg, *.png, *.gif" ] ]
             // more in Wiki
 
-    	} //,
+        } //,
         // <connection2_name>: { ... }
     }
 
@@ -77,8 +77,7 @@ Released under MIT licence.
 
 Feel free to add issues, ideas, pull requests...
 
-Thanks to [castus](https://github.com/castus), [tommymarshall](https://github.com/tommymarshall), [TotallyInformation](https://github.com/TotallyInformation), [saiori](https://github.com/saiori), [vnabet](https://github.com/vnabet), [Jcrs](https://github.com/Jcrs), [ItayXD](https://github.com/ItayXD), [bibimij](https://github.com/bibimij), [digitalmaster](https://github.com/digitalmaster), [alfaex](https://github.com/alfaex), [seyDoggy](https://github.com/seyDoggy), Nuno, [mikedoug](https://github.com/mikedoug), [stevether](https://github.com/stevether), [zaus](https://github.com/zaus), [noAlvaro](https://github.com/noAlvaro), [zofie86](https://github.com/zofie86), [fma965](https://github.com/fma965), [PixelVibe](https://github.com/PixelVibe), [Kaisercraft](https://github.com/Kaisercraft) and [benkaiser](https://github.com/benkaiser) for reporting issues, ideas and fixing!
-
+Thanks to [castus](https://github.com/castus), [tommymarshall](https://github.com/tommymarshall), [TotallyInformation](https://github.com/TotallyInformation), [saiori](https://github.com/saiori), [vnabet](https://github.com/vnabet), [Jcrs](https://github.com/Jcrs), [ItayXD](https://github.com/ItayXD), [bibimij](https://github.com/bibimij), [digitalmaster](https://github.com/digitalmaster), [alfaex](https://github.com/alfaex), [seyDoggy](https://github.com/seyDoggy), Nuno, [mikedoug](https://github.com/mikedoug), [stevether](https://github.com/stevether), [zaus](https://github.com/zaus), [noAlvaro](https://github.com/noAlvaro), [zofie86](https://github.com/zofie86), [fma965](https://github.com/fma965), [PixelVibe](https://github.com/PixelVibe), [Kaisercraft](https://github.com/Kaisercraft), [benkaiser](https://github.com/benkaiser), [anupdebnath](https://github.com/anupdebnath), [sy4mil](https://github.com/sy4mil), [leek](https://github.com/leek), [surfac](https://github.com/surfac), [mitsurugi](https://github.com/mitsurugi), [MonoSnippets](https://github.com/MonoSnippets), [Zegnat](https://github.com/Zegnat), [cwhittl](https://github.com/cwhittl), [shadowsdweller](https://github.com/shadowsdweller), [adiulici01](https://github.com/adiulici01), [tablatronix](https://github.com/tablatronix), [bllim](https://github.com/bllim)  for reporting issues, ideas and fixing!
 
 
 Tips
@@ -97,14 +96,14 @@ It currently has a limitation that for FTP last modified is set to time of uploa
 * **Upload different language versions to different servers of paths**
 
         {
-        	<connection_name>: {
-        		host: "ftp.host.en.com",
-        		ignore: "/locale/(?!fr)\\w+/.*"
-        	},
-        	<connection2_name>: {
-        		host: "ftp.host.cz.com",
-        		ignore: "/locale/(?!cz)\\w+/.*"
-        	}
+            <connection_name>: {
+                host: "ftp.host.en.com",
+                ignore: "/locale/(?!fr)\\w+/.*"
+            },
+            <connection2_name>: {
+                host: "ftp.host.cz.com",
+                ignore: "/locale/(?!cz)\\w+/.*"
+            }
         }
 
 * **Using file compilation? Want to upload as well?**
