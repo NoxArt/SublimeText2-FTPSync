@@ -34,6 +34,7 @@ import os
 import datetime
 import fnmatch
 import re
+import tempfile
 
 
 # ==== Initialization and optimization =====================================================
@@ -267,6 +268,57 @@ def getChangedFiles(metafilesBefore, metafilesAfter):
                 changed.append(metafilesAfter[file_path])
 
     return changed
+
+
+
+# Abstraction of os.rename for replacing cases
+#
+# @type source: string
+# @param source: source file path
+# @type destination: string
+# @param destination: destination file path
+#
+# @return void
+def replace(source, destination):
+    destinationTemp = destination + '.bak'
+    try:
+        os.rename(source, destination)
+    except OSError:
+        os.rename(destination, destinationTemp)
+
+        try:
+            os.rename(source, destination)
+            os.unlink(destinationTemp)
+        except OSError, e:
+            os.rename(destinationTemp, destination)
+            raise
+
+
+
+# Performing operation on temporary file and replacing it back
+#
+# @type source: callback(file)
+# @param source: operation performed on temporary file
+#
+# @return void
+def viaTempfile(file_path, operation):
+    exceptionOccured = None
+    temp = tempfile.NamedTemporaryFile('wb', delete = False)
+    try:
+        operation(temp)
+    except Exception, exp:
+        exceptionOccured = exp
+    finally:
+        temp.flush()
+        temp.close()
+
+        if exceptionOccured is False:
+            replace(temp.name, file_path)
+
+        os.unlink(temp.name)
+
+        if exceptionOccured is not None:
+            raise exceptionOccured
 
 
 

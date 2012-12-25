@@ -36,7 +36,7 @@ import re
 import time
 
 # FTPSync libraries
-from ftpsyncfiles import Metafile, isTextFile
+from ftpsyncfiles import Metafile, isTextFile, viaTempfile
 
 
 # ==== Initialization and optimization =====================================================
@@ -287,16 +287,16 @@ class FTPSConnection(AbstractConnection):
             path = self._getMappedPath(file_path)
             command = "RETR " + path
 
-            downloaded = open(file_path, "wb")
-            try:
-                self.connection.retrbinary(command, lambda data: downloaded.write(data))
-            except Exception, e:
-                if self.__isErrorCode(e, ['ok', 'passive']):
-                    self.connection.retrbinary(command, lambda data: downloaded.write(data))
-                else:
-                    raise
-            finally:
-                downloaded.close()
+            def download(tempfile):
+                try:
+                    self.connection.retrbinary(command, lambda data: tempfile.write(data))
+                except Exception, e:
+                    if self.__isErrorCode(e, ['ok', 'passive']):
+                        self.connection.retrbinary(command, lambda data: tempfile.write(data))
+                    else:
+                        raise
+
+            viaTempfile(file_path, download)
 
         return self.__execute(action)
 
