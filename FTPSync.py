@@ -980,7 +980,7 @@ class SyncCommandUpload(SyncCommandTransfer):
                 handleException(e)
 
         if len(stored) > 0:
-            if self.progress.isFinished() and self.progress.getTotal() > 1:
+            if self.progress is not None and self.progress.isFinished() and self.progress.getTotal() > 1:
                 dumpMessage(getProgressMessage(stored, self.progress, "uploading finished!"))
             else:
                 dumpMessage(getProgressMessage(stored, self.progress, "uploaded ", self.basename))
@@ -1093,7 +1093,7 @@ class SyncCommandDownload(SyncCommandTransfer):
                 handleException(e)
 
         if len(stored) > 0:
-            if self.progress.isFinished() and self.progress.getTotal() > 1:
+            if self.progress is not None and self.progress.isFinished() and self.progress.getTotal() > 1:
                 dumpMessage(getProgressMessage(stored, self.progress, "downloading finished!"))
             else:
                 dumpMessage(getProgressMessage(stored, self.progress, "downloaded ", self.basename))
@@ -1599,7 +1599,7 @@ class RemoteSyncDownCall(threading.Thread):
 
             if workerLimit > 1:
                 command.setWorker(queue)
-                queue.addCommand(command, config)
+                queue.addCommand(command, self.config)
             else:
                 command.execute()
         elif type(target) is list and len(target) > 0:
