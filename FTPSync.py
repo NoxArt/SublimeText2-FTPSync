@@ -1089,8 +1089,11 @@ class SyncCommandDownload(SyncCommandTransfer):
                 self._closeConnection()
 
             except Exception, e:
-                printMessage("download of {" + self.basename + "} failed <Exception: " + stringifyException(e) + ">", name, False, True)
-                handleException(e)
+                if str(e).find("No such file or directory"):
+                    printMessage("remote file not found", name, False, True)
+                else:
+                    printMessage("download of {" + self.basename + "} failed <Exception: " + stringifyException(e) + ">", name, False, True)
+                    handleException(e)
 
         if len(stored) > 0:
             if self.progress is not None and self.progress.isFinished() and self.progress.getTotal() > 1:
@@ -1164,14 +1167,18 @@ class SyncCommandRename(SyncCommand):
                     self._closeConnection()
 
                 except Exception, e:
-                    printMessage("renaming failed: {" + self.basename + "} -> {" + self.new_name + "} <Exception: " + stringifyException(e) + ">", name, False, True)
-                    handleException(e)
-
-            # rename file
-            replace(self.file_path, os.path.join(self.dirname, self.new_name))
+                    if str(e).find("No such file or directory"):
+                        printMessage("remote file not found", name, False, True)
+                        renamed.append(name)
+                    else:
+                        printMessage("renaming failed: {" + self.basename + "} -> {" + self.new_name + "} <Exception: " + stringifyException(e) + ">", name, False, True)
+                        handleException(e)
 
             # message
             if len(renamed) > 0:
+                # rename file
+                replace(self.file_path, os.path.join(self.dirname, self.new_name))
+
                 printMessage("remotely renamed {" + self.basename + "} -> {" + self.new_name + "}", "remotes: " + ','.join(renamed), status=True)
 
 
@@ -1246,8 +1253,12 @@ class SyncCommandDelete(SyncCommandTransfer):
                 self._closeConnection()
 
             except Exception, e:
-                printMessage("delete failed: {" + self.basename + "} <Exception: " + stringifyException(e) + ">", name, False, True)
-                handleException(e)
+                if str(e).find("No such file or directory"):
+                    printMessage("remote file not found", name, False, True)
+                    deleted.append(name)
+                else:
+                    printMessage("delete failed: {" + self.basename + "} <Exception: " + stringifyException(e) + ">", name, False, True)
+                    handleException(e)
 
         if len(deleted) > 0:
             if os.path.isdir(self.file_path):
