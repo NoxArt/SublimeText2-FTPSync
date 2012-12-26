@@ -303,7 +303,7 @@ def replace(source, destination):
 def viaTempfile(file_path, operation):
     exceptionOccured = None
     directory = os.path.dirname(file_path.encode('utf-8'))
-    temp = tempfile.NamedTemporaryFile('wb', dir = directory, delete = False)
+    temp = tempfile.NamedTemporaryFile('wb', suffix = '.temp', dir = directory, delete = False)
 
     try:
         operation(temp)
@@ -314,6 +314,10 @@ def viaTempfile(file_path, operation):
         temp.close()
 
         if exceptionOccured is False:
+            if os.path.exists(file_path) is False:
+                created = open(file_path, 'w+')
+                created.close()
+
             replace(temp.name.encode('utf-8'), file_path)
 
         os.unlink(temp.name.encode('utf-8'))
