@@ -816,7 +816,7 @@ class SyncCommand(object):
             if self.ownConnection:
                 for connection in self.connections:
                     connection.close()
-            elif self.worker is not None:
+            elif hasattr(self, 'worker') and self.worker is not None:
                 self.worker = None
 
 
