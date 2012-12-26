@@ -604,7 +604,7 @@ class FTPSConnection(AbstractConnection):
             if self.__hasFeat("UTF8"):
                 return string.encode('utf-8')
             else:
-                return string.encode(getdefaultencoding(), 'ignore')
+                return string
         else:
             return string.encode(self.config['encoding'])
 
