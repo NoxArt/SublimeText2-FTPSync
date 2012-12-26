@@ -87,6 +87,9 @@ sslErrors = {
 # Default permissions for newly created folder
 defaultFolderPermissions = "755"
 
+# Encoding for file paths
+encoding = 'utf-8'
+
 
 
 # ==== Exceptions ==========================================================================
@@ -171,6 +174,7 @@ class FTPSConnection(AbstractConnection):
         self.generic_config = generic_config
         self.name = name
         self.isClosed = False
+        self.feat = None
 
         if self.config['tls'] is True:
             self.connection = ftplib.FTP_TLS()
@@ -261,7 +265,7 @@ class FTPSConnection(AbstractConnection):
             if os.path.isdir(file_path):
                 return self.__ensurePath(path, True)
 
-            command = "STOR " + path
+            command = "STOR " + path.encode('utf-8')
             uploaded = open(file_path, "rb")
 
             def perBlock(data):
@@ -297,7 +301,7 @@ class FTPSConnection(AbstractConnection):
 
         def action():
             path = self._getMappedPath(file_path)
-            command = "RETR " + path
+            command = "RETR " + path.encode('utf-8')
 
             def download(tempfile):
 
@@ -369,7 +373,7 @@ class FTPSConnection(AbstractConnection):
         if name is None:
             return
 
-        path = root + '/' + name
+        path = root + '/' + unicode(name, 'utf-8')
 
         if metafile.isDirectory():
             self.cwd(path)
@@ -387,7 +391,7 @@ class FTPSConnection(AbstractConnection):
                 else:
                     raise
         else:
-            self.voidcmd("DELE " + name)
+            self.voidcmd("DELE " + name.decode('utf-8'))
 
 
 
@@ -460,7 +464,7 @@ class FTPSConnection(AbstractConnection):
     # @type path: string
     def cwd(self, path):
         self._makePassive()
-        self.connection.cwd(path)
+        self.connection.cwd(path.encode('utf-8'))
 
 
     # Void command without return
@@ -471,7 +475,18 @@ class FTPSConnection(AbstractConnection):
     # @type path: string
     def voidcmd(self, command):
         self._makePassive()
-        self.connection.voidcmd(command)
+        self.connection.voidcmd(command.encode('utf-8'))
+
+
+    # Plain command with return
+    #
+    # Passivates if configured to do so
+    #
+    # @type self: FTPSConnection
+    # @type path: string
+    def sendcmd(self, command):
+        self._makePassive()
+        return self.connection.sendcmd(command.encode('utf-8'))
 
 
     # Returns whether file or folder info
@@ -507,6 +522,8 @@ class FTPSConnection(AbstractConnection):
             else:
                 path = self._getMappedPath(file_path)
 
+            path = path.encode('utf-8')
+
             contents = []
             result = []
 
@@ -521,7 +538,7 @@ class FTPSConnection(AbstractConnection):
             for content in contents:
                 try:
                     if self.config['debug_extras']['print_list_result'] is True:
-                        print "FTPSync <debug> LIST line: " + str(content)
+                        print "FTPSync <debug> LIST line: " + str(content).encode('utf-8')
                 except KeyError:
                     pass
 
@@ -573,6 +590,30 @@ class FTPSConnection(AbstractConnection):
         command = "SITE CHMOD " + str(permissions) + " " + str(filename)
 
         self.voidcmd(command)
+
+
+    # Loads availible features
+    #
+    # @type self: FTPSConnection
+    def __loadFeat(self):
+        try:
+            feats = self.sendcmd("FEAT").split("\n")
+            self.feat = []
+            for feat in feats:
+                if feat[0] != '2':
+                    self.feat.append( feat.strip() )
+        except:
+            self.feat = []
+
+
+    # Returns whether server supports a certain feature
+    #
+    # @type self: FTPSConnection
+    def __hasFeat(self, feat):
+        if self.feat is None:
+            self.__loadFeat()
+
+        return (feat in self.feat)
 
 
     # Executes an action while handling common errors
@@ -704,13 +745,13 @@ class FTPSConnection(AbstractConnection):
 
             try:
                 if index < len(folders) or (isFolder and index <= len(folders)):
-                    self.connection.cwd(folder)
+                    self.cwd(folder)
             except Exception, e:
                 if self.__isErrorCode(e, 'fileUnavailible'):
 
                     try:
                         # create folder
-                        self.connection.mkd(folder)
+                        self.connection.mkd(folder.encode('utf-8'))
                     except Exception, e:
                         if self.__isErrorCode(e, 'fileUnavailible'):
                             # not proper permissions
@@ -719,9 +760,9 @@ class FTPSConnection(AbstractConnection):
                             raise
 
                     # move down
-                    self.connection.cwd(folder)
+                    self.cwd(folder)
                 else:
                     raise
 
-        self.connection.cwd(self.config['path'])
+        self.cwd(self.config['path'])
 

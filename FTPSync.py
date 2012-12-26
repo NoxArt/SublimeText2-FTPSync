@@ -182,13 +182,13 @@ def printMessage(text, name=None, onlyVerbose=False, status=False):
     message = "FTPSync"
 
     if name is not None:
-        message += " [" + unicode(name.encode('utf-8')) + "]"
+        message += " [" + unicode(name) + "]"
 
     message += " > "
-    message += unicode(text.encode('utf-8'))
+    message += unicode(text)
 
     if isDebug and (onlyVerbose is False or isDebugVerbose is True):
-        print message
+        print message.encode('utf-8')
 
     if status:
         dumpMessage(message)
@@ -253,7 +253,7 @@ def getConfigFile(file_path):
 
             config = os.path.join(configFolder, configName)
             configs[file_path] = config
-            return config.encode('utf-8')
+            return config
 
         except AttributeError:
             return None
@@ -266,7 +266,7 @@ def getConfigFile(file_path):
 #
 # @return hash of filepath
 def getFilepathHash(file_path):
-    return hashlib.md5(file_path.encode('utf-8')).hexdigest()
+    return hashlib.md5(file_path).hexdigest()
 
 
 # Returns path of file from its config file
@@ -288,8 +288,8 @@ def getRootPath(file_path, prefix = ''):
 def getFileName(view):
     file_path = view.file_name()
 
-    if file_path is not None:
-        file_path = file_path.encode('utf-8')
+    #if file_path is not None:
+    #    file_path = file_path.encode('utf-8')
 
     return file_path
 
@@ -1568,7 +1568,7 @@ class RemoteSyncCall(threading.Thread):
             return False
 
         elif type(target) is str or type(target) is unicode:
-            SyncCommandUpload(target.encode('utf-8'), self.config.encode('utf-8'), onSave=self.onSave, disregardIgnore=self.disregardIgnore, whitelistConnections=self.whitelistConnections).execute()
+            SyncCommandUpload(target, self.config, onSave=self.onSave, disregardIgnore=self.disregardIgnore, whitelistConnections=self.whitelistConnections).execute()
 
         elif type(target) is list and len(target) > 0:
             progress = Progress()
@@ -1577,7 +1577,7 @@ class RemoteSyncCall(threading.Thread):
             queue = createWorker()
 
             for file_path, config in target:
-                command = SyncCommandUpload(file_path.encode('utf-8'), config.encode('utf-8'), progress=progress, onSave=self.onSave, disregardIgnore=self.disregardIgnore, whitelistConnections=self.whitelistConnections)
+                command = SyncCommandUpload(file_path, config, progress=progress, onSave=self.onSave, disregardIgnore=self.disregardIgnore, whitelistConnections=self.whitelistConnections)
 
                 if workerLimit > 1:
                     queue.addCommand(command, config)
@@ -1603,7 +1603,7 @@ class RemoteSyncDownCall(threading.Thread):
         elif type(target) is str or type(target) is unicode:
             queue = createWorker()
 
-            command = SyncCommandDownload(target.encode('utf-8'), self.config.encode('utf-8'), disregardIgnore=self.disregardIgnore, whitelistConnections=self.whitelistConnections)
+            command = SyncCommandDownload(target, self.config, disregardIgnore=self.disregardIgnore, whitelistConnections=self.whitelistConnections)
 
             if self.forced:
                 command.setForced()
@@ -1622,7 +1622,7 @@ class RemoteSyncDownCall(threading.Thread):
                 if os.path.isfile(file_path):
                     progress.add([file_path])
 
-                command = SyncCommandDownload(file_path.encode('utf-8'), config.encode('utf-8'), disregardIgnore=self.disregardIgnore, progress=progress, whitelistConnections=self.whitelistConnections)
+                command = SyncCommandDownload(file_path, config, disregardIgnore=self.disregardIgnore, progress=progress, whitelistConnections=self.whitelistConnections)
 
                 if self.forced:
                     command.setForced()
@@ -1642,7 +1642,7 @@ class RemoteSyncRename(threading.Thread):
         threading.Thread.__init__(self)
 
     def run(self):
-        SyncCommandRename(self.file_path.encode('utf-8'), self.config, self.new_name).execute()
+        SyncCommandRename(self.file_path, self.config, self.new_name).execute()
 
 
 class RemoteSyncCheck(threading.Thread):
@@ -1652,7 +1652,7 @@ class RemoteSyncCheck(threading.Thread):
         threading.Thread.__init__(self)
 
     def run(self):
-        performRemoteCheck(self.file_path.encode('utf-8'), self.window)
+        performRemoteCheck(self.file_path, self.window)
 
 class RemoteSyncDelete(threading.Thread):
     def __init__(self, file_paths):
@@ -1690,7 +1690,6 @@ class RemoteSyncDelete(threading.Thread):
         fillProgress(progress, target)
 
         for file_path in target:
-            file_path = file_path.encode('utf-8')
             SyncCommandDelete(file_path, getConfigFile(file_path), progress=progress, onSave=False, disregardIgnore=False, whitelistConnections=[]).execute()
 
 
@@ -1700,11 +1699,8 @@ class RemoteSyncDelete(threading.Thread):
 # Sets up a config file in a directory
 class FtpSyncNewSettings(sublime_plugin.TextCommand):
     def run(self, edit, dirs):
-        for index in range(len(dirs)):
-            dirs[index] = dirs[index].encode('utf-8')
-
         if len(dirs) == 0:
-            dirs = [os.path.dirname(self.view.file_name().encode('utf-8'))]
+            dirs = [os.path.dirname(self.view.file_name())]
 
         default = os.path.join(sublime.packages_path(), 'FTPSync', connectionDefaultsFilename)
 
@@ -1723,16 +1719,13 @@ class FtpSyncNewSettings(sublime_plugin.TextCommand):
 # Synchronize up selected file/directory
 class FtpSyncTarget(sublime_plugin.TextCommand):
     def run(self, edit, paths):
-        for index in range(len(paths)):
-            paths[index] = paths[index].encode('utf-8')
-
         RemoteSyncCall(gatherFiles(paths), None, False).start()
 
 
 # Synchronize up current file
 class FtpSyncCurrent(sublime_plugin.TextCommand):
     def run(self, edit):
-        file_path = sublime.active_window().active_view().file_name().encode('utf-8')
+        file_path = sublime.active_window().active_view().file_name()
 
         RemoteSyncCall(file_path, getConfigFile(file_path), False).start()
 
@@ -1740,7 +1733,7 @@ class FtpSyncCurrent(sublime_plugin.TextCommand):
 # Synchronize down current file
 class FtpSyncDownCurrent(sublime_plugin.TextCommand):
     def run(self, edit):
-        file_path = sublime.active_window().active_view().file_name().encode('utf-8')
+        file_path = sublime.active_window().active_view().file_name()
 
         RemoteSyncDownCall(file_path, getConfigFile(file_path), False, True).start()
 
@@ -1748,7 +1741,7 @@ class FtpSyncDownCurrent(sublime_plugin.TextCommand):
 # Checks whether there's a different version of the file on server
 class FtpSyncCheckCurrent(sublime_plugin.TextCommand):
     def run(self, edit):
-        file_path = sublime.active_window().active_view().file_name().encode('utf-8')
+        file_path = sublime.active_window().active_view().file_name()
         view = sublime.active_window()
 
         RemoteSyncCheck(file_path, view, True).start()
@@ -1758,7 +1751,7 @@ class FtpSyncRenameCurrent(sublime_plugin.TextCommand):
     def run(self, edit):
         view = sublime.active_window()
 
-        self.original_path = sublime.active_window().active_view().file_name().encode('utf-8')
+        self.original_path = sublime.active_window().active_view().file_name()
         self.folder = os.path.dirname(self.original_path)
         self.original_name = os.path.basename(self.original_path)
 
@@ -1797,16 +1790,13 @@ class FtpSyncRenameCurrent(sublime_plugin.TextCommand):
 # Synchronize down selected file/directory
 class FtpSyncDownTarget(sublime_plugin.TextCommand):
     def run(self, edit, paths, forced=False):
-        for index in range(len(paths)):
-            paths[index] = paths[index].encode('utf-8')
-
         RemoteSyncDownCall(getFiles(paths, getConfigFile), None, forced=forced).start()
 
 
 # Renames a file on disk and in folder
 class FtpSyncRename(sublime_plugin.TextCommand):
     def run(self, edit, paths):
-        self.original_path = paths[0].encode('utf-8')
+        self.original_path = paths[0]
         self.folder = os.path.dirname(self.original_path)
         self.original_name = os.path.basename(self.original_path)
 
@@ -1843,7 +1833,4 @@ class FtpSyncRename(sublime_plugin.TextCommand):
 # Removes given file(s) or folders
 class FtpSyncDelete(sublime_plugin.TextCommand):
     def run(self, edit, paths):
-        for index in range(len(paths)):
-            paths[index] = paths[index].encode('utf-8')
-
         RemoteSyncDelete(paths).start()

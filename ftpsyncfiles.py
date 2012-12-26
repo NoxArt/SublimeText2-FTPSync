@@ -45,17 +45,17 @@ timeDifferenceTolerance = 1
 nestingLimit = 30
 # bom marks (decimal)
 bomMarks = {
-    'utf8': [239,187,191],
-    'utf16be': [254,255],
-    'utf16le': [255,254],
-    'utf32be': [0,0,254,255],
-    'utf32le': [255,254,0,0],
-    'utf7': [43,47,118,56,43,47,118,57,43,47,118,43,43,47,118,47],
-    'utf1': [247,100,76],
-    'utfebcdic': [221,115,102,115],
-    'scsu': [14,254,255],
-    'bocu-1': [251,238,40],
-    'gb18030': [132,49,149,51]
+	'utf8': [239,187,191],
+	'utf16be': [254,255],
+	'utf16le': [255,254],
+	'utf32be': [0,0,254,255],
+	'utf32le': [255,254,0,0],
+	'utf7': [43,47,118,56,43,47,118,57,43,47,118,43,43,47,118,47],
+	'utf1': [247,100,76],
+	'utfebcdic': [221,115,102,115],
+	'scsu': [14,254,255],
+	'bocu-1': [251,238,40],
+	'gb18030': [132,49,149,51]
 }
 bomMaxLength = 16
 # file_path[string] => textual[boolean]
@@ -67,56 +67,68 @@ isTextCache = {}
 # A file representation with helper methods
 class Metafile:
 
-    def __init__(self, name, isDir, lastModified, filesize, path=None):
-        self.name = name.encode('utf-8')
-        self.isDir = bool(isDir)
-        self.lastModified = float(lastModified)
-        self.filesize = float(filesize)
-        self.path = None if path is None else path.encode('utf-8')
+	def __init__(self, name, isDir, lastModified, filesize, path=None):
+		self.name = name
+		self.isDir = bool(isDir)
+		self.lastModified = float(lastModified)
+		self.filesize = float(filesize)
+		self.path = path
 
-    def getName(self):
-        return self.name
+	def getName(self):
+		return self.name
 
-    def getPath(self):
-        return self.path
+	def getPath(self):
+		return self.path
 
-    def isDirectory(self):
-        return self.isDir
+	def isDirectory(self):
+		return self.isDir
 
-    def getLastModified(self):
-        return self.lastModified
+	def getLastModified(self):
+		return self.lastModified
 
-    def getLastModifiedFormatted(self, format='%Y-%m-%d %H:%M'):
-        return formatTimestamp(self.lastModified, format)
+	def getLastModifiedFormatted(self, format='%Y-%m-%d %H:%M'):
+		return formatTimestamp(self.lastModified, format)
 
-    def getFilesize(self):
-        return self.filesize
+	def getFilesize(self):
+		return self.filesize
 
-    def isNewerThan(self, compared_file):
-        if type(compared_file) is str or type(compared_file) is unicode:
-            if os.path.exists(compared_file) is False:
-                return False
+	def isNewerThan(self, compared_file):
+		if type(compared_file) is str or type(compared_file) is unicode:
+			if os.path.exists(compared_file) is False:
+				return False
 
-            lastModified = os.path.getmtime(compared_file)
-        elif isinstance(compared_file, Metafile):
-            lastModified = compared_file.getLastModified()
-        else:
-            raise TypeError("Compared_file must be either string (file_path) or Metafile instance")
+			lastModified = os.path.getmtime(compared_file)
+		elif isinstance(compared_file, Metafile):
+			lastModified = compared_file.getLastModified()
+		else:
+			raise TypeError("Compared_file must be either string (file_path) or Metafile instance")
 
-        return self.lastModified > lastModified
+		return self.lastModified > lastModified
 
-    def isDifferentSizeThan(self, compared_file):
-        if type(compared_file) is str or type(compared_file) is unicode:
-            if os.path.exists(compared_file) is False:
-                return False
+	def isDifferentSizeThan(self, compared_file):
+		if type(compared_file) is str or type(compared_file) is unicode:
+			if os.path.exists(compared_file) is False:
+				return False
 
-            lastModified = os.path.getsize(compared_file)
-        elif isinstance(compared_file, Metafile):
-            lastModified = compared_file.getLastModified()
-        else:
-            raise TypeError("Compared_file must be either string (file_path) or Metafile instance")
+			lastModified = os.path.getsize(compared_file)
+		elif isinstance(compared_file, Metafile):
+			lastModified = compared_file.getLastModified()
+		else:
+			raise TypeError("Compared_file must be either string (file_path) or Metafile instance")
 
-        return self.filesize != os.path.getsize(compared_file)
+		return self.filesize != os.path.getsize(compared_file)
+
+
+
+# Detects if object is a string and if so converts to unicode, if not already
+#
+# @source http://farmdev.com/talks/unicode/
+# @author Ivan Krstić
+def to_unicode_or_bust(obj, encoding='utf-8'):
+	if isinstance(obj, basestring):
+		if not isinstance(obj, unicode):
+			obj = unicode(obj, encoding)
+	return obj
 
 
 
@@ -126,14 +138,14 @@ class Metafile:
 #
 # @return Metafile
 def fileToMetafile(file_path):
-    file_path = file_path.encode('utf-8')
-    name = os.path.basename(file_path)
-    path = file_path
-    isDir = os.path.isdir(file_path)
-    lastModified = os.path.getmtime(file_path)
-    filesize = os.path.getsize(file_path)
+	file_path = file_path.encode('utf-8')
+	name = os.path.basename(file_path)
+	path = file_path
+	isDir = os.path.isdir(file_path)
+	lastModified = os.path.getmtime(file_path)
+	filesize = os.path.getsize(file_path)
 
-    return Metafile(name, isDir, lastModified, filesize, path)
+	return Metafile(name, isDir, lastModified, filesize, path)
 
 
 
@@ -145,7 +157,7 @@ def fileToMetafile(file_path):
 #
 # @return string
 def formatTimestamp(timestamp, format='%Y-%m-%d %H:%M'):
-    return datetime.datetime.fromtimestamp(int(timestamp)).strftime(format)
+	return datetime.datetime.fromtimestamp(int(timestamp)).strftime(format)
 
 
 # Get all folders paths from given path upwards
@@ -157,30 +169,30 @@ def formatTimestamp(timestamp, format='%Y-%m-%d %H:%M'):
 #
 # @global nestingLimit
 def getFolders(file_path):
-    if file_path is None:
-        return []
+	if file_path is None:
+		return []
 
-    folders = [file_path.encode('utf-8')]
-    limit = nestingLimit
+	folders = [file_path]
+	limit = nestingLimit
 
-    while True:
-        split = os.path.split(file_path)
+	while True:
+		split = os.path.split(file_path)
 
-        # nothing found
-        if len(split) == 0:
-            break
+		# nothing found
+		if len(split) == 0:
+			break
 
-        # get filepath
-        file_path = split[0]
-        limit -= 1
+		# get filepath
+		file_path = split[0]
+		limit -= 1
 
-        # nothing else remains
-        if len(split[1]) == 0 or limit < 0:
-            break
+		# nothing else remains
+		if len(split[1]) == 0 or limit < 0:
+			break
 
-        folders.append(split[0].encode('utf-8'))
+		folders.append(split[0])
 
-    return folders
+	return folders
 
 
 # Finds a real file path among given folder paths
@@ -193,14 +205,14 @@ def getFolders(file_path):
 #
 # @return string file path or None
 def findFile(folders, file_name):
-    if folders is None:
-        return None
+	if folders is None:
+		return None
 
-    for folder in folders:
-        if os.path.exists(os.path.join(folder, file_name)) is True:
-            return folder
+	for folder in folders:
+		if os.path.exists(os.path.join(folder, file_name)) is True:
+			return folder
 
-    return None
+	return None
 
 
 # Returns unique list of file paths with corresponding config
@@ -211,18 +223,18 @@ def findFile(folders, file_name):
 #
 # @return list<string> of file paths
 def getFiles(paths, getConfigFile):
-    if paths is None:
-        return []
+	if paths is None:
+		return []
 
-    files = []
-    fileNames = []
+	files = []
+	fileNames = []
 
-    for target in paths:
-        if target not in fileNames:
-            fileNames.append(target)
-            files.append([target.encode('utf-8'), getConfigFile(target.encode('utf-8'))])
+	for target in paths:
+		if target not in fileNames:
+			fileNames.append(target)
+			files.append([target.encode('utf-8'), getConfigFile(target.encode('utf-8'))])
 
-    return files
+	return files
 
 
 
@@ -235,24 +247,24 @@ def getFiles(paths, getConfigFile):
 #
 # @return list<Metafiles>
 def gatherMetafiles(pattern, root):
-    if pattern is None:
-        return []
+	if pattern is None:
+		return []
 
-    result = {}
-    file_names = []
+	result = {}
+	file_names = []
 
-    for subroot, dirnames, filenames in os.walk(root):
-        for filename in fnmatch.filter(filenames, pattern):
-            target = os.path.join(subroot, filename).encode('utf-8')
+	for subroot, dirnames, filenames in os.walk(root):
+		for filename in fnmatch.filter(filenames, pattern):
+			target = os.path.join(subroot, filename).encode('utf-8')
 
-            if target not in file_names:
-                file_names.append(target)
-                result[target] = fileToMetafile(target)
+			if target not in file_names:
+				file_names.append(target)
+				result[target] = fileToMetafile(target)
 
-        for folder in dirnames:
-            result = dict(result.items() + gatherMetafiles(pattern, os.path.join(root, folder)).items())
+		for folder in dirnames:
+			result = dict(result.items() + gatherMetafiles(pattern, os.path.join(root, folder)).items())
 
-    return result
+	return result
 
 
 
@@ -263,14 +275,14 @@ def gatherMetafiles(pattern, root):
 #
 # @return list<Metafiles>
 def getChangedFiles(metafilesBefore, metafilesAfter):
-    changed = []
-    for file_path in metafilesAfter:
-        file_path = file_path.encode('utf-8')
+	changed = []
+	for file_path in metafilesAfter:
+		file_path = file_path.encode('utf-8')
 
-        if file_path in metafilesBefore and metafilesAfter[file_path].isNewerThan(metafilesBefore[file_path]):
-            changed.append(metafilesAfter[file_path])
+		if file_path in metafilesBefore and metafilesAfter[file_path].isNewerThan(metafilesBefore[file_path]):
+			changed.append(metafilesAfter[file_path])
 
-    return changed
+	return changed
 
 
 
@@ -281,18 +293,18 @@ def getChangedFiles(metafilesBefore, metafilesAfter):
 # @type destination: string
 # @param destination: destination file path
 def replace(source, destination):
-    destinationTemp = destination + '.bak'
-    try:
-        os.rename(source, destination)
-    except OSError:
-        os.rename(destination, destinationTemp)
+	destinationTemp = destination + '.bak'
+	try:
+		os.rename(source, destination)
+	except OSError:
+		os.rename(destination, destinationTemp)
 
-        try:
-            os.rename(source, destination)
-            os.unlink(destinationTemp)
-        except OSError, e:
-            os.rename(destinationTemp, destination)
-            raise
+		try:
+			os.rename(source, destination)
+			os.unlink(destinationTemp)
+		except OSError, e:
+			os.rename(destinationTemp, destination)
+			raise
 
 
 
@@ -301,29 +313,29 @@ def replace(source, destination):
 # @type source: callback(file)
 # @param source: operation performed on temporary file
 def viaTempfile(file_path, operation):
-    exceptionOccured = None
-    directory = os.path.dirname(file_path.encode('utf-8'))
-    temp = tempfile.NamedTemporaryFile('wb', suffix = '.temp', dir = directory, delete = False)
+	exceptionOccured = None
+	directory = os.path.dirname(file_path.encode('utf-8'))
+	temp = tempfile.NamedTemporaryFile('wb', suffix = '.temp', dir = directory, delete = False)
 
-    try:
-        operation(temp)
-    except Exception, exp:
-        exceptionOccured = exp
-    finally:
-        temp.flush()
-        temp.close()
+	try:
+		operation(temp)
+	except Exception, exp:
+		exceptionOccured = exp
+	finally:
+		temp.flush()
+		temp.close()
 
-        if exceptionOccured is False:
-            if os.path.exists(file_path) is False:
-                created = open(file_path, 'w+')
-                created.close()
+		if exceptionOccured is False:
+			if os.path.exists(file_path) is False:
+				created = open(file_path, 'w+')
+				created.close()
 
-            replace(temp.name.encode('utf-8'), file_path)
+			replace(temp.name.encode('utf-8'), file_path)
 
-        os.unlink(temp.name.encode('utf-8'))
+		os.unlink(temp.name.encode('utf-8'))
 
-        if exceptionOccured is not None:
-            raise exceptionOccured
+		if exceptionOccured is not None:
+			raise exceptionOccured
 
 
 
@@ -336,43 +348,43 @@ def viaTempfile(file_path, operation):
 # @return boolean whether it's likely textual or binary
 def isTextFile(file_path, asciiWhitelist=None, binaryWhitelist=None):
 
-    return False
+	return False
 
-    # check cache
-    if file_path in isTextCache:
-        return isTextCache[file_path]
+	# check cache
+	if file_path in isTextCache:
+		return isTextCache[file_path]
 
-    # check extension
-    extension = os.path.splitext(file_path)[1][1:]
+	# check extension
+	extension = os.path.splitext(file_path)[1][1:]
 
-    if extension:
+	if extension:
 
-        if type(asciiWhitelist) is list:
-            if extension in asciiWhitelist:
-                isTextCache[file_path] = True
-                return True
+		if type(asciiWhitelist) is list:
+			if extension in asciiWhitelist:
+				isTextCache[file_path] = True
+				return True
 
-        if type(binaryWhitelist) is list:
-            if extension in binaryWhitelist:
-                isTextCache[file_path] = False
-                return False
+		if type(binaryWhitelist) is list:
+			if extension in binaryWhitelist:
+				isTextCache[file_path] = False
+				return False
 
-    # check BOM
-    f = open(file_path, 'rb')
-    beginning = f.read(bomMaxLength)
-    f.close()
+	# check BOM
+	f = open(file_path, 'rb')
+	beginning = f.read(bomMaxLength)
+	f.close()
 
-    begin = []
-    for char in beginning:
-        begin.append(ord(char))
+	begin = []
+	for char in beginning:
+		begin.append(ord(char))
 
-    for encoding in bomMarks:
-        subarray = begin[0:len(bomMarks[encoding])]
+	for encoding in bomMarks:
+		subarray = begin[0:len(bomMarks[encoding])]
 
-        if subarray == begin:
-            isTextCache[file_path] = True
-            return True
+		if subarray == begin:
+			isTextCache[file_path] = True
+			return True
 
-    # is not
-    isTextCache[file_path] = False
-    return False
+	# is not
+	isTextCache[file_path] = False
+	return False
