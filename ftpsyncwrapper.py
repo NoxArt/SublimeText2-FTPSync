@@ -34,6 +34,7 @@ import ftplib
 import os
 import re
 import time
+from sys import getdefaultencoding
 
 # FTPSync libraries
 from ftpsyncfiles import Metafile, isTextFile, viaTempfile
@@ -265,7 +266,7 @@ class FTPSConnection(AbstractConnection):
             if os.path.isdir(file_path):
                 return self.__ensurePath(path, True)
 
-            command = "STOR " + path.encode('utf-8')
+            command = "STOR " + self.__encode(path)
             uploaded = open(file_path, "rb")
 
             def perBlock(data):
@@ -301,7 +302,7 @@ class FTPSConnection(AbstractConnection):
 
         def action():
             path = self._getMappedPath(file_path)
-            command = "RETR " + path.encode('utf-8')
+            command = "RETR " + self.__encode(path)
 
             def download(tempfile):
 
@@ -464,7 +465,7 @@ class FTPSConnection(AbstractConnection):
     # @type path: string
     def cwd(self, path):
         self._makePassive()
-        self.connection.cwd(path.encode('utf-8'))
+        self.connection.cwd(self.__encode(path))
 
 
     # Void command without return
@@ -475,7 +476,7 @@ class FTPSConnection(AbstractConnection):
     # @type path: string
     def voidcmd(self, command):
         self._makePassive()
-        self.connection.voidcmd(command.encode('utf-8'))
+        self.connection.voidcmd(self.__encode(command))
 
 
     # Plain command with return
@@ -486,7 +487,7 @@ class FTPSConnection(AbstractConnection):
     # @type path: string
     def sendcmd(self, command):
         self._makePassive()
-        return self.connection.sendcmd(command.encode('utf-8'))
+        return self.connection.sendcmd(self.__encode(command))
 
 
     # Returns whether file or folder info
@@ -522,7 +523,7 @@ class FTPSConnection(AbstractConnection):
             else:
                 path = self._getMappedPath(file_path)
 
-            path = path.encode('utf-8')
+            path = self.__encode(path)
 
             contents = []
             result = []
@@ -592,17 +593,34 @@ class FTPSConnection(AbstractConnection):
         self.voidcmd(command)
 
 
+    # Encodes a (usually filename) string
+    #
+    # @type self: FTPSConnection
+    # @type filename: string
+    #
+    # @return encoded string
+    def __encode(self, string):
+        if self.config['encoding'].lower() == 'auto':
+            if self.__hasFeat("UTF8"):
+                return string.encode('utf-8')
+            else:
+                return string.encode(getdefaultencoding(), 'ignore')
+        else:
+            return string.encode(self.config['encoding'])
+
+
     # Loads availible features
     #
     # @type self: FTPSConnection
     def __loadFeat(self):
         try:
-            feats = self.sendcmd("FEAT").split("\n")
+            feats = self.connection.sendcmd("FEAT").split("\n")
             self.feat = []
             for feat in feats:
                 if feat[0] != '2':
                     self.feat.append( feat.strip() )
-        except:
+        except Exception, e:
+            print e
             self.feat = []
 
 
@@ -751,7 +769,7 @@ class FTPSConnection(AbstractConnection):
 
                     try:
                         # create folder
-                        self.connection.mkd(folder.encode('utf-8'))
+                        self.connection.mkd(self.__encode(folder))
                     except Exception, e:
                         if self.__isErrorCode(e, 'fileUnavailible'):
                             # not proper permissions

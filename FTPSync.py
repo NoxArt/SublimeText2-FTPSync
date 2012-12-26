@@ -388,7 +388,7 @@ def verifyConfig(config):
     if type(config) is not dict:
         return "Config is not a {dict} type"
 
-    keys = ["username", "password", "private_key", "private_key_pass", "path", "tls", "use_tempfile", "upload_on_save", "port", "timeout", "ignore", "check_time", "download_on_open", "upload_delay", "after_save_watch","time_offset"]
+    keys = ["username", "password", "private_key", "private_key_pass", "path", "encoding", "tls", "use_tempfile", "upload_on_save", "port", "timeout", "ignore", "check_time", "download_on_open", "upload_delay", "after_save_watch", "time_offset"]
 
     for key in keys:
         if key not in config:
@@ -411,6 +411,9 @@ def verifyConfig(config):
 
     if isString(config['path']) is False:
         return "Config entry 'path' must be a string, " + unicode(type(config['path'])) + " given"
+
+    if config['encoding'] is not None and isString(config['encoding']) is False:
+        return "Config entry 'encoding' must be a string, " + unicode(type(config['encoding'])) + " given"
 
     if type(config['tls']) is not bool:
         return "Config entry 'tls' must be true or false, " + unicode(type(config['tls'])) + " given"

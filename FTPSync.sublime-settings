@@ -16,6 +16,7 @@
 		"private_key_pass": null,
 		"path": "/",
 
+		"encoding": "auto",
 		"tls": false,
 		"passive": true,
 		"use_tempfile": true,

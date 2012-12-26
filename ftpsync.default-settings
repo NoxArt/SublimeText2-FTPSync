@@ -41,6 +41,12 @@
 		// start with "/" and then append all the folders you'd need to open to get to your project from topmost folder
 		"path": "/"
 
+		// encoding used for filenames and filepaths ("auto" or other charset name)
+		//
+		// auto = use UTF-8 if availible (FEAT: UTF8), otherwise use local
+		//
+		//"encoding": "auto",
+
 		// Whether to use secured FTP connection
 		// 'true' is recommended
 		//"tls": false,
