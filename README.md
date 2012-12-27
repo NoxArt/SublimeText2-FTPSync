@@ -7,9 +7,11 @@ What's there for you?
 * Multiple named upload targets
 * Ignored file regex patterns
 * Secure transfer using TLS
+* Downloading via temporary file (better stability)
 * Determining newer remote files, overwrite protection
 * Manual multiple file & folder up/downloading (sidebar context menu)
-* Local&remote renaming
+* Multithreaded uploading and downloading
+* Local&remote renaming and deleting
 * Progress bar for multiple up/download
 
 Recently
@@ -23,8 +25,6 @@ Recently
 * Remembering "overwrite cancelled" decision
 * Fixing special characters in file path
 * Stability improvement (fresh connection per non-multithreaded command: those use their own connection handling)
-
-**I apologize for slower development at the moment, have a little time spare due to school and work duties.** Trying to fix the bugs though. The project is of course open so anyone is free to contribute improvements/fixes.
 
 For more info look into [Wiki](https://github.com/NoxArt/SublimeText2-FTPSync/wiki/_pages)
 
