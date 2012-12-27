@@ -34,6 +34,7 @@ import ftplib
 import os
 import re
 import time
+import datetime
 from sys import getdefaultencoding
 
 # FTPSync libraries
@@ -88,8 +89,11 @@ sslErrors = {
 # Default permissions for newly created folder
 defaultFolderPermissions = "755"
 
-# Encoding for file paths
+# Default encoding for file paths
 encoding = 'utf-8'
+
+# FTP time format, used for example for MFMT
+ftpTypeFormat = '%Y%m%d%H%M%S'
 
 
 
@@ -288,6 +292,16 @@ class FTPSConnection(AbstractConnection):
                     raise
             finally:
                 uploaded.close()
+
+            if self.__hasFeat("MFMT"):
+                try:
+                    self.voidcmd("MFMT " + self.__encodeTime(os.path.getmtime(file_path)) + " " + path)
+                except Exception, e:
+                    if self.__isDebug():
+                        try:
+                            print "Failed to set lastModified <Exception: " + str(e) + ">"
+                        except:
+                            pass
 
         return self.__execute(action)
 
@@ -687,6 +701,17 @@ class FTPSConnection(AbstractConnection):
         return time.mktime(struct)
 
 
+    # Unix timestamp to FTP time
+    #
+    # @type self: FTPSConnection
+    # @type: timestamp: integer
+    #
+    # @return formatted time
+    def __encodeTime(self, timestamp):
+        time = datetime.fromtimestamp(timestamp)
+        return time.strftime(ftpTimeFormat)
+
+
     # Integer code error comparison
     #
     # @type self: FTPSConnection
@@ -725,6 +750,15 @@ class FTPSConnection(AbstractConnection):
     # @global ftpErrors
     def __isError(self, exception, error):
         return str(exception).find(ftpErrors[error]) != -1
+
+
+    # Whether in debug mode
+    #
+    # @type self: FTPSConnection
+    #
+    # @return boolean
+    def __isDebug(self):
+        return self.generic_config['debug']
 
 
     # Returns base name
