@@ -93,7 +93,7 @@ defaultFolderPermissions = "755"
 encoding = 'utf-8'
 
 # FTP time format, used for example for MFMT
-ftpTypeFormat = '%Y%m%d%H%M%S'
+ftpTimeFormat = '%Y%m%d%H%M%S'
 
 
 
@@ -708,7 +708,7 @@ class FTPSConnection(AbstractConnection):
     #
     # @return formatted time
     def __encodeTime(self, timestamp):
-        time = datetime.fromtimestamp(timestamp)
+        time = datetime.datetime.fromtimestamp(timestamp)
         return time.strftime(ftpTimeFormat)
 
 
@@ -758,7 +758,7 @@ class FTPSConnection(AbstractConnection):
     #
     # @return boolean
     def __isDebug(self):
-        return self.generic_config['debug']
+        return True
 
 
     # Returns base name

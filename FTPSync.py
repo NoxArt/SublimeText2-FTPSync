@@ -1315,7 +1315,7 @@ class SyncCommandGetMetadata(SyncCommand):
         return results
 
 
-def performRemoteCheck(file_path, window):
+def performRemoteCheck(file_path, window, forced = False):
     if type(file_path) is not str and type(file_path) is not unicode:
         return
 
@@ -1349,6 +1349,9 @@ def performRemoteCheck(file_path, window):
     every = []
 
     for entry in metadata:
+        if forced is False and entry['metadata'].isDifferentSizeThan(file_path) is False:
+            continue
+
         if entry['metadata'].isNewerThan(file_path):
             newest.append(entry)
             every.append(entry)
@@ -1652,10 +1655,11 @@ class RemoteSyncCheck(threading.Thread):
     def __init__(self, file_path, window, forced=False):
         self.file_path = file_path
         self.window = window
+        self.forced = forced
         threading.Thread.__init__(self)
 
     def run(self):
-        performRemoteCheck(self.file_path, self.window)
+        performRemoteCheck(self.file_path, self.window, self.forced)
 
 class RemoteSyncDelete(threading.Thread):
     def __init__(self, file_paths):
@@ -1762,8 +1766,6 @@ class FtpSyncRenameCurrent(sublime_plugin.TextCommand):
             checksScheduled.remove(self.original_path)
 
         view.show_input_panel('Enter new name', self.original_name, self.rename, None, None)
-
-        RemoteSyncCheck(file_path, view, True).start()
 
     def rename(self, new_name):
         def action():
