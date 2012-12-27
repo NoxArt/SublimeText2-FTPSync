@@ -293,7 +293,7 @@ def getChangedFiles(metafilesBefore, metafilesAfter):
 # @type destination: string
 # @param destination: destination file path
 def replace(source, destination):
-	destinationTemp = destination + '.bak'
+	destinationTemp = destination + '.ftpsync.bak'
 	try:
 		os.rename(source, destination)
 	except OSError:
@@ -315,7 +315,7 @@ def replace(source, destination):
 def viaTempfile(file_path, operation):
 	exceptionOccured = None
 	directory = os.path.dirname(file_path.encode('utf-8'))
-	temp = tempfile.NamedTemporaryFile('wb', suffix = '.temp', dir = directory, delete = False)
+	temp = tempfile.NamedTemporaryFile('wb', suffix = '.ftpsync.temp', dir = directory, delete = False)
 
 	try:
 		operation(temp)
@@ -325,7 +325,7 @@ def viaTempfile(file_path, operation):
 		temp.flush()
 		temp.close()
 
-		if exceptionOccured is False:
+		if exceptionOccured is None:
 			if os.path.exists(file_path) is False:
 				created = open(file_path, 'w+')
 				created.close()
