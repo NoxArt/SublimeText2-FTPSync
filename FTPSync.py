@@ -768,6 +768,11 @@ class SyncCommand(object):
             self.close()
             return
 
+        if os.path.exists(config_file_path) is False:
+            printMessage("Cancelling " + unicode(self.__class__.__name__) + ": config_file_path: No such file")
+            self.close()
+            return
+
         self.config = loadConfig(config_file_path)
         self.basename = os.path.relpath(file_path, os.path.dirname(config_file_path))
 
@@ -876,6 +881,11 @@ class SyncCommandUpload(SyncCommandTransfer):
 
     def __init__(self, file_path, config_file_path, progress=None, onSave=False, disregardIgnore=False, whitelistConnections=[]):
         SyncCommandTransfer.__init__(self, file_path, config_file_path, progress, onSave, disregardIgnore, whitelistConnections)
+
+        if os.path.exists(file_path) is False:
+            printMessage("Cancelling " + unicode(self.__class__.__name__) + ": file_path: No such file")
+            self.close()
+            return
 
         self.delayed = False
         self.afterwatch = None
@@ -1112,6 +1122,11 @@ class SyncCommandDownload(SyncCommandTransfer):
 class SyncCommandRename(SyncCommand):
 
     def __init__(self, file_path, config_file_path, new_name):
+        if os.path.exists(file_path) is False:
+            printMessage("Cancelling " + unicode(self.__class__.__name__) + ": file_path: No such file")
+            self.close()
+            return
+
         if isString(new_name) is False:
             printMessage("Cancelling SyncCommandRename: invalid new_name given (type: " + unicode(type(new_name)) + ")")
             self.close()
@@ -1213,6 +1228,11 @@ class SyncCommandRename(SyncCommand):
 class SyncCommandDelete(SyncCommandTransfer):
 
     def __init__(self, file_path, config_file_path, progress=None, onSave=False, disregardIgnore=False, whitelistConnections=[]):
+        if os.path.exists(file_path) is False:
+            printMessage("Cancelling " + unicode(self.__class__.__name__) + ": file_path: No such file")
+            self.close()
+            return
+
         SyncCommandTransfer.__init__(self, file_path, config_file_path, progress, False, False, whitelistConnections)
 
     def execute(self):
