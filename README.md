@@ -13,6 +13,7 @@ What's there for you?
 * Progress bar for multiple up/download
 
 Recently
+* Setting true lastModified (based on local file's last modified value) on FTP server, if it has MFMT extension installed
 * Now downloading via temporary file for better stability (error during process will not harm the local file)
 * Mutlithreaded upload and download for much better speed
 * Added empty shortcuts [wiki entry](https://github.com/NoxArt/SublimeText2-FTPSync/wiki/Key-bindings)
@@ -49,12 +50,15 @@ Format:
             overwrite_newer_prevention: true, // overwrite protection when remote file is newer
             upload_delay: {int=0}, // delays [seconds] upload triggered by upload_on_save
 
+            encoding: {string=auto}, // encoding used for filenames on FTP server; auto = UTF8 if extension enabled, otherwise nothing
             port: {int=21}, // remote port, pretty much always 21, unless SFTP
             tls: {bool=false}, // set true to use secured transfer, recommended! (server needs to support)
             passive: {bool=true}, // whether to use passive or active connection
             timeout: {int=30}, // [seconds] to invalidate the cached connection
             ignore: {null|string}, // regular expression, matched against file path - not applied for downloading
             time_offset: {int=0}, // [seconds] to adjust for a different timezone of server
+            set_remote_lastmodified: {bool=true}, // if MFMT extension is availible, will set true lastModified based on local file
+            default_folder_permissions: {string=755}, // default permissions for newly created folders
 
             after_save_watch: {null|list<list<subfolder, filepatter>>=null} // after save watch
             // example: [ [ "code/assets/css", "*.css" ], [ "code/assets/", "*.jpg, *.png, *.gif" ] ]
@@ -77,7 +81,7 @@ Released under MIT licence.
 
 Feel free to add issues, ideas, pull requests...
 
-Thanks to [castus](https://github.com/castus), [tommymarshall](https://github.com/tommymarshall), [TotallyInformation](https://github.com/TotallyInformation), [saiori](https://github.com/saiori), [vnabet](https://github.com/vnabet), [Jcrs](https://github.com/Jcrs), [ItayXD](https://github.com/ItayXD), [bibimij](https://github.com/bibimij), [digitalmaster](https://github.com/digitalmaster), [alfaex](https://github.com/alfaex), [seyDoggy](https://github.com/seyDoggy), Nuno, [mikedoug](https://github.com/mikedoug), [stevether](https://github.com/stevether), [zaus](https://github.com/zaus), [noAlvaro](https://github.com/noAlvaro), [zofie86](https://github.com/zofie86), [fma965](https://github.com/fma965), [PixelVibe](https://github.com/PixelVibe), [Kaisercraft](https://github.com/Kaisercraft), [benkaiser](https://github.com/benkaiser), [anupdebnath](https://github.com/anupdebnath), [sy4mil](https://github.com/sy4mil), [leek](https://github.com/leek), [surfac](https://github.com/surfac), [mitsurugi](https://github.com/mitsurugi), [MonoSnippets](https://github.com/MonoSnippets), [Zegnat](https://github.com/Zegnat), [cwhittl](https://github.com/cwhittl), [shadowsdweller](https://github.com/shadowsdweller), [adiulici01](https://github.com/adiulici01), [tablatronix](https://github.com/tablatronix), [bllim](https://github.com/bllim)  for reporting issues, ideas and fixing!
+Thanks to [castus](https://github.com/castus), [tommymarshall](https://github.com/tommymarshall), [TotallyInformation](https://github.com/TotallyInformation), [saiori](https://github.com/saiori), [vnabet](https://github.com/vnabet), [Jcrs](https://github.com/Jcrs), [ItayXD](https://github.com/ItayXD), [bibimij](https://github.com/bibimij), [digitalmaster](https://github.com/digitalmaster), [alfaex](https://github.com/alfaex), [seyDoggy](https://github.com/seyDoggy), Nuno, [mikedoug](https://github.com/mikedoug), [stevether](https://github.com/stevether), [zaus](https://github.com/zaus), [noAlvaro](https://github.com/noAlvaro), [zofie86](https://github.com/zofie86), [fma965](https://github.com/fma965), [PixelVibe](https://github.com/PixelVibe), [Kaisercraft](https://github.com/Kaisercraft), [benkaiser](https://github.com/benkaiser), [anupdebnath](https://github.com/anupdebnath), [sy4mil](https://github.com/sy4mil), [leek](https://github.com/leek), [surfac](https://github.com/surfac), [mitsurugi](https://github.com/mitsurugi), [MonoSnippets](https://github.com/MonoSnippets), [Zegnat](https://github.com/Zegnat), [cwhittl](https://github.com/cwhittl), [shadowsdweller](https://github.com/shadowsdweller), [adiulici01](https://github.com/adiulici01), [tablatronix](https://github.com/tablatronix), [bllim](https://github.com/bllim), [Imaulle](https://github.com/Imaulle) and [friskfly](https://github.com/friskfly) for reporting issues, ideas and fixing!
 
 
 Tips
