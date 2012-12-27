@@ -95,8 +95,6 @@ Please keep in mind that for deleting and renaming on server you need to use `FT
 
 You can either use *download_on_open=true* to check files upon openning or *FTPSync: Check current file* command to see whether you have the same version as is on all servers. Using *overwrite_newer_prevention* is also recommended (it's actually enabled by default).
 
-It currently has a limitation that for FTP last modified is set to time of upload, while locally it's the true time of last modification. This can only be handled for servers that support special extension. This feature is not availible in FTPSync at the moment, so *overwrite_newer_prevention* can sometimes have false alarms.
-
 * **Upload different language versions to different servers of paths**
 
         {
