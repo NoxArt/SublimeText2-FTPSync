@@ -330,9 +330,10 @@ def viaTempfile(file_path, operation):
 				created = open(file_path, 'w+')
 				created.close()
 
-			replace(temp.name.encode('utf-8'), file_path)
+			replace(temp.name, file_path)
 
-		os.unlink(temp.name.encode('utf-8'))
+		if os.path.exists(temp.name):
+			os.unlink(temp.name)
 
 		if exceptionOccured is not None:
 			raise exceptionOccured
