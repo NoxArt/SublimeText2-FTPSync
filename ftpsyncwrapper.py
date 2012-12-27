@@ -293,7 +293,7 @@ class FTPSConnection(AbstractConnection):
             finally:
                 uploaded.close()
 
-            if self.__hasFeat("MFMT"):
+            if self.config['set_remote_lastmodified'] and self.__hasFeat("MFMT") :
                 try:
                     self.voidcmd("MFMT " + self.__encodeTime(os.path.getmtime(file_path)) + " " + path)
                 except Exception, e:

@@ -84,6 +84,9 @@
 		// make comparisons against the server time take 3600 seconds off of the server time.
 		//"time_offset": 0,
 
+		// If the server has MFMT extension installed, it will set true last modified value based on local file's last modified value
+		//"set_remote_lastmodified": true,
+
 
 		// chmod value for directories created on remote server by FTPSync
 		//"default_folder_permissions": "755",

@@ -388,7 +388,7 @@ def verifyConfig(config):
     if type(config) is not dict:
         return "Config is not a {dict} type"
 
-    keys = ["username", "password", "private_key", "private_key_pass", "path", "encoding", "tls", "use_tempfile", "upload_on_save", "port", "timeout", "ignore", "check_time", "download_on_open", "upload_delay", "after_save_watch", "time_offset"]
+    keys = ["username", "password", "private_key", "private_key_pass", "path", "encoding", "tls", "use_tempfile", "upload_on_save", "port", "timeout", "ignore", "check_time", "download_on_open", "upload_delay", "after_save_watch", "time_offset", "set_remote_lastmodified"]
 
     for key in keys:
         if key not in config:
@@ -423,6 +423,9 @@ def verifyConfig(config):
 
     if type(config['use_tempfile']) is not bool:
         return "Config entry 'use_tempfile' must be true or false, " + unicode(type(config['use_tempfile'])) + " given"
+
+    if type(config['set_remote_lastmodified']) is not bool:
+        return "Config entry 'set_remote_lastmodified' must be true or false, " + unicode(type(config['set_remote_lastmodified'])) + " given"
 
     if type(config['upload_on_save']) is not bool:
         return "Config entry 'upload_on_save' must be true or false, " + unicode(type(config['upload_on_save'])) + " given"

@@ -29,6 +29,7 @@
 		"upload_delay": 0,
 		"default_folder_permissions": "755",
 		"time_offset": 0,
+		"set_remote_lastmodified": true,
 
 		"after_save_watch": null,
 
