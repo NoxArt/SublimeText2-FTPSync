@@ -1459,7 +1459,7 @@ class RemoteSync(sublime_plugin.EventListener):
         index = 0
 
         for entry in metadata:
-            if (entry['connection'] not in blacklistConnections and config['connections'][entry['connection']]['check_time'] is True and entry['metadata'].isNewerThan(file_path)) or file_path in overwriteCancelled:
+            if (entry['connection'] not in blacklistConnections and config['connections'][entry['connection']]['check_time'] is True and entry['metadata'].isNewerThan(file_path) and entry['metadata'].isDifferentSizeThan(file_path)) or file_path in overwriteCancelled:
                 newer.append(entry['connection'])
 
                 if newest is None or newest > entry['metadata'].getLastModified():
