@@ -2336,6 +2336,16 @@ class FtpSyncBrowsePlace(sublime_plugin.TextCommand):
 		call.setCommand(command)
 		call.start()
 
+# Remote ftp navigation from current file
+class FtpSyncBrowseCurrent(sublime_plugin.TextCommand):
+	def run(self, edit):
+		file_path = sublime.active_window().active_view().file_name()
+
+		command = SyncNavigator(os.path.dirname(file_path), getConfigFile(file_path), None, os.path.dirname(file_path))
+		call = RemoteNavigator(getConfigFile(file_path))
+		call.setCommand(command)
+		call.start()
+
 # Remote ftp navigation from last point
 class FtpSyncBrowseLast(sublime_plugin.TextCommand):
 	def run(self, edit):

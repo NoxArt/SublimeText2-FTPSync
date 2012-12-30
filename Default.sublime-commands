@@ -27,5 +27,9 @@
     {
         "caption": "FTPSync: Browse from last path",
         "command": "ftp_sync_browse_last"
+    },
+    {
+        "caption": "FTPSync: Browse from current folder",
+        "command": "ftp_sync_browse_current"
     }
 ]
