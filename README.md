@@ -15,16 +15,8 @@ What's there for you?
 * Progress bar for multiple up/download
 
 Recently
-* Setting true lastModified (based on local file's last modified value) on FTP server, if it has MFMT extension installed
+* [experimental] Remote browsing and manipulating
 * Now downloading via temporary file for better stability (error during process will not harm the local file)
-* Mutlithreaded upload and download for much better speed
-* Added empty shortcuts [wiki entry](https://github.com/NoxArt/SublimeText2-FTPSync/wiki/Key-bindings)
-* Fixed Renaming feature
-* Added Delete feature (confirm dialogue inspired by [SideBarEnhancements](https://github.com/titoBouzout/SideBarEnhancements))
-* Improved dialogues
-* Remembering "overwrite cancelled" decision
-* Fixing special characters in file path
-* Stability improvement (fresh connection per non-multithreaded command: those use their own connection handling)
 
 For more info look into [Wiki](https://github.com/NoxArt/SublimeText2-FTPSync/wiki/_pages)
 
@@ -87,6 +79,8 @@ Thanks to [castus](https://github.com/castus), [tommymarshall](https://github.co
 Tips
 ----
 
+* **Set key bindings (hotkeys) for frequent actions you use**
+
 * **Renaming and deleting**
 
 Please keep in mind that for deleting and renaming on server you need to use `FTPSync > Rename` and `FTPSync > Delete` features, not those in Sublime Text 2 or SideBarEnhancements.
@@ -111,3 +105,19 @@ You can either use *download_on_open=true* to check files upon openning or *FTPS
 * **Using file compilation? Want to upload as well?**
 
 You can use *after_save_watch* option to setup files to be watched for change after uploading on save. [Learn how to use in Wiki](https://github.com/NoxArt/SublimeText2-FTPSync/wiki/Why-and-how-to-use-afterwatch).
+
+
+
+
+
+#### *Recent -though older- changes*
+
+* Setting true lastModified (based on local file's last modified value) on FTP server, if it has MFMT extension installed
+* Mutlithreaded upload and download for much better speed
+* Added empty shortcuts [wiki entry](https://github.com/NoxArt/SublimeText2-FTPSync/wiki/Key-bindings)
+* Fixed Renaming feature
+* Added Delete feature (confirm dialogue inspired by [SideBarEnhancements](https://github.com/titoBouzout/SideBarEnhancements))
+* Improved dialogues
+* Remembering "overwrite cancelled" decision
+* Fixing special characters in file path
+* Stability improvement (fresh connection per non-multithreaded command: those use their own connection handling)
