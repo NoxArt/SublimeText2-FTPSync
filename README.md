@@ -15,7 +15,7 @@ What's there for you?
 * Progress bar for multiple up/download
 
 Recently
-* [experimental] Remote browsing and manipulating
+* [*experimental*] Remote browsing and manipulating via file list
 * Now downloading via temporary file for better stability (error during process will not harm the local file)
 
 For more info look into [Wiki](https://github.com/NoxArt/SublimeText2-FTPSync/wiki/_pages)
@@ -26,7 +26,26 @@ How to use
 
 To mark a folder and descendants for upload insert *ftpsync.settings* file in following format. Don't worry - the skeleton can be simply inserted using *Preferences > Package Settings > FTPSync > Setup FTPSync in this folder* or using context menu in Side bar or using Control/CMD+Shift+P.
 
-Format:
+Simply:
+
+     {
+        <connection_name>: {
+            host: {string}, // url of the ftp server
+
+            username: {string=null},
+            password: {string=""},
+
+            path: {string="/"}, // your project's root path on the _server_
+
+            upload_on_save: {bool=true}, // whether upload on save [true] or manually [false]
+
+            tls: {bool=false}, // set [true] to use secured transfer, recommended! (server needs to support)
+
+        }
+    }
+
+
+Whole connection config:
 
     {
         <connection_name>: {
@@ -37,9 +56,9 @@ Format:
 
             path: {string="/"}, // your project's root path on the _server_
 
-            upload_on_save: true, // whether upload on save or manually
-            download_on_open: false, // checks whether there's a newer remote file on opening a file
-            overwrite_newer_prevention: true, // overwrite protection when remote file is newer
+            upload_on_save: {bool=true}, // whether upload on save or manually
+            download_on_open: {bool=false}, // checks whether there's a newer remote file on opening a file
+            overwrite_newer_prevention: {bool=true}, // overwrite protection when remote file is newer
             upload_delay: {int=0}, // delays [seconds] upload triggered by upload_on_save
 
             encoding: {string=auto}, // encoding used for filenames on FTP server; auto = UTF8 if extension enabled, otherwise nothing
