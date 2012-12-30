@@ -10,6 +10,7 @@
 
 	"browse_open_on_download": true,
 	"browse_display_permission": false,
+	"browse_timestamp_format": "%Y-%m-%d %H:%M",
 
 	"project_defaults_name": "default",
 	"project_defaults": {

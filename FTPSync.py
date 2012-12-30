@@ -131,6 +131,7 @@ navigateLast = {
 	'path': None
 }
 displayPermissions = settings.get('browse_display_permission')
+displayTimestampFormat = settings.get('browse_timestamp_format')
 
 
 # ==== Generic =============================================================================
@@ -1598,7 +1599,7 @@ class SyncNavigator(SyncCommand):
 				entry.append(meta.getName())
 				entry.append("Size: " + str(meta.getFilesize()) + " kB")
 
-			entry.append("Last modified: " + meta.getLastModifiedFormatted())
+			entry.append("Last modified: " + meta.getLastModifiedFormatted(displayTimestampFormat))
 
 			if displayPermissions:
 				entry.append("Permissions: " + meta.getPermissions())
@@ -1622,7 +1623,7 @@ class SyncNavigator(SyncCommand):
 
 		sublime.set_timeout(lambda: sublime.active_window().show_quick_panel(content, handleMetaSelection), 1)
 
-	def listFolderActions(self, meta):
+	def listFolderActions(self, meta, action = None):
 		if self.closed is True:
 			printMessage("Cancelling " + unicode(self.__class__.__name__) + ": command is closed")
 			return
@@ -1701,12 +1702,12 @@ class SyncNavigator(SyncCommand):
 				if connection.hasTrueLastModified():
 					info.append("Last Modified: " + meta.getLastModifiedFormatted())
 				else:
-					info.append("Uploaded time: " + formatTimestamp(os.path.getmtime(localFile)))
+					info.append("Upload time: " + formatTimestamp(os.path.getmtime(localFile), displayTimestampFormat))
 
 				info.append("")
 				if os.path.exists(localFile):
 					info.append("[has local version]")
-					info.append("Local last modified: " + formatTimestamp(os.path.getmtime(localFile)))
+					info.append("Local last modified: " + formatTimestamp(os.path.getmtime(localFile), displayTimestampFormat))
 				else:
 					info.append("[no local version]")
 
@@ -1714,9 +1715,12 @@ class SyncNavigator(SyncCommand):
 				return
 
 
-		sublime.set_timeout(lambda: sublime.active_window().show_quick_panel(actions, handleAction), 1)
+		if action is None:
+			sublime.set_timeout(lambda: sublime.active_window().show_quick_panel(actions, handleAction), 1)
+		else:
+			handleAction(action)
 
-	def listFileActions(self, meta):
+	def listFileActions(self, meta, action = None):
 		if self.closed is True:
 			printMessage("Cancelling " + unicode(self.__class__.__name__) + ": command is closed")
 			return
@@ -1815,12 +1819,12 @@ class SyncNavigator(SyncCommand):
 				if connection.hasTrueLastModified():
 					info.append("Last Modified: " + meta.getLastModifiedFormatted())
 				else:
-					info.append("Uploaded time: " + formatTimestamp(os.path.getmtime(localFile)))
+					info.append("Upload time: " + formatTimestamp(os.path.getmtime(localFile), displayTimestampFormat))
 
 				info.append("")
 				if os.path.exists(localFile):
 					info.append("[has local version]")
-					info.append("Local last modified: " + formatTimestamp(os.path.getmtime(localFile)))
+					info.append("Local last modified: " + formatTimestamp(os.path.getmtime(localFile), displayTimestampFormat))
 					info.append("Local size: " + unicode(round(float(os.path.getsize(localFile)) / 1024, 3)) + " kB")
 				else:
 					info.append("[no local version]")
@@ -1828,7 +1832,10 @@ class SyncNavigator(SyncCommand):
 				sublime.set_timeout(lambda: sublime.active_window().show_quick_panel([info], None), 1)
 				return
 
-		sublime.set_timeout(lambda: sublime.active_window().show_quick_panel(actions, handleAction), 1)
+		if action is None:
+			sublime.set_timeout(lambda: sublime.active_window().show_quick_panel(actions, handleAction), 1)
+		else:
+			handleAction(actions)
 
 
 
