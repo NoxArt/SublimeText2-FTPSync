@@ -67,18 +67,22 @@ isTextCache = {}
 # A file representation with helper methods
 class Metafile:
 
-	def __init__(self, name, isDir, lastModified, filesize, path=None):
+	def __init__(self, name, isDir, lastModified, filesize, path=None, permissions=None):
 		self.name = name
 		self.isDir = bool(isDir)
 		self.lastModified = float(lastModified)
 		self.filesize = float(filesize)
 		self.path = path
+		self.permissions = permissions
 
 	def getName(self):
 		return self.name
 
 	def getPath(self):
 		return self.path
+
+	def getPermissions(self):
+		return self.permissions
 
 	def isDirectory(self):
 		return self.isDir

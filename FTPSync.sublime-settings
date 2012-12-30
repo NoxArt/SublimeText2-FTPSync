@@ -8,6 +8,9 @@
 	"max_threads": 5,
 	"debug_threads": false,
 
+	"browse_open_on_download": true,
+	"browse_display_permission": false,
+
 	"project_defaults_name": "default",
 	"project_defaults": {
 		"username": null,

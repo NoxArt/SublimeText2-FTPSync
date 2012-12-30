@@ -19,5 +19,13 @@
     {
         "caption": "FTPSync: Rename current file",
         "command": "ftp_sync_rename_current"
+    },
+    {
+        "caption": "FTPSync: Browse",
+        "command": "ftp_sync_browse"
+    },
+    {
+        "caption": "FTPSync: Browse from last path",
+        "command": "ftp_sync_browse_last"
     }
 ]

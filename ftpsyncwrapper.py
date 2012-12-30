@@ -44,7 +44,7 @@ from ftpsyncfiles import Metafile, isTextFile, viaTempfile
 # ==== Initialization and optimization =====================================================
 
 # to extract data from FTP LIST http://stackoverflow.com/questions/2443007/ftp-list-format
-re_ftpListParse = re.compile("^([d-])[rxws-]{9}\s+\d+\s+\S+\s+\S+\s+(\d+)\s+(\w{1,3}\s+\d+\s+(?:\d+:\d+|\d{2,4}))\s+(.*?)$", re.M | re.I | re.U | re.L)
+re_ftpListParse = re.compile("^([d-])([rxws-]{9})\s+\d+\s+\S+\s+\S+\s+(\d+)\s+(\w{1,3}\s+\d+\s+(?:\d+:\d+|\d{2,4}))\s+(.*?)$", re.M | re.I | re.U | re.L)
 
 # error code - first 3-digit number https://tools.ietf.org/html/rfc959#page-39
 re_errorCode = re.compile("[1-5]\d\d")
@@ -317,7 +317,6 @@ class FTPSConnection(AbstractConnection):
         def action():
             path = self._getMappedPath(file_path)
             command = "RETR " + self.__encode(path)
-
             def download(tempfile):
 
                 def perBlock(data):
@@ -482,6 +481,11 @@ class FTPSConnection(AbstractConnection):
         self.connection.cwd(self.__encode(path))
 
 
+    # Returns whether it provides true last modified mechanism
+    def hasTrueLastModified(self):
+        return self.__hasFeat("MFMT")
+
+
     # Void command without return
     #
     # Passivates if configured to do so
@@ -529,7 +533,7 @@ class FTPSConnection(AbstractConnection):
     # @param mapped: whether it's remote path (True) or not
     #
     # @return list<Metafile>
-    def list(self, file_path, mapped=False):
+    def list(self, file_path, mapped=False,all=False):
 
         def action():
             if mapped:
@@ -563,12 +567,13 @@ class FTPSConnection(AbstractConnection):
                     continue
 
                 isDir = split.group(1) == 'd'
-                filesize = split.group(2)
-                lastModified = split.group(3)
-                name = split.group(4)
+                permissions = split.group(2)
+                filesize = split.group(3)
+                lastModified = split.group(4)
+                name = split.group(5)
 
-                if name != "." and name != "..":
-                    data = Metafile(name, isDir, self.__parseTime(lastModified) + int(self.config['time_offset']), filesize)
+                if (all is True and name != ".") or (name != "." and name != ".."):
+                    data = Metafile(name, isDir, self.__parseTime(lastModified) + int(self.config['time_offset']), filesize, path, permissions)
                     result.append(data)
 
             return result
@@ -605,6 +610,11 @@ class FTPSConnection(AbstractConnection):
         command = "SITE CHMOD " + str(permissions) + " " + str(filename)
 
         self.voidcmd(command)
+
+
+    # Returns local path for given remote path
+    def getLocalPath(self, remotePath, localRoot):
+        return os.path.join(localRoot, os.path.normpath(os.path.relpath(remotePath, self.config['path'])))
 
 
     # Encodes a (usually filename) string

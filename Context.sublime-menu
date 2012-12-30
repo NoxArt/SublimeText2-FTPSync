@@ -18,6 +18,17 @@
             {
                 "caption": "Rename this file",
                 "command": "ftp_sync_rename_current"
+            },
+            {
+                "caption": "-"
+            },
+            {
+                "caption": "Browse",
+                "command": "ftp_sync_browse"
+            },
+            {
+                "caption": "Browse from last path",
+                "command": "ftp_sync_browse_last"
             }
         ]
     },

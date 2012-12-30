@@ -38,149 +38,169 @@ from time import sleep
 
 # Command thread
 class RunningCommand(threading.Thread):
-    def __init__(self, command, onFinish, debug, tid):
-        self.command = command
-        self.onFinish = onFinish
-        self.debug = bool(debug)
-        self.id = int(tid)
-        threading.Thread.__init__(self)
+	def __init__(self, command, onFinish, debug, tid):
+		self.command = command
+		self.onFinish = onFinish
+		self.debug = bool(debug)
+		self.id = int(tid)
+		threading.Thread.__init__(self)
 
-    def run(self):
-        try:
-            if self.debug:
-                print "Executing command " + unicode(self.id)
+	def run(self):
+		try:
+			if self.debug:
+				print "Executing command " + unicode(self.id)
 
-            self.command.execute()
-        except Exception:
-            if self.debug:
-                print "Retrying command " + unicode(self.id)
+			self.command.execute()
+		except Exception:
+			if self.debug:
+				print "Retrying command " + unicode(self.id)
 
-            self.command.execute()
-        finally:
-            if self.debug:
-                print "Closing command " + unicode(self.id)
+			self.command.execute()
+		finally:
+			if self.debug:
+				print "Closing command " + unicode(self.id)
 
-            self.onFinish(self.command)
+			self.onFinish(self.command)
 
 
 # Class handling concurrent commands
 class Worker(object):
 
-    def __init__(self, limit, factory, loader):
-        self.limit = int(limit)
+	def __init__(self, limit, factory, loader):
+		self.limit = int(limit)
 
-        self.connections = []
-        self.commands = []
-        self.waitingCommands = []
-        self.threads = []
-        self.index = 0
-        self.threadId = 0
+		self.connections = []
+		self.commands = []
+		self.waitingCommands = []
+		self.threads = []
+		self.index = 0
+		self.threadId = 0
 
-        self.makeConnection = factory
-        self.makeConfig = loader
+		self.makeConnection = factory
+		self.makeConfig = loader
+		self.freeConnections = []
 
-        self.freeConnections = range(1, self.limit + 1)
-        self.freeConnections.reverse()
-
-        self.debug = False
+		self.debug = False
 
 
-    # Enables console dumping
-    def enableDebug(self):
-        self.debug = True
+	# Enables console dumping
+	def enableDebug(self):
+		self.debug = True
 
-    # Enables console dumping
-    def disableDebug(self):
-        self.debug = False
+	# Enables console dumping
+	def disableDebug(self):
+		self.debug = False
 
-    # Sets a callback used for making a connection
-    def setConnectionFactory(self, factory):
-        self.makeConnection = factory
+	# Sets a callback used for making a connection
+	def setConnectionFactory(self, factory):
+		self.makeConnection = factory
 
-    # Adds a new connection to pool
-    def addConnection(self, connections):
-        self.connections.append(connections)
+	# Adds a new connection to pool
+	def addConnection(self, connections):
+		self.connections.append(connections)
 
-    # Adds a new command to worker
-    def addCommand(self, command, config):
-        if self.debug:
-            print "Adding command " + self.__commandName(command)
+	# Creates and adds a connection if limit allows
+	def fillConnection(self, config):
+		if len(self.connections) <= self.limit:
+			connection = None
 
-        if len(self.commands) >= self.limit:
-            if self.debug:
-                print "Queuing command " + self.__commandName(command)
+			try:
+				connection = self.makeConnection(self.makeConfig(config), None, False)
+			except Exception, e:
+				if str(e).lower().find('too many connections') != -1:
+					if self.debug:
+						print "FTPSync > Too many connections..."
+					sleep(0.5)
+				else:
+					raise
 
-            self.__waitCommand(command)
-        else:
-            if len(self.connections) <= self.limit:
-                self.addConnection(self.makeConnection(self.makeConfig(config)))
+			if connection is not None and len(connection) > 0:
+				self.addConnection(connection)
+				self.freeConnections.append(len(self.connections))
 
-                if self.debug:
-                    print "Creaing new connection #" + unicode(len(self.connections))
+			if self.debug:
+				print "FTPSync > Creating new connection #" + unicode(len(self.connections))
 
-            self.__run(command)
+	# Adds a new command to worker
+	def addCommand(self, command, config):
+		if self.debug:
+			print "FTPSync > Adding command " + self.__commandName(command)
 
-    # Return whether has any scheduled commands
-    def isEmpty(self):
-        return len(self.commands) == 0 and len(self.waitingCommands) == 0
+		if len(self.commands) >= self.limit:
+			if self.debug:
+				print "FTPSync > Queuing command " + self.__commandName(command)
 
-    # Put the command to sleep
-    def __waitCommand(self, command):
-        self.waitingCommands.append(command)
+			self.__waitCommand(command)
+		else:
+			self.__run(command, config)
 
-    # Run the command
-    def __run(self, command):
-        self.threadId += 1
-        thread = RunningCommand(command, self.__onFinish, self.debug, self.threadId)
+	# Return whether has any scheduled commands
+	def isEmpty(self):
+		return len(self.commands) == 0 and len(self.waitingCommands) == 0
 
-        while len(self.freeConnections) == 0:
-            sleep(0.05)
+	# Put the command to sleep
+	def __waitCommand(self, command):
+		self.waitingCommands.append(command)
 
-        index = self.freeConnections.pop()
+	# Run the command
+	def __run(self, command, config):
+		self.threadId += 1
+		thread = RunningCommand(command, self.__onFinish, self.debug, self.threadId)
 
-        if self.debug:
-            print "Scheduling thread #" + unicode(self.threadId) + " " + self.__commandName(command) + " run, using connection " + unicode(index)
+		self.fillConnection(config)
+		while len(self.freeConnections) == 0:
+			sleep(0.05)
+			self.fillConnection(config)
 
-        command.setConnection(self.connections[index - 1])
-        self.commands.append({
-            'command': command,
-            'thread': thread,
-            'index': index,
-            'threadId': self.threadId
-        })
+		index = self.freeConnections.pop()
 
-        thread.start()
+		if self.debug:
+			print "FTPSync > Scheduling thread #" + unicode(self.threadId) + " " + self.__commandName(command) + " run, using connection " + unicode(index)
 
-    # Finish callback
-    def __onFinish(self, command):
-        # Kick from running commands and free connection
-        for cmd in self.commands:
-            if cmd['command'] is command:
-                self.freeConnections.append(cmd['index'])
-                self.commands.remove(cmd)
+		command.setConnection(self.connections[index - 1])
+		self.commands.append({
+			'command': command,
+			'config': config,
+			'thread': thread,
+			'index': index,
+			'threadId': self.threadId
+		})
 
-                if self.debug:
-                    print "Removing thread #" + unicode(cmd['threadId'])
+		thread.start()
 
-        if self.debug:
-            print "Sleeping commands: " + unicode(len(self.waitingCommands))
+	# Finish callback
+	def __onFinish(self, command):
+		config = None
 
-        # Woke up one sleeping command
-        if len(self.waitingCommands) > 0:
-            awakenCommand = self.waitingCommands.pop()
-            self.__run(awakenCommand)
+		# Kick from running commands and free connection
+		for cmd in self.commands:
+			if cmd['command'] is command:
+				self.freeConnections.append(cmd['index'])
+				config = cmd['config']
+				self.commands.remove(cmd)
 
-    # Returns classname of given command
-    def __commandName(self, command):
-        return unicode(command.__class__.__name__)
+				if self.debug:
+					print "FTPSync > Removing thread #" + unicode(cmd['threadId'])
 
-    # Closes all connections
-    def __del__(self):
-        for connections in self.connections:
-            for connection in connections:
-                connection.close()
+		if self.debug:
+			print "FTPSync > Sleeping commands: " + unicode(len(self.waitingCommands))
 
-                if self.debug:
-                    print "Closing connection"
+		# Woke up one sleeping command
+		if len(self.waitingCommands) > 0:
+			awakenCommand = self.waitingCommands.pop()
+			self.__run(awakenCommand, config)
+
+	# Returns classname of given command
+	def __commandName(self, command):
+		return unicode(command.__class__.__name__)
+
+	# Closes all connections
+	def __del__(self):
+		for connections in self.connections:
+			for connection in connections:
+				connection.close()
+
+				if self.debug:
+					print "FTPSync > Closing connection"
 
 
