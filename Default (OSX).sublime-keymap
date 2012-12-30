@@ -1,5 +1,8 @@
 [
 	{ "keys": [""], "command": "ftp_sync_current" },
 	{ "keys": [""], "command": "ftp_sync_down_current" },
-	{ "keys": [""], "command": "ftp_sync_check_current" }
+	{ "keys": [""], "command": "ftp_sync_check_current" },
+	{ "keys": [""], "command": "ftp_sync_browse" },
+	{ "keys": [""], "command": "ftp_sync_browse_last" },
+	{ "keys": [""], "command": "ftp_sync_browse_current" }
 ]
