@@ -11,6 +11,8 @@
 			{ "caption": "-" },
 			{ "caption": "Delete", "command": "ftp_sync_delete", "args": {"paths": []} },
 			{ "caption": "-" },
+			{ "caption": "Browse here", "command": "ftp_sync_browse_place", "args": {"paths": []} },
+			{ "caption": "-" },
 			{ "caption": "Setup FTPSync in this folder", "command": "ftp_sync_new_settings", "args": {"dirs": []} }
 		]
 	}

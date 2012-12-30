@@ -1552,7 +1552,7 @@ class SyncNavigator(SyncCommand):
 				return
 
 			self.selectConnection(names[index])
-			self.listFiles()
+			self.listFiles(self.defaultPath)
 
 		sublime.set_timeout(lambda: sublime.active_window().show_quick_panel(connections, handleConnectionSelection), 1)
 
@@ -2158,13 +2158,20 @@ class RemoteNavigator(RemoteThread):
 	def __init__(self, config, last = False):
 		self.config = config
 		self.last = last
+		self.command = None
 		RemoteThread.__init__(self)
 
+	def setCommand(self, command):
+		self.command = command
+
 	def run(self):
-		if self.last is True:
-			command = SyncNavigator(None, navigateLast['config_file'], navigateLast['connection_name'], navigateLast['path'])
+		if self.command is None:
+			if self.last is True:
+				command = SyncNavigator(None, navigateLast['config_file'], navigateLast['connection_name'], navigateLast['path'])
+			else:
+				command = SyncNavigator(None, self.config)
 		else:
-			command = SyncNavigator(None, self.config)
+			command = self.command
 
 		self.addWhitelistConnections(command)
 		command.execute()
@@ -2315,6 +2322,19 @@ class FtpSyncBrowse(sublime_plugin.TextCommand):
 		file_path = sublime.active_window().active_view().file_name()
 
 		RemoteNavigator(getConfigFile(file_path)).start()
+
+# Remote ftp navigation
+class FtpSyncBrowsePlace(sublime_plugin.TextCommand):
+	def run(self, edit, paths):
+		if os.path.isdir(paths[0]):
+			file_path = paths[0]
+		else:
+			file_path = os.path.dirname(paths[0])
+
+		command = SyncNavigator(None, getConfigFile(file_path), None, file_path)
+		call = RemoteNavigator(getConfigFile(file_path))
+		call.setCommand(command)
+		call.start()
 
 # Remote ftp navigation from last point
 class FtpSyncBrowseLast(sublime_plugin.TextCommand):
