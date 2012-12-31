@@ -208,6 +208,30 @@ def printMessage(text, name=None, onlyVerbose=False, status=False):
 		dumpMessage(message)
 
 
+# Issues a system notification for certian event
+#
+# @type text: string
+# @param text: notification message
+def systemNotify(text):
+	try:
+		import subprocess
+
+		text = "FTPSync > " + text
+
+		if sys.platform == "darwin":
+		    """ Run Grown Notification """
+		    cmd = '/usr/local/bin/growlnotify -a "Sublime Text 2" -t "FTPSync message" -m "'+text+'"'
+		    subprocess.call(cmd,shell=True)
+		elif sys.platform == "linux2":
+		    subprocess.call('/usr/bin/notify-send "Sublime Text 2" "'+text+'"',shell=True)
+		elif sys.platform == "win32":
+		    """ Find the notifaction platform for windows if there is one"""
+
+	except Exception, e:
+		printMessage("Notification failed")
+		handleExceptions(e)
+
+
 # ==== Config =============================================================================
 
 # Invalidates all config cache entries belonging to a certain directory
@@ -1067,6 +1091,15 @@ class SyncCommandUpload(SyncCommandTransfer):
 		if len(stored) > 0:
 			if self.progress is not None and self.progress.isFinished() and self.progress.getTotal() > 1:
 				dumpMessage(getProgressMessage(stored, self.progress, "uploading finished!"))
+
+				notify = "Uploading "
+				if self.progress.getTotal() == 1:
+					notify += "{" + self.basename + "} "
+				else:
+					notify += str(self.progress.getTotal()) + " files "
+				notify += "finished!"
+
+				systemNotify(notify)
 			else:
 				dumpMessage(getProgressMessage(stored, self.progress, "uploaded ", self.basename))
 
@@ -1186,6 +1219,15 @@ class SyncCommandDownload(SyncCommandTransfer):
 		if len(stored) > 0:
 			if self.progress is not None and self.progress.isFinished() and self.progress.getTotal() > 1:
 				dumpMessage(getProgressMessage(stored, self.progress, "downloading finished!"))
+
+				notify = "Downloading "
+				if self.progress.getTotal() == 1:
+					notify += "{" + self.basename + "} "
+				else:
+					notify += str(self.progress.getTotal()) + " files "
+				notify += "finished!"
+
+				systemNotify(notify)
 			else:
 				dumpMessage(getProgressMessage(stored, self.progress, "downloaded ", self.basename))
 
