@@ -60,7 +60,10 @@ class RunningCommand(threading.Thread):
 			if self.debug:
 				print "Closing command " + unicode(self.id)
 
-			self.onFinish(self.command)
+		while self.command.isRunning():
+			sleep(0.05)
+
+		self.onFinish(self.command)
 
 
 # Class handling concurrent commands

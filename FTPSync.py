@@ -789,6 +789,9 @@ class SyncObject(object):
 		self.onFinish = []
 
 	def addOnFinish(self, callback):
+		if hasattr(self, 'onFinish') is False:
+			self.onFinish = []
+
 		self.onFinish.append(callback)
 
 		return self
@@ -803,6 +806,9 @@ class SyncObject(object):
 class SyncCommand(SyncObject):
 
 	def __init__(self, file_path, config_file_path):
+		SyncObject.__init__(self)
+
+		self.running = True
 		self.closed = False
 		self.ownConnection = False
 		self.file_path = file_path
@@ -826,8 +832,6 @@ class SyncCommand(SyncObject):
 		self.config_hash = getFilepathHash(self.config_file_path)
 		self.connections = None
 		self.worker = None
-
-		SyncObject.__init__(self)
 
 	def setWorker(self, worker):
 		self.worker = worker
@@ -868,7 +872,12 @@ class SyncCommand(SyncObject):
 
 		return self
 
+	def isRunning(self):
+		return self.running
+
 	def __del__(self):
+		self.running = False
+
 		if hasattr(self, 'config_hash') and self.config_hash in usingConnections:
 			usingConnections.remove(self.config_hash)
 
@@ -885,7 +894,7 @@ class SyncCommand(SyncObject):
 # Transfer-related sychronization command
 class SyncCommandTransfer(SyncCommand):
 
-	def __init__(self, file_path, config_file_path, progress=None, onSave=False, disregardIgnore=False, whitelistConnections=[]):
+	def __init__(self, file_path, config_file_path, progress=None, onSave=False, disregardIgnore=False, whitelistConnections=[], forcedSave=False):
 
 		self.progress = progress
 
@@ -904,7 +913,7 @@ class SyncCommandTransfer(SyncCommand):
 		for name in self.config['connections']:
 
 			# on save
-			if self.config['connections'][name]['upload_on_save'] is False and onSave is True:
+			if self.config['connections'][name]['upload_on_save'] is False and onSave is True and forcedSave is False:
 				toBeRemoved.append(name)
 				continue
 
@@ -930,8 +939,8 @@ class SyncCommandTransfer(SyncCommand):
 # Upload command
 class SyncCommandUpload(SyncCommandTransfer):
 
-	def __init__(self, file_path, config_file_path, progress=None, onSave=False, disregardIgnore=False, whitelistConnections=[]):
-		SyncCommandTransfer.__init__(self, file_path, config_file_path, progress, onSave, disregardIgnore, whitelistConnections)
+	def __init__(self, file_path, config_file_path, progress=None, onSave=False, disregardIgnore=False, whitelistConnections=[], forcedSave=False):
+		SyncCommandTransfer.__init__(self, file_path, config_file_path, progress, onSave, disregardIgnore, whitelistConnections, forcedSave)
 
 		if os.path.exists(file_path) is False:
 			printMessage("Cancelling " + unicode(self.__class__.__name__) + ": file_path: No such file")
@@ -987,6 +996,8 @@ class SyncCommandUpload(SyncCommandTransfer):
 			index += 1
 
 			try:
+				self._createConnection()
+
 				# identification
 				connection = self.connections[index]
 				id = os.urandom(32)
@@ -1067,8 +1078,8 @@ class SyncCommandUpload(SyncCommandTransfer):
 # Download command
 class SyncCommandDownload(SyncCommandTransfer):
 
-	def __init__(self, file_path, config_file_path, progress=None, onSave=False, disregardIgnore=False, whitelistConnections=[]):
-		SyncCommandTransfer.__init__(self, file_path, config_file_path, progress, onSave, disregardIgnore, whitelistConnections)
+	def __init__(self, file_path, config_file_path, progress=None, onSave=False, disregardIgnore=False, whitelistConnections=[], forcedSave = False):
+		SyncCommandTransfer.__init__(self, file_path, config_file_path, progress, onSave, disregardIgnore, whitelistConnections, forcedSave)
 
 		self.isDir = False
 		self.forced = False
@@ -2005,10 +2016,11 @@ class RemoteThread(threading.Thread):
 
 
 class RemoteSyncCall(RemoteThread):
-	def __init__(self, file_path, config, onSave, disregardIgnore=False, whitelistConnections=[]):
+	def __init__(self, file_path, config, onSave, disregardIgnore=False, whitelistConnections=[], forcedSave=False):
 		self.file_path = file_path
 		self.config = config
 		self.onSave = onSave
+		self.forcedSave = forcedSave
 		self.disregardIgnore = disregardIgnore
 		self.whitelistConnections = whitelistConnections
 		RemoteThread.__init__(self)
@@ -2020,7 +2032,7 @@ class RemoteSyncCall(RemoteThread):
 			return False
 
 		elif type(target) is str or type(target) is unicode:
-			command = SyncCommandUpload(target, self.config, onSave=self.onSave, disregardIgnore=self.disregardIgnore, whitelistConnections=self.whitelistConnections)
+			command = SyncCommandUpload(target, self.config, onSave=self.onSave, disregardIgnore=self.disregardIgnore, whitelistConnections=self.whitelistConnections, forcedSave=self.forcedSave)
 			command.addOnFinish(self.getOnFinish())
 			self.addWhitelistConnections(command)
 			command.execute()
@@ -2032,7 +2044,7 @@ class RemoteSyncCall(RemoteThread):
 			queue = createWorker()
 
 			for file_path, config in target:
-				command = SyncCommandUpload(file_path, config, progress=progress, onSave=self.onSave, disregardIgnore=self.disregardIgnore, whitelistConnections=self.whitelistConnections)
+				command = SyncCommandUpload(file_path, config, progress=progress, onSave=self.onSave, disregardIgnore=self.disregardIgnore, whitelistConnections=self.whitelistConnections, forcedSave=self.forcedSave)
 				command.addOnFinish(self.getOnFinish())
 				self.addWhitelistConnections(command)
 
@@ -2215,6 +2227,11 @@ class FtpSyncNewSettings(sublime_plugin.TextCommand):
 class FtpSyncTarget(sublime_plugin.TextCommand):
 	def run(self, edit, paths):
 		RemoteSyncCall(gatherFiles(paths), None, False).start()
+
+# Synchronize up selected file/directory with delay and watch
+class FtpSyncTargetDelayed(sublime_plugin.TextCommand):
+	def run(self, edit, paths):
+		RemoteSyncCall(gatherFiles(paths), None, True, forcedSave = True).start()
 
 
 # Synchronize up current file
