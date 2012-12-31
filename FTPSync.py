@@ -1537,6 +1537,9 @@ class SyncNavigator(SyncCommand):
 		if len(self.config['connections']) > 1 and self.configConnection is None:
 			self.listConnections()
 		else:
+			if self.configConnection is None:
+				for name in self.config['connections']:
+					self.selectConnection(name)
 			self.listFiles(self.defaultPath)
 
 	def listConnections(self):
@@ -1695,21 +1698,22 @@ class SyncNavigator(SyncCommand):
 			if index == 6 + exists:
 				info = []
 				info.append(meta.getName())
-				info.append("[directory]")
-				info.append("")
-				info.append("Path: " + str(meta.getPath() + '/' + meta.getName()).replace('/./', '/'))
+				info.append("[Directory]")
+				info.append("Path: " + unicode(meta.getPath())[len(self.configConnection['path']):] + '/' + meta.getName().replace('/./', '/'))
 				info.append("Permissions: " + meta.getPermissions())
 				if connection.hasTrueLastModified():
 					info.append("Last Modified: " + meta.getLastModifiedFormatted())
 				else:
-					info.append("Upload time: " + formatTimestamp(os.path.getmtime(localFile), displayTimestampFormat))
+					info.append("Last upload time: " + formatTimestamp(os.path.getmtime(localFile), displayTimestampFormat))
 
 				info.append("")
 				if os.path.exists(localFile):
-					info.append("[has local version]")
+					info.append("[Has local version]")
 					info.append("Local last modified: " + formatTimestamp(os.path.getmtime(localFile), displayTimestampFormat))
+					if sublime.platform() == 'windows':
+						info.append("Local created: " + formatTimestamp(os.path.getctime(localFile), displayTimestampFormat))
 				else:
-					info.append("[no local version]")
+					info.append("[No local version]")
 
 				sublime.set_timeout(lambda: sublime.active_window().show_quick_panel([info], None), 1)
 				return
@@ -1811,23 +1815,24 @@ class SyncNavigator(SyncCommand):
 			if index == 5 + exists + int(hasSidebar):
 				info = []
 				info.append(meta.getName())
-				info.append("[file]")
-				info.append("")
-				info.append("Path: " + str(meta.getPath() + '/' + meta.getName()).replace('/./', '/'))
-				info.append("Size: " + str(meta.getFilesize()) + " kB")
+				info.append("[File]")
+				info.append("Path: " + unicode(meta.getPath())[len(self.configConnection['path']):] + '/' + meta.getName().replace('/./', '/'))
+				info.append("Size: " + unicode(round(meta.getFilesize()/1024,3)) + " kB")
 				info.append("Permissions: " + meta.getPermissions())
 				if connection.hasTrueLastModified():
 					info.append("Last Modified: " + meta.getLastModifiedFormatted())
 				else:
-					info.append("Upload time: " + formatTimestamp(os.path.getmtime(localFile), displayTimestampFormat))
+					info.append("Last upload time: " + formatTimestamp(os.path.getmtime(localFile), displayTimestampFormat))
 
 				info.append("")
 				if os.path.exists(localFile):
-					info.append("[has local version]")
-					info.append("Local last modified: " + formatTimestamp(os.path.getmtime(localFile), displayTimestampFormat))
+					info.append("[Has local version]")
 					info.append("Local size: " + unicode(round(float(os.path.getsize(localFile)) / 1024, 3)) + " kB")
+					info.append("Local last modified: " + formatTimestamp(os.path.getmtime(localFile), displayTimestampFormat))
+					if sublime.platform() == 'windows':
+						info.append("Local created: " + formatTimestamp(os.path.getctime(localFile), displayTimestampFormat))
 				else:
-					info.append("[no local version]")
+					info.append("[No local version]")
 
 				sublime.set_timeout(lambda: sublime.active_window().show_quick_panel([info], None), 1)
 				return
