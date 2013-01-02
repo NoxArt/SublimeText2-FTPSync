@@ -51,19 +51,21 @@ class RunningCommand(threading.Thread):
 				print "Executing command " + unicode(self.id)
 
 			self.command.execute()
-		except Exception:
+		except Exception, e:
 			if self.debug:
+				print e
 				print "Retrying command " + unicode(self.id)
 
 			self.command.execute()
 		finally:
 			if self.debug:
-				print "Closing command " + unicode(self.id)
+				print "Ending command " + unicode(self.id)
 
-		while self.command.isRunning():
-			sleep(0.05)
+			while self.command.isRunning():
+				print "Command " + str(self.id) + " running..."
+				sleep(0.05)
 
-		self.onFinish(self.command)
+			self.onFinish(self.command)
 
 
 # Class handling concurrent commands
@@ -113,8 +115,10 @@ class Worker(object):
 				if str(e).lower().find('too many connections') != -1:
 					if self.debug:
 						print "FTPSync > Too many connections..."
-					sleep(0.5)
+					sleep(1.5)
 				else:
+					if self.debug:
+						print e
 					raise
 
 			if connection is not None and len(connection) > 0:
@@ -131,10 +135,13 @@ class Worker(object):
 
 		if len(self.commands) >= self.limit:
 			if self.debug:
-				print "FTPSync > Queuing command " + self.__commandName(command)
+				print "FTPSync > Queuing command " + self.__commandName(command) + " (total: " + str(len(self.waitingCommands) + 1) + ")"
 
 			self.__waitCommand(command)
 		else:
+			if self.debug:
+				print "FTPSync > Running command " + self.__commandName(command) + " (total: " + str(len(self.commands) + 1) + ")"
+
 			self.__run(command, config)
 
 	# Return whether has any scheduled commands
@@ -148,14 +155,14 @@ class Worker(object):
 	# Run the command
 	def __run(self, command, config):
 		self.threadId += 1
-		thread = RunningCommand(command, self.__onFinish, self.debug, self.threadId)
 
 		self.fillConnection(config)
 		while len(self.freeConnections) == 0:
-			sleep(0.05)
+			sleep(0.1)
 			self.fillConnection(config)
 
 		index = self.freeConnections.pop()
+		thread = RunningCommand(command, self.__onFinish, self.debug, self.threadId)
 
 		if self.debug:
 			print "FTPSync > Scheduling thread #" + unicode(self.threadId) + " " + self.__commandName(command) + " run, using connection " + unicode(index)

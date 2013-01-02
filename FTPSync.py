@@ -932,6 +932,7 @@ class SyncCommandTransfer(SyncCommand):
 
 		self.onSave = onSave
 		self.disregardIgnore = False
+		self.local = True
 
 		toBeRemoved = []
 		for name in self.config['connections']:
@@ -955,6 +956,9 @@ class SyncCommandTransfer(SyncCommand):
 		for name in toBeRemoved:
 			self.config['connections'].pop(name)
 
+	def setRemote(self):
+		self.local = False
+		return self
 
 	def getConnectionsApplied(self):
 		return self.config['connections']
@@ -1170,6 +1174,7 @@ class SyncCommandDownload(SyncCommandTransfer):
 							if entry.isDirectory() is False:
 								self.progress.add([entry.getName()])
 
+					self.running = False
 					for entry in contents:
 						full_name = os.path.join(file_path, entry.getName())
 
@@ -1189,8 +1194,6 @@ class SyncCommandDownload(SyncCommandTransfer):
 						else:
 							command.execute()
 
-					return
-
 				else:
 					if not self.skip or self.forced:
 						self.connections[index].get(self.file_path, blockCallback = lambda: dumpMessage(getProgressMessage([name], self.progress, "downloading", self.basename)))
@@ -1200,7 +1203,6 @@ class SyncCommandDownload(SyncCommandTransfer):
 						printMessage("skipping {" + self.basename + "}", name)
 
 					stored.append(name)
-					break
 
 			except IndexError:
 				continue
@@ -1210,11 +1212,14 @@ class SyncCommandDownload(SyncCommandTransfer):
 				self._closeConnection()
 
 			except Exception, e:
-				if str(e).lower().find("no such file or directory"):
+				if str(e).lower().find("no such file or directory") != -1:
 					printMessage("remote file not found", name, False, True)
 				else:
 					printMessage("download of {" + self.basename + "} failed <Exception: " + stringifyException(e) + ">", name, False, True)
 					handleException(e)
+			finally:
+				self.running = False
+				break
 
 		if len(stored) > 0:
 			if self.progress is not None and self.progress.isFinished() and self.progress.getTotal() > 1:

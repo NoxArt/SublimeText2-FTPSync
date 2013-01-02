@@ -5,7 +5,7 @@
 	"time_format": "%Y-%m-%d %H:%M",
 	"download_on_open_delay": 5000,
 	"keep_alive_interval": 5,
-	"max_threads": 5,
+	"max_threads": 4,
 	"debug_threads": false,
 
 	"browse_open_on_download": true,
