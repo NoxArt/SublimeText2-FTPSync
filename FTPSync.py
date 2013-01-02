@@ -1162,12 +1162,10 @@ class SyncCommandDownload(SyncCommandTransfer):
 
 			try:
 				if self.isDir or os.path.isdir(self.file_path):
-					file_path = self._localizePath(self.config['connections'][name], self.file_path)
+					contents = self.connections[index].list(self.file_path)
 
-					contents = self.connections[index].list(file_path)
-
-					if os.path.exists(file_path) is False:
-						os.mkdir(file_path)
+					if os.path.exists(self.file_path) is False:
+						os.mkdir(self.file_path)
 
 					if self.progress:
 						for entry in contents:
@@ -1176,7 +1174,7 @@ class SyncCommandDownload(SyncCommandTransfer):
 
 					self.running = False
 					for entry in contents:
-						full_name = os.path.join(file_path, entry.getName())
+						full_name = os.path.join(self._localizePath(self.config['connections'][name], self.file_path), entry.getName())
 
 						command = SyncCommandDownload(full_name, self.config_file_path, progress=self.progress, disregardIgnore=self.disregardIgnore)
 
