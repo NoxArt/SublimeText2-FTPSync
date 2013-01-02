@@ -317,6 +317,10 @@ class FTPSConnection(AbstractConnection):
         def action():
             path = self._getMappedPath(file_path)
             command = "RETR " + self.__encode(path)
+
+            if self.config['debug_extras']['debug_remote_paths']:
+                print "FTPSync <debug> get path " + file_path + " => " + str(self.__encode(path))
+
             def download(tempfile):
 
                 def perBlock(data):
@@ -542,6 +546,9 @@ class FTPSConnection(AbstractConnection):
                 path = self._getMappedPath(file_path)
 
             path = self.__encode(path)
+
+            if self.config['debug_extras']['debug_remote_paths']:
+                print "FTPSync <debug> list path " + file_path + " => " + str(path)
 
             contents = []
             result = []
