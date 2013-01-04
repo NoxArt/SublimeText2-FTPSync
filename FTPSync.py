@@ -1212,6 +1212,7 @@ class SyncCommandDownload(SyncCommandTransfer):
 			except Exception, e:
 				if str(e).lower().find("no such file or directory") != -1:
 					printMessage("remote file not found", name, False, True)
+					handleException(e)
 				else:
 					printMessage("download of {" + self.basename + "} failed <Exception: " + stringifyException(e) + ">", name, False, True)
 					handleException(e)
