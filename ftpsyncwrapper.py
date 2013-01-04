@@ -579,7 +579,7 @@ class FTPSConnection(AbstractConnection):
                 lastModified = split.group(4)
                 name = split.group(5)
 
-                if (all is True and name != ".") or (name != "." and name != ".."):
+                if all is True or (name != "." and name != ".."):
                     data = Metafile(name, isDir, self.__parseTime(lastModified) + int(self.config['time_offset']), filesize, path, permissions)
                     result.append(data)
 
