@@ -1111,6 +1111,8 @@ class SyncCommandUpload(SyncCommandTransfer):
 			else:
 				dumpMessage(getProgressMessage(stored, self.progress, "uploaded ", self.basename))
 
+		self.running = False
+
 	def __del__(self):
 		if self.delayed is False:
 			SyncCommand.__del__(self)
