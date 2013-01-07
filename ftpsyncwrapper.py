@@ -338,7 +338,7 @@ class FTPSConnection(AbstractConnection):
                         raise
 
             if self.config['use_tempfile']:
-                viaTempfile(file_path, download)
+                viaTempfile(file_path, download, self.config['default_folder_permissions'])
             else:
                 with open(file_path, 'wb') as destination:
                     download(destination)
@@ -621,7 +621,6 @@ class FTPSConnection(AbstractConnection):
 
     # Returns local path for given remote path
     def getLocalPath(self, remotePath, localRoot):
-        print remotePath, self.config['path']
         return os.path.join(localRoot, os.path.normpath(os.path.relpath(remotePath.replace('//', '/'), self.config['path'])))
 
 

@@ -1173,7 +1173,7 @@ class SyncCommandDownload(SyncCommandTransfer):
 					contents = self.connections[index].list(self.file_path)
 
 					if os.path.exists(self.file_path) is False:
-						os.mkdir(self.file_path)
+						os.makedirs(self.file_path)
 
 					if self.progress:
 						for entry in contents:

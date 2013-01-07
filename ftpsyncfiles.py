@@ -316,9 +316,13 @@ def replace(source, destination):
 #
 # @type source: callback(file)
 # @param source: operation performed on temporary file
-def viaTempfile(file_path, operation):
+def viaTempfile(file_path, operation, permissions = 0755):
 	exceptionOccured = None
 	directory = os.path.dirname(file_path.encode('utf-8'))
+
+	if os.path.exists(directory) is False:
+		os.makedirs(directory, int(permissions, 8))
+
 	temp = tempfile.NamedTemporaryFile('wb', suffix = '.ftpsync.temp', dir = directory, delete = False)
 
 	try:
