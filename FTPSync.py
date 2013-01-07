@@ -133,6 +133,10 @@ navigateLast = {
 displayPermissions = settings.get('browse_display_permission')
 displayTimestampFormat = settings.get('browse_timestamp_format')
 
+# last folder
+re_thisFolder = re.compile("/([^/]*?)/?$", re.I)
+re_parentFolder = re.compile("/([^/]*?)/[^/]*?/?$", re.I)
+
 
 # ==== Generic =============================================================================
 
@@ -1110,6 +1114,8 @@ class SyncCommandUpload(SyncCommandTransfer):
 	def __del__(self):
 		if self.delayed is False:
 			SyncCommand.__del__(self)
+		else:
+			running = False
 
 
 # Download command
@@ -1567,11 +1573,12 @@ def performRemoteCheck(file_path, window, forced = False):
 
 class SyncNavigator(SyncCommand):
 
-	def __init__(self, file_path, config_file_path, connection_name = None, path = None):
+	def __init__(self, file_path, config_file_path, connection_name = None, path = None, remotePath = None):
 		self.configConnection = None
 		self.configName = None
 		self.files = []
 		self.defaultPath = path
+		self.defaultRemotePath = remotePath
 
 		SyncCommand.__init__(self, None, config_file_path)
 
@@ -1597,7 +1604,11 @@ class SyncNavigator(SyncCommand):
 			if self.configConnection is None:
 				for name in self.config['connections']:
 					self.selectConnection(name)
-			self.listFiles(self.defaultPath)
+
+			if self.defaultPath:
+				self.listFiles(self.defaultPath)
+			elif self.defaultRemotePath:
+				self.listFiles(self.defaultRemotePath)
 
 	def listConnections(self):
 		connections = []
@@ -1653,6 +1664,9 @@ class SyncNavigator(SyncCommand):
 			entry = []
 
 			if meta.isDirectory():
+				if meta.getName() == '..' and connection.getNormpath(path) == '/':
+					continue
+
 				entry.append("[ " + meta.getName() + " ]")
 				entry.append("Directory")
 			else:
@@ -1691,11 +1705,23 @@ class SyncNavigator(SyncCommand):
 		self._createConnection()
 		connection = self.connections[0]
 		path = meta.getPath()
-		localFile = connection.getLocalPath(meta.getPath() + '/' + meta.getName(), os.path.dirname(self.config_file_path))
+		localFile = connection.getLocalPath( str(meta.getPath() + '/' + meta.getName()).replace('/.',''), os.path.dirname(self.config_file_path))
 		exists = 0
 
+		name = meta.getName()
+		if name == '.':
+			split = re_thisFolder.search(meta.getPath())
+			if split is not None:
+				name = split.group(1)
+		if name == '..':
+			split = re_parentFolder.search(meta.getPath())
+			if split is not None:
+				name = split.group(1)
+			else:
+				name = '/'
+
 		actions = []
-		actions.append("Open " + meta.getName())
+		actions.append("Open " + name)
 		actions.append("Back")
 		actions.append("Download folder")
 
@@ -2237,7 +2263,7 @@ class RemoteNavigator(RemoteThread):
 	def run(self):
 		if self.command is None:
 			if self.last is True:
-				command = SyncNavigator(None, navigateLast['config_file'], navigateLast['connection_name'], navigateLast['path'])
+				command = SyncNavigator(None, navigateLast['config_file'], navigateLast['connection_name'], None, navigateLast['path'])
 			else:
 				command = SyncNavigator(None, self.config)
 		else:

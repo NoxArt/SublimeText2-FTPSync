@@ -580,7 +580,7 @@ class FTPSConnection(AbstractConnection):
                 name = split.group(5)
 
                 if all is True or (name != "." and name != ".."):
-                    data = Metafile(name, isDir, self.__parseTime(lastModified) + int(self.config['time_offset']), filesize, path, permissions)
+                    data = Metafile(name, isDir, self.__parseTime(lastModified) + int(self.config['time_offset']), filesize, os.path.normpath(path).replace('\\', '/'), permissions)
                     result.append(data)
 
             return result
@@ -621,7 +621,13 @@ class FTPSConnection(AbstractConnection):
 
     # Returns local path for given remote path
     def getLocalPath(self, remotePath, localRoot):
-        return os.path.join(localRoot, os.path.normpath(os.path.relpath(remotePath, self.config['path'])))
+        print remotePath, self.config['path']
+        return os.path.join(localRoot, os.path.normpath(os.path.relpath(remotePath.replace('//', '/'), self.config['path'])))
+
+
+    # Returns normalized path in unix style
+    def getNormpath(self, path):
+        return os.path.normpath(path).replace('\\', '/').replace('//', '/')
 
 
     # Encodes a (usually filename) string
