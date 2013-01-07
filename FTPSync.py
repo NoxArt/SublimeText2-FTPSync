@@ -1182,7 +1182,7 @@ class SyncCommandDownload(SyncCommandTransfer):
 
 					self.running = False
 					for entry in contents:
-						full_name = os.path.join(self._localizePath(self.config['connections'][name], self.file_path), entry.getName())
+						full_name = os.path.join(self.file_path, entry.getName())
 
 						command = SyncCommandDownload(full_name, self.config_file_path, progress=self.progress, disregardIgnore=self.disregardIgnore)
 
