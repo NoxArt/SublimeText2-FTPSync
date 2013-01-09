@@ -621,7 +621,9 @@ class FTPSConnection(AbstractConnection):
 
     # Returns local path for given remote path
     def getLocalPath(self, remotePath, localRoot):
-        return os.path.join(localRoot, os.path.normpath(os.path.relpath(remotePath.replace('//', '/'), self.config['path'])))
+        path = os.path.join(localRoot, os.path.relpath(remotePath, self.config['path']))
+
+        return os.path.normpath(path)
 
 
     # Returns normalized path in unix style
