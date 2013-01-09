@@ -994,9 +994,6 @@ class SyncCommandUpload(SyncCommandTransfer):
 
 
 	def execute(self):
-		if self.progress is not None:
-			self.progress.progress()
-
 		if self.closed is True:
 			printMessage("Cancelling " + unicode(self.__class__.__name__) + ": command is closed")
 			return
@@ -1096,6 +1093,9 @@ class SyncCommandUpload(SyncCommandTransfer):
 				printMessage("upload failed: {" + self.basename + "} <Exception: " + stringifyException(e) + ">", name, False, True)
 				handleException(e)
 
+			if self.progress is not None:
+				self.progress.progress()
+
 		if len(stored) > 0:
 			if self.progress is not None and self.progress.isFinished() and self.progress.getTotal() > 1:
 				dumpMessage(getProgressMessage(stored, self.progress, "uploading finished!"))
@@ -1147,9 +1147,6 @@ class SyncCommandDownload(SyncCommandTransfer):
 
 	def execute(self):
 		self.forced = True
-
-		if self.progress is not None and self.isDir is not True:
-			self.progress.progress()
 
 		if self.closed is True:
 			printMessage("Cancelling " + unicode(self.__class__.__name__) + ": command is closed")
@@ -1228,8 +1225,15 @@ class SyncCommandDownload(SyncCommandTransfer):
 				self.running = False
 				break
 
+		wasFinished = True
+		if self.progress is not None and self.progress.isFinished() is False:
+			wasFinished = False
+
+		if self.progress is not None and self.isDir is not True:
+			self.progress.progress()
+
 		if len(stored) > 0:
-			if self.progress is not None and self.progress.isFinished() and self.progress.getTotal() > 1:
+			if self.progress is not None and self.progress.isFinished() and wasFinished is False and self.progress.getTotal() > 1:
 				dumpMessage(getProgressMessage(stored, self.progress, "downloading finished!"))
 
 				notify = "Downloading "
