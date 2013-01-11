@@ -35,6 +35,8 @@ import os
 import re
 import time
 import datetime
+import locale
+from sublime import platform
 from sys import getdefaultencoding
 
 # FTPSync libraries
@@ -733,6 +735,14 @@ class FTPSConnection(AbstractConnection):
     #
     # @return unix timestamp
     def __parseTime(self, time_val):
+        originalLocale = locale.getlocale(locale.LC_TIME)
+
+        newLocale = "en_UK"
+        if platform() == "windows":
+            newLocale = "eng_uk"
+
+        locale.setlocale(locale.LC_TIME, newLocale)
+
         if time_val.find(':') is -1:
             time_val = time_val + str(" 00:00")
             time_val = re_whitespace.sub(" ", time_val)
@@ -741,6 +751,8 @@ class FTPSConnection(AbstractConnection):
             time_val = str(currentYear) + " " + time_val
             time_val = re_whitespace.sub(" ", time_val)
             struct = time.strptime(time_val, "%Y %b %d %H:%M")
+
+        locale.setlocale(locale.LC_TIME, originalLocale)
 
         return time.mktime(struct)
 
