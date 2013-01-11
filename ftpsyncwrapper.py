@@ -58,6 +58,9 @@ trailingDot = re.compile("/.\Z")
 # trailing /
 trailingSlash = re.compile("/\Z")
 
+# whitespace
+re_whitespace = re.compile("\s")
+
 # For FTP LIST entries with {last modified} timestamp earlier than 6 months, see http://stackoverflow.com/questions/2443007/ftp-list-format
 currentYear = int(time.strftime("%Y", time.gmtime()))
 
@@ -720,6 +723,8 @@ class FTPSConnection(AbstractConnection):
     #
     # @return unix timestamp
     def __parseTime(self, time_val):
+        time_val = re_whitespace.sub(" ", time_val)
+
         if time_val.find(':') is -1:
             struct = time.strptime(time_val + str(" 00:00"), "%b %d %Y %H:%M")
         else:
