@@ -80,6 +80,7 @@ class Worker(object):
 		self.threads = []
 		self.index = 0
 		self.threadId = 0
+		self.semaphore = threading.BoundedSemaphore(self.limit)
 
 		self.makeConnection = factory
 		self.makeConfig = loader
@@ -154,29 +155,36 @@ class Worker(object):
 
 	# Run the command
 	def __run(self, command, config):
-		self.threadId += 1
+		try:
+			self.semaphore.acquire()
+			self.threadId += 1
 
-		self.fillConnection(config)
-		while len(self.freeConnections) == 0:
-			sleep(0.1)
 			self.fillConnection(config)
+			while len(self.freeConnections) == 0:
+				sleep(0.1)
+				self.fillConnection(config)
 
-		index = self.freeConnections.pop()
-		thread = RunningCommand(command, self.__onFinish, self.debug, self.threadId)
+			index = self.freeConnections.pop()
+			thread = RunningCommand(command, self.__onFinish, self.debug, self.threadId)
 
-		if self.debug:
-			print "FTPSync > Scheduling thread #" + unicode(self.threadId) + " " + self.__commandName(command) + " run, using connection " + unicode(index)
+			if self.debug:
+				print "FTPSync > Scheduling thread #" + unicode(self.threadId) + " " + self.__commandName(command) + " run, using connection " + unicode(index)
 
-		command.setConnection(self.connections[index - 1])
-		self.commands.append({
-			'command': command,
-			'config': config,
-			'thread': thread,
-			'index': index,
-			'threadId': self.threadId
-		})
+			command.setConnection(self.connections[index - 1])
+			self.commands.append({
+				'command': command,
+				'config': config,
+				'thread': thread,
+				'index': index,
+				'threadId': self.threadId
+			})
 
-		thread.start()
+			thread.start()
+		except Exception, e:
+			self.__onFinish(command)
+			raise
+		finally:
+			self.semaphore.release()
 
 	# Finish callback
 	def __onFinish(self, command):
