@@ -68,6 +68,23 @@ re_whitespace = re.compile("\s+")
 # For FTP LIST entries with {last modified} timestamp earlier than 6 months, see http://stackoverflow.com/questions/2443007/ftp-list-format
 currentYear = int(time.strftime("%Y", time.gmtime()))
 
+# months
+months = {
+    'Jan': '01',
+    'Feb': '02',
+    'Mar': '03',
+    'Apr': '04',
+    'May': '05',
+    'Jun': '06',
+    'Jul': '07',
+    'Aug': '08',
+    'Sep': '09',
+    'Oct': '10',
+    'Nov': '11',
+    'Dec': '12'
+
+}
+
 # List of FTP errors of interest
 ftpError = {
     'fileNotAllowed': 553,
@@ -735,30 +752,17 @@ class FTPSConnection(AbstractConnection):
     #
     # @return unix timestamp
     def __parseTime(self, time_val):
-        localeSet = False
-        try:
-            originalLocale = locale.getlocale(locale.LC_TIME)
-
-            newLocale = "en_UK"
-            if platform() == "windows":
-                newLocale = "eng_uk"
-
-            locale.setlocale(locale.LC_TIME, newLocale)
-            localeSet = True
-        except Exception, e:
-            print "FTPSync > Exception: " + str(e)
+        for month in months:
+            time_val = time_val.replace(month, months[month])
 
         if time_val.find(':') is -1:
             time_val = time_val + str(" 00:00")
             time_val = re_whitespace.sub(" ", time_val)
-            struct = time.strptime(time_val, "%b %d %Y %H:%M")
+            struct = time.strptime(time_val, "%b %m %Y %H:%M")
         else:
             time_val = str(currentYear) + " " + time_val
             time_val = re_whitespace.sub(" ", time_val)
-            struct = time.strptime(time_val, "%Y %b %d %H:%M")
-
-        if localeSet is True:
-            locale.setlocale(locale.LC_TIME, originalLocale)
+            struct = time.strptime(time_val, "%Y %m %d %H:%M")
 
         return time.mktime(struct)
 
