@@ -536,7 +536,7 @@ def loadConfig(file_path):
 	try:
 		config = parseJson(file_path)
 	except Exception, e:
-		printMessage("Failed parsing configuration file: {" + file_path + "} (commas problem?) <Exception: " + stringifyException(e) + ">", status=True)
+		printMessage("Failed parsing configuration file: {" + file_path + "} (commas problem?) [Exception: " + stringifyException(e) + "]", status=True)
 		handleException(e)
 		return None
 
@@ -598,7 +598,7 @@ def makeConnection(config, hash=None, handleExceptions=True):
 			if handleExceptions is False:
 				raise
 
-			printMessage("Connection initialization failed <Exception: " + stringifyException(e) + ">", name, status=True)
+			printMessage("Connection initialization failed [Exception: " + stringifyException(e) + "]", name, status=True)
 			handleException(e)
 
 			return []
@@ -610,7 +610,7 @@ def makeConnection(config, hash=None, handleExceptions=True):
 			if handleExceptions is False:
 				raise
 
-			printMessage("Connection failed <Exception: " + stringifyException(e) + ">", name, status=True)
+			printMessage("Connection failed [Exception: " + stringifyException(e) + "]", name, status=True)
 			connection.close(connections, hash)
 			handleException(e)
 
@@ -626,7 +626,7 @@ def makeConnection(config, hash=None, handleExceptions=True):
 			if handleExceptions is False:
 				raise
 
-			printMessage("Authentication failed <Exception: " + stringifyException(e) + ">", name, status=True)
+			printMessage("Authentication failed [Exception: " + stringifyException(e) + "]", name, status=True)
 			handleException(e)
 
 			return []
@@ -639,7 +639,7 @@ def makeConnection(config, hash=None, handleExceptions=True):
 				if handleExceptions is False:
 					raise
 
-				printMessage("Login failed <Exception: " + stringifyException(e) + ">", name, status=True)
+				printMessage("Login failed [Exception: " + stringifyException(e) + "]", name, status=True)
 				handleException(e)
 
 				return []
@@ -659,7 +659,7 @@ def makeConnection(config, hash=None, handleExceptions=True):
 			if handleExceptions is False:
 				raise
 
-			printMessage("Failed to set path (probably connection failed) <Exception: " + stringifyException(e) + ">", name)
+			printMessage("Failed to set path (probably connection failed) [Exception: " + stringifyException(e) + "]", name)
 			handleException(e)
 
 			return []
@@ -762,7 +762,7 @@ def closeConnection(hash):
 			connections.pop(hash)
 
 	except Exception, e:
-		printMessage("Error when closing connection (key: " + hash + ") <Exception: " + stringifyException(e) + ">")
+		printMessage("Error when closing connection (key: " + hash + ") [Exception: " + stringifyException(e) + "]")
 		handleException(e)
 
 
@@ -1072,7 +1072,7 @@ class SyncCommandUpload(SyncCommandTransfer):
 						self.triggerFinish(self.file_path)
 
 					except Exception, e:
-						printMessage("upload failed: {" + self.basename + "} <Exception: " + stringifyException(e) + ">", name, False, True)
+						printMessage("upload failed: {" + self.basename + "} [Exception: " + stringifyException(e) + "]", name, False, True)
 						handleException(e)
 
 
@@ -1092,7 +1092,7 @@ class SyncCommandUpload(SyncCommandTransfer):
 				self._closeConnection()
 
 			except Exception, e:
-				printMessage("upload failed: {" + self.basename + "} <Exception: " + stringifyException(e) + ">", name, False, True)
+				printMessage("upload failed: {" + self.basename + "} [Exception: " + stringifyException(e) + "]", name, False, True)
 				handleException(e)
 
 			if self.progress is not None:
@@ -1221,7 +1221,7 @@ class SyncCommandDownload(SyncCommandTransfer):
 					printMessage("remote file not found", name, False, True)
 					handleException(e)
 				else:
-					printMessage("download of {" + self.basename + "} failed <Exception: " + stringifyException(e) + ">", name, False, True)
+					printMessage("download of {" + self.basename + "} failed [Exception: " + stringifyException(e) + "]", name, False, True)
 					handleException(e)
 			finally:
 				self.running = False
@@ -1324,7 +1324,7 @@ class SyncCommandRename(SyncCommand):
 						printMessage("remote file not found", name, False, True)
 						renamed.append(name)
 					else:
-						printMessage("renaming failed: {" + self.basename + "} -> {" + self.new_name + "} <Exception: " + stringifyException(e) + ">", name, False, True)
+						printMessage("renaming failed: {" + self.basename + "} -> {" + self.new_name + "} [Exception: " + stringifyException(e) + "]", name, False, True)
 						handleException(e)
 
 			# message
@@ -1407,7 +1407,7 @@ class SyncCommandDelete(SyncCommandTransfer):
 					printMessage("no remote version of {" + self.basename + "} found", name)
 
 				except Exception, e:
-					printMessage("delete failed: {" + self.basename + "} <Exception: " + stringifyException(e) + ">", name, False, True)
+					printMessage("delete failed: {" + self.basename + "} [Exception: " + stringifyException(e) + "]", name, False, True)
 					handleException(e)
 
 			except IndexError:
@@ -1422,7 +1422,7 @@ class SyncCommandDelete(SyncCommandTransfer):
 					printMessage("remote file not found", name, False, True)
 					deleted.append(name)
 				else:
-					printMessage("delete failed: {" + self.basename + "} <Exception: " + stringifyException(e) + ">", name, False, True)
+					printMessage("delete failed: {" + self.basename + "} [Exception: " + stringifyException(e) + "]", name, False, True)
 					handleException(e)
 
 		if len(deleted) > 0:
@@ -1477,7 +1477,7 @@ class SyncCommandGetMetadata(SyncCommand):
 				self._closeConnection()
 
 			except Exception, e:
-				printMessage("getting metadata failed: {" + self.basename + "} <Exception: " + stringifyException(e) + ">", name, False, True)
+				printMessage("getting metadata failed: {" + self.basename + "} [Exception: " + stringifyException(e) + "]", name, False, True)
 				handleException(e)
 
 		return results
