@@ -1496,12 +1496,13 @@ def performRemoteCheck(file_path, window, forced = False):
 
 	config_file_path = getConfigFile(file_path)
 	if config_file_path is None:
-		return printMessage("Found no config > for file: " + file_path)
+		return printMessage("Found no config > for file: " + file_path, status=True)
 
 	config = loadConfig(config_file_path)
 	try:
 		metadata = SyncCommandGetMetadata(file_path, config_file_path).execute()
 	except FileNotFoundException:
+		printMessage("Remote file not found", status=True)
 		return
 	except Exception, e:
 		printMessage("Error when getting metadata: " + stringifyException(e))

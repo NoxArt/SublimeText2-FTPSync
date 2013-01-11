@@ -82,7 +82,6 @@ months = {
     'Oct': '10',
     'Nov': '11',
     'Dec': '12'
-
 }
 
 # List of FTP errors of interest
