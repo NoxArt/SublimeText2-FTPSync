@@ -735,13 +735,18 @@ class FTPSConnection(AbstractConnection):
     #
     # @return unix timestamp
     def __parseTime(self, time_val):
-        originalLocale = locale.getlocale(locale.LC_TIME)
+        localeSet = False
+        try:
+            originalLocale = locale.getlocale(locale.LC_TIME)
 
-        newLocale = "en_UK"
-        if platform() == "windows":
-            newLocale = "eng_uk"
+            newLocale = "en_UK"
+            if platform() == "windows":
+                newLocale = "eng_uk"
 
-        locale.setlocale(locale.LC_TIME, newLocale)
+            locale.setlocale(locale.LC_TIME, newLocale)
+            localeSet = True
+        except Exception, e:
+            print "FTPSync > Exception: " + str(e)
 
         if time_val.find(':') is -1:
             time_val = time_val + str(" 00:00")
@@ -752,7 +757,8 @@ class FTPSConnection(AbstractConnection):
             time_val = re_whitespace.sub(" ", time_val)
             struct = time.strptime(time_val, "%Y %b %d %H:%M")
 
-        locale.setlocale(locale.LC_TIME, originalLocale)
+        if localeSet is True:
+            locale.setlocale(locale.LC_TIME, originalLocale)
 
         return time.mktime(struct)
 
