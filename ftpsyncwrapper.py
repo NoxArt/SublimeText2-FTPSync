@@ -59,7 +59,7 @@ trailingDot = re.compile("/.\Z")
 trailingSlash = re.compile("/\Z")
 
 # whitespace
-re_whitespace = re.compile("\s")
+re_whitespace = re.compile("\s+")
 
 # For FTP LIST entries with {last modified} timestamp earlier than 6 months, see http://stackoverflow.com/questions/2443007/ftp-list-format
 currentYear = int(time.strftime("%Y", time.gmtime()))
