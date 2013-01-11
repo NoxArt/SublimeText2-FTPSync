@@ -52,6 +52,8 @@ from ftpsyncwrapper import CreateConnection, TargetAlreadyExists
 from ftpsyncprogress import Progress
 from ftpsyncfiles import getFolders, findFile, getFiles, formatTimestamp, gatherMetafiles, getChangedFiles, replace
 from ftpsyncworker import Worker
+# exceptions
+from ftpsyncexceptions import FileNotFoundException
 
 # ==== Initialization and optimization =====================================================
 
@@ -1399,6 +1401,11 @@ class SyncCommandDelete(SyncCommandTransfer):
 					connection.delete(self.file_path)
 					deleted.append(name)
 					printMessage("deleted {" + self.basename + "}", name)
+
+				except FileNotFoundException:
+					deleted.append(name)
+					printMessage("no remote version of {" + self.basename + "} found", name)
+
 				except Exception, e:
 					printMessage("delete failed: {" + self.basename + "} <Exception: " + stringifyException(e) + ">", name, False, True)
 					handleException(e)
@@ -1462,6 +1469,9 @@ class SyncCommandGetMetadata(SyncCommand):
 			except IndexError:
 				continue
 
+			except FileNotFoundException:
+				raise
+
 			except EOFError:
 				printMessage("Connection has been terminated, please retry your action", name, False, True)
 				self._closeConnection()
@@ -1491,6 +1501,8 @@ def performRemoteCheck(file_path, window, forced = False):
 	config = loadConfig(config_file_path)
 	try:
 		metadata = SyncCommandGetMetadata(file_path, config_file_path).execute()
+	except FileNotFoundException:
+		return
 	except Exception, e:
 		printMessage("Error when getting metadata: " + stringifyException(e))
 		handleException(e)
@@ -1963,6 +1975,8 @@ class RemoteSync(sublime_plugin.EventListener):
 
 		try:
 			metadata = SyncCommandGetMetadata(file_path, config_file_path).execute()
+		except FileNotFoundException:
+			return
 		except Exception, e:
 			if str(e).find('No such file'):
 				printMessage("No version of {" + os.path.basename(file_path) + "} found on any server", status=True)

@@ -39,6 +39,8 @@ from sys import getdefaultencoding
 
 # FTPSync libraries
 from ftpsyncfiles import Metafile, isTextFile, viaTempfile
+# exceptions
+from ftpsyncexceptions import FileNotFoundException
 
 
 # ==== Initialization and optimization =====================================================
@@ -368,15 +370,21 @@ class FTPSConnection(AbstractConnection):
             path = trailingDot.sub("", path)
             base = os.path.basename(file_path)
 
-            if isDir:
-                for entry in self.list(file_path):
-                    self.__delete(path + '/' + base, entry)
+            try:
+                if isDir:
+                    for entry in self.list(file_path):
+                        self.__delete(path + '/' + base, entry)
 
-                self.cwd(path)
-                self.voidcmd("RMD " + base)
-            else:
-                self.cwd(path)
-                self.voidcmd("DELE " + base)
+                    self.cwd(path)
+                    self.voidcmd("RMD " + base)
+                else:
+                    self.cwd(path)
+                    self.voidcmd("DELE " + base)
+            except Exception, e:
+                if str(e).find('No such file'):
+                    raise FileNotFoundException
+                else:
+                    raise
 
         return self.__execute(action)
 
@@ -539,7 +547,7 @@ class FTPSConnection(AbstractConnection):
     # @type mapped: bool
     # @param mapped: whether it's remote path (True) or not
     #
-    # @return list<Metafile>
+    # @return list<Metafile>|False
     def list(self, file_path, mapped=False,all=False):
 
         def action():
@@ -561,6 +569,8 @@ class FTPSConnection(AbstractConnection):
             except Exception, e:
                 if self.__isErrorCode(e, ['ok', 'passive']):
                     self.connection.dir(path, lambda data: contents.append(data))
+                elif str(e).find('No such file'):
+                    raise FileNotFoundException
                 else:
                     raise
 
