@@ -679,13 +679,16 @@ class FTPSConnection(AbstractConnection):
     #
     # @return unknown
     def __execute(self, callback):
+        result = None
         try:
-            return callback()
+            result = callback()
+            return result
         except Exception, e:
 
             # bad write - repeat command
             if re_errorOk.search(str(e)) is not None:
-                return
+                print "FTPSync > " + str(e)
+                return result
             elif str(e).find(sslErrors['badWrite']) is True:
                 return callback()
             # disconnected - close itself to be refreshed
