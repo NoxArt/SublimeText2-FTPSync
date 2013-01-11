@@ -723,12 +723,14 @@ class FTPSConnection(AbstractConnection):
     #
     # @return unix timestamp
     def __parseTime(self, time_val):
-        time_val = re_whitespace.sub(" ", time_val)
-
         if time_val.find(':') is -1:
-            struct = time.strptime(time_val + str(" 00:00"), "%b %d %Y %H:%M")
+            time_val = time_val + str(" 00:00")
+            time_val = re_whitespace.sub(" ", time_val)
+            struct = time.strptime(time_val, "%b %d %Y %H:%M")
         else:
-            struct = time.strptime(str(currentYear) + " " + time_val, "%Y %b %d %H:%M")
+            time_val = str(currentYear) + " " + time_val
+            time_val = re_whitespace.sub(" ", time_val)
+            struct = time.strptime(time_val, "%Y %b %d %H:%M")
 
         return time.mktime(struct)
 
