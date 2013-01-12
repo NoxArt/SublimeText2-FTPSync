@@ -1542,7 +1542,12 @@ def performRemoteCheck(file_path, window, forced = False):
 		sorted(every, key=lambda entry: entry['metadata'].getLastModified())
 		every.reverse()
 
+		connectionCount = len(every)
+
 		def sync(index):
+			if index == connectionCount + 1:
+				return RemoteSyncCall(file_path, getConfigFile(file_path), True).start()
+
 			if index > 0:
 				if isDebug:
 					i = 0
@@ -1552,7 +1557,7 @@ def performRemoteCheck(file_path, window, forced = False):
 
 					printMessage("Index selected: " + unicode(index - 1))
 
-				RemoteSyncDownCall(file_path, getConfigFile(file_path), True, whitelistConnections=[every[index - 1]['connection']]).start()
+				return RemoteSyncDownCall(file_path, getConfigFile(file_path), True, whitelistConnections=[every[index - 1]['connection']]).start()
 
 		filesize = os.path.getsize(file_path)
 		allItems = []
@@ -1589,6 +1594,13 @@ def performRemoteCheck(file_path, window, forced = False):
 			items.append("Last modified: " + time)
 			allItems.append(items)
 			index += 1
+
+		upload = []
+		upload.append("Upload file " + os.path.basename(file_path))
+		upload.append("Path: " + getRootPath(file_path))
+		upload.append("Size: " + unicode(round(float(os.path.getsize(file_path)) / 1024, 3)) + " kB")
+		upload.append("Last modified: " + formatTimestamp(os.path.getmtime(file_path)))
+		allItems.append(upload)
 
 		sublime.set_timeout(lambda: window.show_quick_panel(allItems, sync), 1)
 	else:
