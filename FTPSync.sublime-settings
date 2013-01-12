@@ -8,6 +8,8 @@
 	"max_threads": 4,
 	"debug_threads": false,
 
+	"system_notifications": true,
+
 	"browse_open_on_download": true,
 	"browse_display_permission": false,
 	"browse_timestamp_format": "%Y-%m-%d %H:%M",

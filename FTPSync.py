@@ -79,6 +79,8 @@ ignore = settings.get('ignore')
 time_format = settings.get('time_format')
 # delay before check of right opened file is performed, cancelled if closed in the meantime
 download_on_open_delay = settings.get('download_on_open_delay')
+# system notifications
+systemNotifications = settings.get('system_notifications')
 
 # loaded project's config will be merged with this global one
 coreConfig = {
@@ -1108,7 +1110,9 @@ class SyncCommandUpload(SyncCommandTransfer):
 				notify += "finished!"
 
 				dumpMessage(getProgressMessage(stored, self.progress, notify))
-				systemNotify(notify)
+
+				if systemNotifications:
+					systemNotify(notify)
 			else:
 				dumpMessage(getProgressMessage(stored, self.progress, "uploaded ", self.basename))
 
@@ -1211,24 +1215,25 @@ class SyncCommandDownload(SyncCommandTransfer):
 			except IndexError:
 				continue
 
+			except FileNotFoundException:
+				printMessage("remote file not found", name, False, True)
+				handleException(e)
+
 			except EOFError:
 				printMessage("Connection has been terminated, please retry your action", name, False, True)
 				self._closeConnection()
 
 			except Exception, e:
-				if str(e).lower().find("no such file or directory") != -1:
-					printMessage("remote file not found", name, False, True)
-					handleException(e)
-				else:
-					printMessage("download of {" + self.basename + "} failed [Exception: " + stringifyException(e) + "]", name, False, True)
-					handleException(e)
+				printMessage("download of {" + self.basename + "} failed [Exception: " + stringifyException(e) + "]", name, False, True)
+				handleException(e)
+
 			finally:
 				self.running = False
 				break
 
-		wasFinished = True
+		wasFinished = False
 		if self.progress is not None and self.progress.isFinished() is False:
-			wasFinished = False
+			wasFinished = True
 
 		if self.progress is not None and self.isDir is not True:
 			self.progress.progress()
@@ -1243,7 +1248,9 @@ class SyncCommandDownload(SyncCommandTransfer):
 				notify += "finished!"
 
 				dumpMessage(getProgressMessage(stored, self.progress, notify))
-				systemNotify(notify)
+
+				if systemNotifications:
+					systemNotify(notify)
 			else:
 				dumpMessage(getProgressMessage(stored, self.progress, "downloaded ", self.basename))
 
