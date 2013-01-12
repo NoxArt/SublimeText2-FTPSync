@@ -1095,13 +1095,11 @@ class SyncCommandUpload(SyncCommandTransfer):
 				printMessage("upload failed: {" + self.basename + "} [Exception: " + stringifyException(e) + "]", name, False, True)
 				handleException(e)
 
-			if self.progress is not None:
-				self.progress.progress()
+		if self.progress is not None:
+			self.progress.progress()
 
 		if len(stored) > 0:
-			if self.progress is not None and self.progress.isFinished() and self.progress.getTotal() > 1:
-				dumpMessage(getProgressMessage(stored, self.progress, "uploading finished!"))
-
+			if self.progress is not None and self.progress.isFinished():
 				notify = "Uploading "
 				if self.progress.getTotal() == 1:
 					notify += "{" + self.basename + "} "
@@ -1109,6 +1107,7 @@ class SyncCommandUpload(SyncCommandTransfer):
 					notify += str(self.progress.getTotal()) + " files "
 				notify += "finished!"
 
+				dumpMessage(getProgressMessage(stored, self.progress, notify))
 				systemNotify(notify)
 			else:
 				dumpMessage(getProgressMessage(stored, self.progress, "uploaded ", self.basename))
@@ -1235,9 +1234,7 @@ class SyncCommandDownload(SyncCommandTransfer):
 			self.progress.progress()
 
 		if len(stored) > 0:
-			if self.progress is not None and self.progress.isFinished() and wasFinished is False and self.progress.getTotal() > 1:
-				dumpMessage(getProgressMessage(stored, self.progress, "downloading finished!"))
-
+			if self.progress is not None and self.progress.isFinished() and wasFinished is False:
 				notify = "Downloading "
 				if self.progress.getTotal() == 1:
 					notify += "{" + self.basename + "} "
@@ -1245,6 +1242,7 @@ class SyncCommandDownload(SyncCommandTransfer):
 					notify += str(self.progress.getTotal()) + " files "
 				notify += "finished!"
 
+				dumpMessage(getProgressMessage(stored, self.progress, notify))
 				systemNotify(notify)
 			else:
 				dumpMessage(getProgressMessage(stored, self.progress, "downloaded ", self.basename))
