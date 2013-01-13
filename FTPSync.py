@@ -62,11 +62,9 @@ settings = sublime.load_settings('FTPSync.sublime-settings')
 
 # test settings
 if settings.get('project_defaults') is None:
-	error = "FTPSync > Error loading settings ... please restart Sublime Text 2 after installation"
-	print error
-	def message():
-		sublime.status_message(error)
-	sublime.set_timeout(message, 2000)
+	print "="*86
+	print "FTPSync > Error loading settings ... please restart Sublime Text 2 after installation"
+	print "="*86
 
 # print debug messages to console?
 isDebug = settings.get('debug')
