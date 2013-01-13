@@ -60,6 +60,12 @@ from ftpsyncexceptions import FileNotFoundException
 # global config
 settings = sublime.load_settings('FTPSync.sublime-settings')
 
+# test settings
+if settings.get('project_defaults') is None:
+	error = "FTPSync > Error loading settings ... please restart Sublime Text 2 after installation"
+	print error
+	sublime.status_message(error)
+
 # print debug messages to console?
 isDebug = settings.get('debug')
 # print overly informative messages?
@@ -72,6 +78,8 @@ for item in projectDefaults:
 	if type(item[1]) is dict:
 		nested.append(index)
 	index += 1
+# global config key - for specifying global config in settings file
+globalConfigKey = '__global'
 
 # global ignore pattern
 ignore = settings.get('ignore')
@@ -165,6 +173,13 @@ def stringifyException(exception):
 # Checks whether cerain package exists
 def packageExists(packageName):
 	return os.path.exists(os.path.join(sublime.packages_path(), packageName))
+
+# Returns global config
+def getGlobalConfig(key, config):
+	if globalConfigKey in config and key in config[globalConfigKey]:
+		return config[globalConfigKey][key]
+	else:
+		return settings.get(key)
 
 
 # ==== Messaging ===========================================================================
@@ -550,6 +565,9 @@ def loadConfig(file_path):
 			printMessage("Failed using configuration: contents are not dictionaries but values", status=True)
 			return None
 
+		if name == globalConfigKey:
+			continue
+
 		result[name] = dict(projectDefaults + config[name].items())
 		result[name]['file_path'] = file_path
 
@@ -571,6 +589,8 @@ def loadConfig(file_path):
 
 	# merge with generics
 	final = dict(coreConfig + {"connections": result}.items())
+
+	# replace global config by
 
 	return final
 
