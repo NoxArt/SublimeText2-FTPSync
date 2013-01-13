@@ -13,10 +13,8 @@ What's there for you?
 * Multithreaded uploading and downloading
 * Local&remote renaming and deleting
 * Progress bar for multiple up/download
-
-Recently
 * [*experimental*] Remote browsing and manipulating via file list
-* Now downloading via temporary file for better stability (error during process will not harm the local file)
+
 
 For more info look into [Wiki](https://github.com/NoxArt/SublimeText2-FTPSync/wiki/_pages)
 
@@ -82,6 +80,15 @@ Whole connection config:
 Files are automatically uploaded **on save** (unless disabled by _upload\_on\_save_=false setting). In your newly created settings file some options are preceded with `//`, this means they are commented out (and default value from global settings file is used) - remove the `//` to enable the entry.
 
 
+Drawbacks and notes
+---------------------
+
+* FTPS is not supported at the moment and is not planned in near future (you can use [SFTP](http://wbond.net/sublime_packages/sftp) or [Mote](https://github.com/SublimeText/Mote) plugins)
+* SSL/TLS is not supported for servers that enforce SSL_REUSE
+* Does not support continuous watching and syncing, only (after) manual action
+* Does not support proxy connections at the moment
+* Does not support remote diff at the moment
+
 
 About
 -----
@@ -92,7 +99,7 @@ Released under MIT licence.
 
 Feel free to add issues, ideas, pull requests...
 
-Thanks to [castus](https://github.com/castus), [tommymarshall](https://github.com/tommymarshall), [TotallyInformation](https://github.com/TotallyInformation), [saiori](https://github.com/saiori), [vnabet](https://github.com/vnabet), [Jcrs](https://github.com/Jcrs), [ItayXD](https://github.com/ItayXD), [bibimij](https://github.com/bibimij), [digitalmaster](https://github.com/digitalmaster), [alfaex](https://github.com/alfaex), [seyDoggy](https://github.com/seyDoggy), Nuno, [mikedoug](https://github.com/mikedoug), [stevether](https://github.com/stevether), [zaus](https://github.com/zaus), [noAlvaro](https://github.com/noAlvaro), [zofie86](https://github.com/zofie86), [fma965](https://github.com/fma965), [PixelVibe](https://github.com/PixelVibe), [Kaisercraft](https://github.com/Kaisercraft), [benkaiser](https://github.com/benkaiser), [anupdebnath](https://github.com/anupdebnath), [sy4mil](https://github.com/sy4mil), [leek](https://github.com/leek), [surfac](https://github.com/surfac), [mitsurugi](https://github.com/mitsurugi), [MonoSnippets](https://github.com/MonoSnippets), [Zegnat](https://github.com/Zegnat), [cwhittl](https://github.com/cwhittl), [shadowsdweller](https://github.com/shadowsdweller), [adiulici01](https://github.com/adiulici01), [tablatronix](https://github.com/tablatronix), [bllim](https://github.com/bllim), [Imaulle](https://github.com/Imaulle) and [friskfly](https://github.com/friskfly) for reporting issues, ideas and fixing!
+Thanks to [castus](https://github.com/castus), [tommymarshall](https://github.com/tommymarshall), [TotallyInformation](https://github.com/TotallyInformation), [saiori](https://github.com/saiori), [vnabet](https://github.com/vnabet), [Jcrs](https://github.com/Jcrs), [ItayXD](https://github.com/ItayXD), [bibimij](https://github.com/bibimij), [digitalmaster](https://github.com/digitalmaster), [alfaex](https://github.com/alfaex), [seyDoggy](https://github.com/seyDoggy), Nuno, [mikedoug](https://github.com/mikedoug), [stevether](https://github.com/stevether), [zaus](https://github.com/zaus), [noAlvaro](https://github.com/noAlvaro), [zofie86](https://github.com/zofie86), [fma965](https://github.com/fma965), [PixelVibe](https://github.com/PixelVibe), [Kaisercraft](https://github.com/Kaisercraft), [benkaiser](https://github.com/benkaiser), [anupdebnath](https://github.com/anupdebnath), [sy4mil](https://github.com/sy4mil), [leek](https://github.com/leek), [surfac](https://github.com/surfac), [mitsurugi](https://github.com/mitsurugi), [MonoSnippets](https://github.com/MonoSnippets), [Zegnat](https://github.com/Zegnat), [cwhittl](https://github.com/cwhittl), [shadowsdweller](https://github.com/shadowsdweller), [adiulici01](https://github.com/adiulici01), [tablatronix](https://github.com/tablatronix), [bllim](https://github.com/bllim), [Imaulle](https://github.com/Imaulle) and [friskfly](https://github.com/friskfly), [lysenkobv](https://github.com/lysenkobv), [nosfan1019](https://github.com/nosfan1019) for reporting issues, ideas and fixing!
 
 
 Tips
@@ -140,3 +147,4 @@ You can use *after_save_watch* option to setup files to be watched for change af
 * Remembering "overwrite cancelled" decision
 * Fixing special characters in file path
 * Stability improvement (fresh connection per non-multithreaded command: those use their own connection handling)
+* Experimental browsing feature
