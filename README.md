@@ -13,7 +13,7 @@ What's there for you?
 * Multithreaded uploading and downloading
 * Local&remote renaming and deleting
 * Progress bar for multiple up/download
-* [*experimental*] Remote browsing and manipulating via file list
+* [ *experimental* ] Remote browsing and manipulating via file list
 
 
 For more info look into [Wiki](https://github.com/NoxArt/SublimeText2-FTPSync/wiki/_pages)
@@ -37,8 +37,8 @@ Simply:
 
             upload_on_save: {bool=true}, // whether upload on save [true] or manually [false]
 
-            tls: {bool=false}, // set [true] to use secured transfer, recommended! (server needs to support)
-
+            tls: {bool=false}, // set [true] to use secured transfer, recommended!
+            // (server needs to support, but not enforce SSL_REUSE)
         }
     }
 
@@ -99,7 +99,7 @@ Released under MIT licence.
 
 Feel free to add issues, ideas, pull requests...
 
-Thanks to [castus](https://github.com/castus), [tommymarshall](https://github.com/tommymarshall), [TotallyInformation](https://github.com/TotallyInformation), [saiori](https://github.com/saiori), [vnabet](https://github.com/vnabet), [Jcrs](https://github.com/Jcrs), [ItayXD](https://github.com/ItayXD), [bibimij](https://github.com/bibimij), [digitalmaster](https://github.com/digitalmaster), [alfaex](https://github.com/alfaex), [seyDoggy](https://github.com/seyDoggy), Nuno, [mikedoug](https://github.com/mikedoug), [stevether](https://github.com/stevether), [zaus](https://github.com/zaus), [noAlvaro](https://github.com/noAlvaro), [zofie86](https://github.com/zofie86), [fma965](https://github.com/fma965), [PixelVibe](https://github.com/PixelVibe), [Kaisercraft](https://github.com/Kaisercraft), [benkaiser](https://github.com/benkaiser), [anupdebnath](https://github.com/anupdebnath), [sy4mil](https://github.com/sy4mil), [leek](https://github.com/leek), [surfac](https://github.com/surfac), [mitsurugi](https://github.com/mitsurugi), [MonoSnippets](https://github.com/MonoSnippets), [Zegnat](https://github.com/Zegnat), [cwhittl](https://github.com/cwhittl), [shadowsdweller](https://github.com/shadowsdweller), [adiulici01](https://github.com/adiulici01), [tablatronix](https://github.com/tablatronix), [bllim](https://github.com/bllim), [Imaulle](https://github.com/Imaulle) and [friskfly](https://github.com/friskfly), [lysenkobv](https://github.com/lysenkobv), [nosfan1019](https://github.com/nosfan1019) for reporting issues, ideas and fixing!
+Thanks to [castus](https://github.com/castus), [tommymarshall](https://github.com/tommymarshall), [TotallyInformation](https://github.com/TotallyInformation), [saiori](https://github.com/saiori), [vnabet](https://github.com/vnabet), [Jcrs](https://github.com/Jcrs), [ItayXD](https://github.com/ItayXD), [bibimij](https://github.com/bibimij), [digitalmaster](https://github.com/digitalmaster), [alfaex](https://github.com/alfaex), [seyDoggy](https://github.com/seyDoggy), Nuno, [mikedoug](https://github.com/mikedoug), [stevether](https://github.com/stevether), [zaus](https://github.com/zaus), [noAlvaro](https://github.com/noAlvaro), [zofie86](https://github.com/zofie86), [fma965](https://github.com/fma965), [PixelVibe](https://github.com/PixelVibe), [Kaisercraft](https://github.com/Kaisercraft), [benkaiser](https://github.com/benkaiser), [anupdebnath](https://github.com/anupdebnath), [sy4mil](https://github.com/sy4mil), [leek](https://github.com/leek), [surfac](https://github.com/surfac), [mitsurugi](https://github.com/mitsurugi), [MonoSnippets](https://github.com/MonoSnippets), [Zegnat](https://github.com/Zegnat), [cwhittl](https://github.com/cwhittl), [shadowsdweller](https://github.com/shadowsdweller), [adiulici01](https://github.com/adiulici01), [tablatronix](https://github.com/tablatronix), [bllim](https://github.com/bllim), [Imaulle](https://github.com/Imaulle) and [friskfly](https://github.com/friskfly), [lysenkobv](https://github.com/lysenkobv), [nosfan1019](https://github.com/nosfan1019), [smoochieboochies](https://github.com/smoochieboochies) for reporting issues, ideas and fixing!
 
 
 Tips
