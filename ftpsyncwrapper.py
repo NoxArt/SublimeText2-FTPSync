@@ -107,6 +107,7 @@ ftpErrors = {
 # SSL issue
 sslErrors = {
     'badWrite': 'error:1409F07F:SSL routines:SSL3_WRITE_PENDING:bad write retry',
+    'reuseRequired': 'SSL connection failed; session reuse required',
 }
 
 # Default permissions for newly created folder
@@ -720,7 +721,7 @@ class FTPSConnection(AbstractConnection):
             if re_errorOk.search(str(e)) is not None:
                 print "FTPSync > " + str(e)
                 return result
-            elif str(e).find(sslErrors['badWrite']) is True:
+            elif str(e).find(sslErrors['badWrite']) != -1:
                 return callback()
             # disconnected - close itself to be refreshed
             elif self.__isError(e, 'disconnected') is True:
@@ -757,7 +758,7 @@ class FTPSConnection(AbstractConnection):
         if time_val.find(':') is -1:
             time_val = time_val + str(" 00:00")
             time_val = re_whitespace.sub(" ", time_val)
-            struct = time.strptime(time_val, "%b %m %Y %H:%M")
+            struct = time.strptime(time_val, "%m %d %Y %H:%M")
         else:
             time_val = str(currentYear) + " " + time_val
             time_val = re_whitespace.sub(" ", time_val)
