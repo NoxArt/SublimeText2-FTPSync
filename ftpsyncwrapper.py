@@ -361,11 +361,26 @@ class FTPSConnection(AbstractConnection):
                     else:
                         raise
 
+            existsLocally = os.path.exists(file_path)
+
             if self.config['use_tempfile']:
                 viaTempfile(file_path, download, self.config['default_folder_permissions'])
             else:
                 with open(file_path, 'wb') as destination:
                     download(destination)
+
+            if existsLocally is False:
+                try:
+                    if self.config['default_local_permission'] is not None and sys.platform != 'win32' and sys.platform != 'cygwin':
+                        if self.config['default_local_permission'] == "auto":
+                            metadata = self.list(file_path)
+
+                            if type(metadata) is list and len(metadata) > 0:
+                                os.chmod(file_path, metadata[0].getPermissionsNumeric())
+                        else:
+                            os.chmod(file_path, self.config['default_local_permission'])
+                except Exception, e:
+                    print "FTPSync > Error setting local chmod [Exception: " + str(e) + "]"
 
         return self.__execute(action)
 

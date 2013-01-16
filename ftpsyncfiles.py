@@ -60,6 +60,18 @@ bomMarks = {
 bomMaxLength = 16
 # file_path[string] => textual[boolean]
 isTextCache = {}
+# permission triples
+triples = {
+	'---': 0,
+	'--x': 1,
+	'-w-': 2,
+	'-wx': 3,
+	'r--': 4,
+	'r-x': 5,
+	'rw-': 6,
+	'rwx': 7
+}
+
 
 
 # ==== Content =============================================================================
@@ -83,6 +95,16 @@ class Metafile:
 
 	def getPermissions(self):
 		return self.permissions
+
+	def getPermissionsNumeric(self):
+		symbolic = self.permissions
+
+		numeric  = "0"
+		numeric += str(triples[symbolic[0:3]])
+		numeric += str(triples[symbolic[3:6]])
+		numeric += str(triples[symbolic[6:9]])
+
+		return numeric
 
 	def isDirectory(self):
 		return self.isDir

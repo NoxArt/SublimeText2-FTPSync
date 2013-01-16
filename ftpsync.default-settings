@@ -91,6 +91,14 @@
 		// chmod value for directories created on remote server by FTPSync
 		//"default_folder_permissions": "755",
 
+		// chmod value for files newly downloaded by FTPSync
+		//
+		// "auto" = same as on server
+		// null = no action taken
+		// "0644" = example for direct value
+		//
+		//"default_local_permission": "auto",
+
 		// list of lists with pathnames and filenames to folders to be watched for change in between delay (upload_delay)
 		//
 		// ** example:
