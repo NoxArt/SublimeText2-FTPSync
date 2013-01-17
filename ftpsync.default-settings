@@ -97,7 +97,7 @@
 		// null = no action taken
 		// "0644" = example for direct value
 		//
-		//"default_local_permission": "auto",
+		//"default_local_permissions": "auto",
 
 		// true = set permissions even if the local file already exists ~ overwrite local permissions
 		//

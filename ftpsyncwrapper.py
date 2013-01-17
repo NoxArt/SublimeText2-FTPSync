@@ -371,14 +371,14 @@ class FTPSConnection(AbstractConnection):
 
             if existsLocally is False or self.config['always_sync_local_permissions']:
                 try:
-                    if self.config['default_local_permission'] is not None and sys.platform != 'win32' and sys.platform != 'cygwin':
-                        if self.config['default_local_permission'] == "auto":
+                    if self.config['default_local_permissions'] is not None and sys.platform != 'win32' and sys.platform != 'cygwin':
+                        if self.config['default_local_permissions'] == "auto":
                             metadata = self.list(file_path)
 
                             if type(metadata) is list and len(metadata) > 0:
                                 os.chmod(file_path, metadata[0].getPermissionsNumeric())
                         else:
-                            os.chmod(file_path, self.config['default_local_permission'])
+                            os.chmod(file_path, self.config['default_local_permissions'])
                 except Exception, e:
                     print "FTPSync > Error setting local chmod [Exception: " + str(e) + "]"
 
