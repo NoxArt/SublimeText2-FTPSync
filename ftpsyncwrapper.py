@@ -375,9 +375,9 @@ class FTPSConnection(AbstractConnection):
                             metadata = self.list(file_path)
 
                             if type(metadata) is list and len(metadata) > 0:
-                                os.chmod(file_path, metadata[0].getPermissionsNumeric())
+                                os.chmod(file_path, int(metadata[0].getPermissionsNumeric(),8))
                         else:
-                            os.chmod(file_path, self.config['default_local_permissions'])
+                            os.chmod(file_path, int(self.config['default_local_permissions'], 8))
                 except Exception, e:
                     print "FTPSync > Error setting local chmod [Exception: " + str(e) + "]"
 
