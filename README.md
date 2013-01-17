@@ -67,7 +67,10 @@ Whole connection config:
             ignore: {null|string}, // regular expression, matched against file path - not applied for downloading
             time_offset: {int=0}, // [seconds] to adjust for a different timezone of server
             set_remote_lastmodified: {bool=true}, // if MFMT extension is availible, will set true lastModified based on local file
+
             default_folder_permissions: {string=755}, // default permissions for newly created folders
+            default_local_permissions: {null|string="auto"}, // permissions for downloaded files, "auto" = same as on server
+            always_sync_local_permissions: {bool=true}, // set permissions for downloaded file even if it already exists
 
             after_save_watch: {null|list<list<subfolder, filepatter>>=null} // after save watch
             // example: [ [ "code/assets/css", "*.css" ], [ "code/assets/", "*.jpg, *.png, *.gif" ] ]
