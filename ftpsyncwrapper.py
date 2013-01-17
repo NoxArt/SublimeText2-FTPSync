@@ -36,8 +36,7 @@ import re
 import time
 import datetime
 import locale
-from sublime import platform
-from sys import getdefaultencoding
+import sys
 
 # FTPSync libraries
 from ftpsyncfiles import Metafile, isTextFile, viaTempfile
