@@ -99,6 +99,10 @@
 		//
 		//"default_local_permission": "auto",
 
+		// true = set permissions even if the local file already exists ~ overwrite local permissions
+		//
+		//"always_sync_local_permissions": true,
+
 		// list of lists with pathnames and filenames to folders to be watched for change in between delay (upload_delay)
 		//
 		// ** example:

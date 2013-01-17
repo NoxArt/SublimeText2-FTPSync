@@ -369,7 +369,7 @@ class FTPSConnection(AbstractConnection):
                 with open(file_path, 'wb') as destination:
                     download(destination)
 
-            if existsLocally is False:
+            if existsLocally is False or self.config['always_sync_local_permissions']:
                 try:
                     if self.config['default_local_permission'] is not None and sys.platform != 'win32' and sys.platform != 'cygwin':
                         if self.config['default_local_permission'] == "auto":
