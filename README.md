@@ -110,6 +110,8 @@ Tips
 
 * **Set key bindings (hotkeys) for frequent actions you use**
 
+Please edit only `Key Bindings - User` (clicking `Preferences > Package Control > FTPSync > Key Bindings - User` will open that file for you). You can use the contents of `Key Bindings - Default` as a template and copy it there. If you edit `Key Bindings - Default` (either Sublime's or FTPSync's), your changes will be lost on update.
+
 * **Renaming and deleting**
 
 Please keep in mind that for deleting and renaming on server you need to use `FTPSync > Rename` and `FTPSync > Delete` features, not those in Sublime Text 2 or SideBarEnhancements.
