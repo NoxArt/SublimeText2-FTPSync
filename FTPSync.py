@@ -1723,10 +1723,10 @@ class SyncNavigator(SyncCommand):
 				if meta.getName() == '..' and connection.getNormpath(path) == '/':
 					continue
 
-				entry.append("[ " + meta.getName() + " ]")
+				entry.append("[ " + meta.getName().decode('utf-8') + " ]")
 				entry.append("Directory")
 			else:
-				entry.append(meta.getName())
+				entry.append(meta.getName().decode('utf-8'))
 				entry.append("Size: " + str(meta.getFilesize()) + " kB")
 
 			entry.append("Last modified: " + meta.getLastModifiedFormatted(displayTimestampFormat))
@@ -1777,7 +1777,7 @@ class SyncNavigator(SyncCommand):
 				name = '/'
 
 		actions = []
-		actions.append("Open " + name)
+		actions.append("Open " + name.decode('utf-8'))
 		actions.append("Back")
 		actions.append("Download folder")
 
