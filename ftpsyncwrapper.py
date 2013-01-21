@@ -38,6 +38,12 @@ import datetime
 import locale
 import sys
 
+# workaround for http://www.gossamer-threads.com/lists/python/dev/755427
+try:
+    import _strptime
+except ImportError:
+    print "FTPSync > Failed to import _strptime"
+
 # FTPSync libraries
 from ftpsyncfiles import Metafile, isTextFile, viaTempfile
 # exceptions
