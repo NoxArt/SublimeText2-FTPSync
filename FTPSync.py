@@ -1121,20 +1121,20 @@ class SyncCommandUpload(SyncCommandTransfer):
 			self.progress.progress()
 
 		if len(stored) > 0:
+			notify = "Uploading "
+			if self.progress is None or self.progress.getTotal() == 1:
+				notify += "{" + self.basename + "} "
+			else:
+				notify += str(self.progress.getTotal()) + " files "
+			notify += "finished!"
+
 			if self.progress is not None and self.progress.isFinished():
-				notify = "Uploading "
-				if self.progress.getTotal() == 1:
-					notify += "{" + self.basename + "} "
-				else:
-					notify += str(self.progress.getTotal()) + " files "
-				notify += "finished!"
-
 				dumpMessage(getProgressMessage(stored, self.progress, notify))
-
-				if systemNotifications:
-					systemNotify(notify)
 			else:
 				dumpMessage(getProgressMessage(stored, self.progress, "uploaded ", self.basename))
+
+			if systemNotifications:
+				systemNotify(notify)
 
 		self.running = False
 
@@ -1252,27 +1252,27 @@ class SyncCommandDownload(SyncCommandTransfer):
 				break
 
 		wasFinished = False
-		if self.progress is not None and self.progress.isFinished() is False:
+		if self.progress is None or self.progress.isFinished() is False:
 			wasFinished = True
 
 		if self.progress is not None and self.isDir is not True:
 			self.progress.progress()
 
 		if len(stored) > 0:
+			notify = "Downloading "
+			if self.progress is None or self.progress.getTotal() == 1:
+				notify += "{" + self.basename + "} "
+			else:
+				notify += str(self.progress.getTotal()) + " files "
+			notify += "finished!"
+
 			if self.progress is not None and self.progress.isFinished() and wasFinished is False:
-				notify = "Downloading "
-				if self.progress.getTotal() == 1:
-					notify += "{" + self.basename + "} "
-				else:
-					notify += str(self.progress.getTotal()) + " files "
-				notify += "finished!"
-
 				dumpMessage(getProgressMessage(stored, self.progress, notify))
-
-				if systemNotifications:
-					systemNotify(notify)
 			else:
 				dumpMessage(getProgressMessage(stored, self.progress, "downloaded ", self.basename))
+
+			if systemNotifications:
+				systemNotify(notify)
 
 
 # Rename command
