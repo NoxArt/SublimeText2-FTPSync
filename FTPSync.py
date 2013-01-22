@@ -1138,7 +1138,7 @@ class SyncCommandUpload(SyncCommandTransfer):
 			else:
 				dumpMessage(getProgressMessage(stored, self.progress, "uploaded ", self.basename))
 
-			if systemNotifications:
+			if systemNotifications and self.progress is None or self.progress.isFinished():
 				systemNotify(notify)
 
 	def __del__(self):
@@ -1277,7 +1277,7 @@ class SyncCommandDownload(SyncCommandTransfer):
 			else:
 				dumpMessage(getProgressMessage(stored, self.progress, "downloaded ", self.basename))
 
-			if systemNotifications:
+			if systemNotifications and self.progress is None or (self.progress.isFinished() and wasFinished is False):
 				systemNotify(notify)
 
 
