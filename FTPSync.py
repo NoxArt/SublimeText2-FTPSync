@@ -908,6 +908,7 @@ class SyncCommand(SyncObject):
 		raise NotImplementedError("Abstract method")
 
 	def close(self):
+		self.running = False
 		self.closed = True
 
 	def _closeConnection(self):
@@ -953,7 +954,7 @@ class SyncCommandTransfer(SyncCommand):
 		# global ignore
 		if disregardIgnore is False and ignore is not None and re_ignore.search(file_path) is not None:
 			printMessage("file globally ignored: {" + os.path.basename(file_path) + "}", onlyVerbose=True)
-			self.closed = True
+			self.close()
 			return
 
 		SyncCommand.__init__(self, file_path, config_file_path)
@@ -1020,10 +1021,12 @@ class SyncCommandUpload(SyncCommandTransfer):
 	def execute(self):
 		if self.closed is True:
 			printMessage("Cancelling " + unicode(self.__class__.__name__) + ": command is closed")
+			self.close()
 			return
 
 		if len(self.config['connections']) == 0:
 			printMessage("Cancelling " + unicode(self.__class__.__name__) + ": zero connections apply")
+			self.close()
 			return
 
 		self._createConnection()
@@ -1097,6 +1100,8 @@ class SyncCommandUpload(SyncCommandTransfer):
 						printMessage("upload failed: {" + self.basename + "} [Exception: " + stringifyException(e) + "]", name, False, True)
 						handleException(e)
 
+					finally:
+						self.running = False
 
 				# delayed
 				if self.onSave is True and self.config['connections'][name]['upload_delay'] > 0:
@@ -1136,13 +1141,12 @@ class SyncCommandUpload(SyncCommandTransfer):
 			if systemNotifications:
 				systemNotify(notify)
 
-		self.running = False
-
 	def __del__(self):
 		if self.delayed is False:
 			SyncCommand.__del__(self)
 		else:
-			running = False
+			self.closed = True
+			self.running = False
 
 
 # Download command
@@ -1175,10 +1179,12 @@ class SyncCommandDownload(SyncCommandTransfer):
 
 		if self.closed is True:
 			printMessage("Cancelling " + unicode(self.__class__.__name__) + ": command is closed")
+			self.close()
 			return
 
 		if len(self.config['connections']) == 0:
 			printMessage("Cancelling " + unicode(self.__class__.__name__) + ": zero connections apply")
+			self.close()
 			return
 
 		self._createConnection()
@@ -1301,10 +1307,12 @@ class SyncCommandRename(SyncCommand):
 	def execute(self):
 		if self.closed is True:
 			printMessage("Cancelling " + unicode(self.__class__.__name__) + ": command is closed")
+			self.close()
 			return
 
 		if len(self.config['connections']) == 0:
 			printMessage("Cancelling " + unicode(self.__class__.__name__) + ": zero connections apply")
+			self.close()
 			return
 
 		self._createConnection()
