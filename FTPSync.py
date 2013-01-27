@@ -1901,6 +1901,8 @@ class SyncNavigator(SyncCommand):
 		actions.append("Change permissions")
 		actions.append("Show details")
 
+		print exists, hasSidebar
+
 		def handleAction(index):
 			if index == -1:
 				return
@@ -1937,7 +1939,17 @@ class SyncNavigator(SyncCommand):
 					handleException(e)
 				return
 
-			if index == 4 + exists:
+			if hasSidebar and index == 4 + exists:
+				def openRun(args):
+					sublime.set_timeout(lambda: sublime.active_window().run_command("side_bar_open", {"paths": [ args ]}), 1)
+
+				# download
+				call = RemoteSyncCall(gatherFiles([localFile]), None, False, True)
+				call.onFinish(openRun)
+				call.start()
+				return
+
+			if index == 4 + exists + int(hasSidebar):
 				def permissions(newPermissions):
 					self._createConnection()
 					connection = self.connections[0]
@@ -1947,16 +1959,6 @@ class SyncNavigator(SyncCommand):
 					printMessage("Properties of " + meta.getName() + " changed to " + newPermissions, status=True)
 
 				sublime.active_window().show_input_panel('Change permissions to:', self.configConnection['default_folder_permissions'], permissions, None, None)
-				return
-
-			if hasSidebar and index == 5 + exists:
-				def openRun(args):
-					sublime.set_timeout(lambda: sublime.active_window().run_command("side_bar_open", {"paths": [ args ]}), 1)
-
-				# download
-				call = RemoteSyncCall(gatherFiles([localFile]), None, False, True)
-				call.onFinish(openRun)
-				call.start()
 				return
 
 			if index == 5 + exists + int(hasSidebar):
