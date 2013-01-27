@@ -2525,3 +2525,14 @@ class FtpSyncBrowseLast(sublime_plugin.TextCommand):
 		else:
 			RemoteNavigator(None, True).start()
 
+# Open FTPSync Github page
+class FtpSyncUrlReadme(sublime_plugin.TextCommand):
+	def run(self, edit):
+		import webbrowser
+		webbrowser.open("https://github.com/NoxArt/SublimeText2-FTPSync", 2, True)
+
+# Open FTPSync Github New Issue page
+class FtpSyncUrlReport(sublime_plugin.TextCommand):
+	def run(self, edit):
+		import webbrowser
+		webbrowser.open("https://github.com/NoxArt/SublimeText2-FTPSync/issues/new", 2, True)

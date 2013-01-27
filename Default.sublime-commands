@@ -31,5 +31,13 @@
     {
         "caption": "FTPSync: Browse from current folder",
         "command": "ftp_sync_browse_current"
+    },
+    {
+        "caption": "FTPSync: Open README (Github)",
+        "command": "ftp_sync_url_readme"
+    },
+    {
+        "caption": "FTPSync: Report issue (Github)",
+        "command": "ftp_sync_url_report"
     }
 ]

@@ -78,6 +78,17 @@
                                     "platform": "Linux"
                                 },
                                 "caption": "Key Bindings – User"
+                            },
+                            {
+                                "caption": "-"
+                            },
+                            {
+                                "caption": "Open README (Github)",
+                                "command": "ftp_sync_url_readme"
+                            },
+                            {
+                                "caption": "Report issue (Github)",
+                                "command": "ftp_sync_url_report"
                             }
                         ]
                     }

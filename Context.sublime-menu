@@ -31,9 +31,20 @@
                 "command": "ftp_sync_browse_last"
             },
             {
-                "caption": "Browse from this folder",
-                "command": "ftp_sync_browse_current"
+                "caption": "-"
+            },
+            {
+                "caption": "-"
+            },
+            {
+                "caption": "Open README (Github)",
+                "command": "ftp_sync_url_readme"
+            },
+            {
+                "caption": "Report issue (Github)",
+                "command": "ftp_sync_url_report"
             }
+
         ]
     },
     { "caption": "-" }
