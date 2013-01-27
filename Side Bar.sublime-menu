@@ -16,7 +16,7 @@
 			{ "caption": "-" },
 			{ "caption": "Setup FTPSync in this folder", "command": "ftp_sync_new_settings", "args": {"dirs": []} },
             { "caption": "Open README (Github)", "command": "ftp_sync_url_readme" },
-            { "caption": "Report issue (Github)", "command": "ftp_sync_url_report" }
+            { "caption": "Report issue / suggestion (Github)", "command": "ftp_sync_url_report" }
 		]
 	}
 ]

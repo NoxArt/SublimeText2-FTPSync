@@ -41,7 +41,7 @@
                 "command": "ftp_sync_url_readme"
             },
             {
-                "caption": "Report issue (Github)",
+                "caption": "Report issue / suggestion (Github)",
                 "command": "ftp_sync_url_report"
             }
 
