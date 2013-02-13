@@ -1455,6 +1455,11 @@ class SyncCommandDelete(SyncCommandTransfer):
 			except IndexError:
 				continue
 
+			except FileNotFoundException:
+				printMessage("remote file not found", name, False, True)
+				deleted.append(name)
+				continue
+
 			except EOFError:
 				printMessage("Connection has been terminated, please retry your action", name, False, True)
 				self._closeConnection()
