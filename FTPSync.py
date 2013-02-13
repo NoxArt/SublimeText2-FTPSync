@@ -150,6 +150,11 @@ re_thisFolder = re.compile("/([^/]*?)/?$", re.I)
 re_parentFolder = re.compile("/([^/]*?)/[^/]*?/?$", re.I)
 
 
+# stored passwords
+# settings_filepath => { config1 => password1, config2 => password2, ... }
+passwords = {}
+
+
 # ==== Generic =============================================================================
 
 # Returns whether the variable is some form os string
@@ -349,10 +354,36 @@ def getRootPath(file_path, prefix = ''):
 def getFileName(view):
 	file_path = view.file_name()
 
-	#if file_path is not None:
-	#    file_path = file_path.encode('utf-8')
-
 	return file_path
+
+
+# Fills the password in given config if missing
+#
+# @type config: dict
+# @param config: full config dict
+# @type config_file_path: string
+#
+# @return the same dict
+#
+# @global passwords
+def setPasswords(config, config_file_path):
+	for name in config['connections']:
+		prop = config['connections'][name]
+
+		if prop['username'] is not None and prop['password'] is None:
+			if config_file_path in passwords and name in passwords[config_file_path]:
+				config['connections'][name]['password'] = passwords[config_file_path][name]
+			else:
+				# ask for password
+				password = xyz
+
+				if config_file_path not in passwords:
+					passwords[config_file_path] = {}
+
+				passwords[config_file_path][name] = password
+
+	return config
+
 
 
 # Gathers all entries from selected paths
