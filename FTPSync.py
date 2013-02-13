@@ -1273,6 +1273,14 @@ class SyncCommandDownload(SyncCommandTransfer):
 				notify += str(self.progress.getTotal()) + " files "
 			notify += "finished!"
 
+			file_path = self.file_path
+			def refresh():
+				view = sublime.active_window().active_view()
+				if view is not None and view.file_name() == file_path:
+					view.run_command("revert")
+
+			sublime.set_timeout(refresh, 1)
+
 			if self.progress is not None and self.progress.isFinished() and wasFinished is False:
 				dumpMessage(getProgressMessage(stored, self.progress, notify))
 			else:
