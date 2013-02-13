@@ -50,7 +50,7 @@ import sys
 # FTPSync libraries
 from ftpsyncwrapper import CreateConnection, TargetAlreadyExists
 from ftpsyncprogress import Progress
-from ftpsyncfiles import getFolders, findFile, getFiles, formatTimestamp, gatherMetafiles, getChangedFiles, replace
+from ftpsyncfiles import getFolders, findFile, getFiles, formatTimestamp, gatherMetafiles, getChangedFiles, replace, addLinks
 from ftpsyncworker import Worker
 # exceptions
 from ftpsyncexceptions import FileNotFoundException
@@ -1080,6 +1080,7 @@ class SyncCommandUpload(SyncCommandTransfer):
 							self.afterwatch['after'][name] = {}
 							self.scanWatched('after', name, self.config['connections'][name])
 							changed = getChangedFiles(self.afterwatch['before'][name], self.afterwatch['after'][name])
+
 							for change in changed:
 								change = change.getPath()
 								command = SyncCommandUpload(change, getConfigFile(change), None, False, True, [name])
@@ -1720,7 +1721,7 @@ class SyncNavigator(SyncCommand):
 		self.updateNavigateLast(path)
 
 		contents = connection.list(path, remote, True)
-
+		contents = addLinks(contents)
 		contents = sorted(contents, key = lambda entry: (entry.getName() != "..", entry.isDirectory() is False, entry.getName().lower()))
 
 		content = []
@@ -1742,6 +1743,7 @@ class SyncNavigator(SyncCommand):
 			if displayPermissions:
 				entry.append("Permissions: " + meta.getPermissions())
 
+			entry.append("Path: " + meta.getPath())
 			content.append(entry)
 			self.files.append(meta)
 		if len(contents) == 0:

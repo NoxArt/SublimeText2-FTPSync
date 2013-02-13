@@ -90,8 +90,8 @@ class Metafile:
 	def __init__(self, name, isDir, lastModified, filesize, path=None, permissions=None):
 		self.name = name
 		self.isDir = bool(isDir)
-		self.lastModified = float(lastModified)
-		self.filesize = float(filesize)
+		self.lastModified = lastModified
+		self.filesize = filesize
 		self.path = path
 		self.permissions = permissions
 
@@ -191,6 +191,9 @@ def fileToMetafile(file_path):
 #
 # @return string
 def formatTimestamp(timestamp, format='%Y-%m-%d %H:%M'):
+	if timestamp is None:
+		return "-"
+
 	return datetime.datetime.fromtimestamp(int(timestamp)).strftime(format)
 
 
@@ -427,3 +430,37 @@ def isTextFile(file_path, asciiWhitelist=None, binaryWhitelist=None):
 	# is not
 	isTextCache[file_path] = False
 	return False
+
+
+
+# Adds . and .. entries if missing in the collection
+#
+# @type contents: list<Metadata>
+#
+# @return list<metadata>
+def addLinks(contents):
+	hasSelf = False
+	hasUp = False
+	single = None
+
+	for entry in contents:
+		if entry.getName() == '.':
+			hasSelf = True
+		elif entry.getName() == '..':
+			hasUp = True
+
+		if hasSelf and hasUp:
+			return contents
+		else:
+			single = entry
+
+
+	if hasSelf == False:
+		entrySelf = Metafile('.', True, None, None, single.getPath(), None)
+		contents.append(entrySelf)
+
+	if hasUp == False:
+		entryUp = Metafile('..', True, None, None, single.getPath(), None)
+		contents.append(entryUp)
+
+	return contents
