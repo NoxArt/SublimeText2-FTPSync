@@ -91,7 +91,13 @@ class Metafile:
 		self.name = name
 		self.isDir = bool(isDir)
 		self.lastModified = lastModified
+		if self.lastModified is not None:
+			self.lastModified = float(self.lastModified)
+
 		self.filesize = filesize
+		if self.filesize is not None:
+			self.filesize = float(self.filesize)
+
 		self.path = path
 		self.permissions = permissions
 
@@ -127,6 +133,9 @@ class Metafile:
 		return self.filesize
 
 	def isNewerThan(self, compared_file):
+		if self.lastModified is None:
+			return False
+
 		if type(compared_file) is str or type(compared_file) is unicode:
 			if os.path.exists(compared_file) is False:
 				return False
@@ -140,6 +149,9 @@ class Metafile:
 		return self.lastModified > lastModified
 
 	def isDifferentSizeThan(self, compared_file):
+		if self.filesize is None:
+			return False
+
 		if type(compared_file) is str or type(compared_file) is unicode:
 			if os.path.exists(compared_file) is False:
 				return False
