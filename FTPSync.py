@@ -1044,6 +1044,10 @@ class SyncCommandUpload(SyncCommandTransfer):
 				index += 1
 				self.scanWatched('before', name, self.config['connections'][name])
 
+				if self.config['connections'][name]['debug_extras']['after_save_watch']:
+					printMessage("<debug> dumping pre-scan")
+					print self.afterwatch['before']
+
 		usingConnections.append(self.config_hash)
 		stored = []
 		index = -1
@@ -1079,7 +1083,15 @@ class SyncCommandUpload(SyncCommandTransfer):
 							# afterwatch
 							self.afterwatch['after'][name] = {}
 							self.scanWatched('after', name, self.config['connections'][name])
+							if self.config['connections'][name]['debug_extras']['after_save_watch']:
+								printMessage("<debug> dumping post-scan")
+								print self.afterwatch['before']
 							changed = getChangedFiles(self.afterwatch['before'][name], self.afterwatch['after'][name])
+							if self.config['connections'][name]['debug_extras']['after_save_watch']:
+								printMessage("<debug> dumping changed files")
+								print "COUNT: " + str(len(changed))
+								for change in changed:
+									print "Path: " + change.getPath() + " | Name: " + change.getName()
 
 							for change in changed:
 								change = change.getPath()

@@ -45,7 +45,8 @@
 			"print_list_result": false,
 			"dump_config_load": false,
 			"print_ensure_folders": false,
-			"debug_remote_paths": false
+			"debug_remote_paths": false,
+			"after_save_watch": false
 		}
 	},
 
