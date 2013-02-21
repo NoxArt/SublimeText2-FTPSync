@@ -63,7 +63,7 @@ class RunningCommand(threading.Thread):
 
 			while self.command.isRunning():
 				print "Command " + str(self.id) + " running..."
-				sleep(0.05)
+				sleep(0.5)
 
 			self.onFinish(self.command)
 

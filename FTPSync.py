@@ -149,6 +149,9 @@ displayTimestampFormat = settings.get('browse_timestamp_format')
 re_thisFolder = re.compile("/([^/]*?)/?$", re.I)
 re_parentFolder = re.compile("/([^/]*?)/[^/]*?/?$", re.I)
 
+# watch pre-scan
+preScan = {}
+
 
 # ==== Generic =============================================================================
 
@@ -1005,10 +1008,26 @@ class SyncCommandUpload(SyncCommandTransfer):
 			return
 
 		self.delayed = False
-		self.afterwatch = None
+		self.afterwatch = {
+			'before': {},
+			'after': {}
+		}
+
+
+	def setScanned(self, event, name, data):
+		if type(self.afterwatch) is not dict:
+			self.afterwatch = {}
+
+		if event not in self.afterwatch or type(self.afterwatch[event]) is not dict:
+			self.afterwatch[event] = {}
+
+		self.afterwatch[event][name] = data
 
 
 	def scanWatched(self, event, name, properties):
+			if event is 'before' and name in self.afterwatch['before'] and len(self.afterwatch['before'][name]) > 0:
+				return
+
 			root = os.path.dirname(self.config_file_path)
 			watch = properties['after_save_watch']
 			self.afterwatch[event][name] = {}
@@ -1033,20 +1052,18 @@ class SyncCommandUpload(SyncCommandTransfer):
 
 		# afterwatch
 		if self.onSave is True:
-			self.afterwatch = {
-				'before': {},
-				'after': {}
-			}
-
 			index = -1
 
-			for name in self.config['connections']:
-				index += 1
-				self.scanWatched('before', name, self.config['connections'][name])
+			try:
+				for name in self.config['connections']:
+					index += 1
+					self.scanWatched('before', name, self.config['connections'][name])
 
-				if self.config['connections'][name]['debug_extras']['after_save_watch']:
-					printMessage("<debug> dumping pre-scan")
-					print self.afterwatch['before']
+					if self.config['connections'][name]['debug_extras']['after_save_watch']:
+						printMessage("<debug> dumping pre-scan")
+						print self.afterwatch['before']
+			except Exception, e:
+				printMessage("watching failed: {" + self.basename + "} [Exception: " + stringifyException(e) + "]", "", False, True)
 
 		usingConnections.append(self.config_hash)
 		stored = []
@@ -2038,12 +2055,24 @@ class RemoteSync(sublime_plugin.EventListener):
 		if config_file_path is None:
 			return
 
+		preScan[config_file_path] = {}
+		root = os.path.dirname(config_file_path)
 		config = loadConfig(config_file_path)
 		blacklistConnections = []
+
 		for connection in config['connections']:
-			if config['connections'][connection]['upload_on_save'] is False:
+			properties = config['connections'][connection]
+
+			if properties['upload_on_save'] is False:
 				blacklistConnections.append(connection)
 
+			watch = properties['after_save_watch']
+			if type(watch) is list and len(watch) > 0 and properties['upload_delay'] > 0:
+				preScan[config_file_path][connection] = {}
+
+				for folder, filepattern in watch:
+					files = gatherMetafiles(filepattern, os.path.join(root, folder))
+					preScan[config_file_path][connection] = dict(preScan[config_file_path][connection].items() + files.items())
 
 		if len(blacklistConnections) == len(config['connections']):
 			return
@@ -2114,7 +2143,14 @@ class RemoteSync(sublime_plugin.EventListener):
 			preventUpload.remove(file_path)
 			return
 
-		RemoteSyncCall(file_path, getConfigFile(file_path), True).start()
+		config_file_path = getConfigFile(file_path)
+
+		command = RemoteSyncCall(file_path, config_file_path, True)
+
+		if config_file_path in preScan and preScan[config_file_path] is not None:
+			command.setPreScan(preScan[config_file_path])
+
+		command.start()
 
 	def on_close(self, view):
 		file_path = getFileName(view)
@@ -2163,6 +2199,20 @@ def fillProgress(progress, entry):
 
 class RemoteThread(threading.Thread):
 
+	def __init__(self):
+		threading.Thread.__init__(self)
+		self.preScan = None
+		self._whitelistConnetions = []
+		self._onFinish = None
+
+	def setPreScan(self, preScan):
+		self.preScan = preScan
+
+	def addPreScan(self, command):
+		if self.preScan is not None:
+			for name in self.preScan:
+				command.setScanned('before', name, self.preScan[name])
+
 	def setWhitelistConnections(self, whitelistConnections):
 		self._whitelistConnetions = whitelistConnections
 
@@ -2202,6 +2252,7 @@ class RemoteSyncCall(RemoteThread):
 			command = SyncCommandUpload(target, self.config, onSave=self.onSave, disregardIgnore=self.disregardIgnore, whitelistConnections=self.whitelistConnections, forcedSave=self.forcedSave)
 			command.addOnFinish(self.getOnFinish())
 			self.addWhitelistConnections(command)
+			self.addPreScan(command)
 			command.execute()
 
 		elif type(target) is list and len(target) > 0:
@@ -2214,6 +2265,7 @@ class RemoteSyncCall(RemoteThread):
 				command = SyncCommandUpload(file_path, config, progress=progress, onSave=self.onSave, disregardIgnore=self.disregardIgnore, whitelistConnections=self.whitelistConnections, forcedSave=self.forcedSave)
 				command.addOnFinish(self.getOnFinish())
 				self.addWhitelistConnections(command)
+				self.addPreScan(command)
 
 				if workerLimit > 1:
 					queue.addCommand(command, config)
