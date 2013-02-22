@@ -2074,6 +2074,12 @@ class RemoteSync(sublime_plugin.EventListener):
 					files = gatherMetafiles(filepattern, os.path.join(root, folder))
 					preScan[config_file_path][connection] = dict(preScan[config_file_path][connection].items() + files.items())
 
+				if properties['debug_extras']['after_save_watch']:
+					printMessage("<debug> dumping pre-scan")
+					print "COUNT: " + str(len(preScan[config_file_path][connection]))
+					for change in preScan[config_file_path][connection]:
+						print "Path: " + preScan[config_file_path][connection][change].getPath() + " | Name: " + preScan[config_file_path][connection][change].getName()
+
 		if len(blacklistConnections) == len(config['connections']):
 			return
 
