@@ -139,7 +139,7 @@ class FTP:
         '''Get the welcome message from the server.
         (this is read and squirreled away by connect())'''
         if self.debugging:
-            print '*welcome*', self.sanitize(self.welcome)
+            print ('*welcome*', self.sanitize(self.welcome))
         return self.welcome
 
     def set_debuglevel(self, level):
@@ -169,12 +169,12 @@ class FTP:
     # Internal: send one line to the server, appending CRLF
     def putline(self, line):
         line = line + CRLF
-        if self.debugging > 1: print '*put*', self.sanitize(line)
+        if self.debugging > 1: print ('*put*', self.sanitize(line))
         self.sock.sendall(line)
 
     # Internal: send one command to the server (through putline())
     def putcmd(self, line):
-        if self.debugging: print '*cmd*', self.sanitize(line)
+        if self.debugging: print ('*cmd*', self.sanitize(line))
         self.putline(line)
 
     # Internal: return one line from the server, stripping CRLF.
@@ -182,7 +182,7 @@ class FTP:
     def getline(self):
         line = self.file.readline()
         if self.debugging > 1:
-            print '*get*', self.sanitize(line)
+            print ('*get*', self.sanitize(line))
         if not line: raise EOFError
         if line[-2:] == CRLF: line = line[:-2]
         elif line[-1:] in CRLF: line = line[:-1]
@@ -208,22 +208,22 @@ class FTP:
     # Raise various errors if the response indicates an error
     def getresp(self):
         resp = self.getmultiline()
-        if self.debugging: print '*resp*', self.sanitize(resp)
+        if self.debugging: print ('*resp*', self.sanitize(resp))
         self.lastresp = resp[:3]
         c = resp[:1]
         if c in ('1', '2', '3'):
             return resp
         if c == '4':
-            raise error_temp, resp
+            raise error_temp(resp)
         if c == '5':
-            raise error_perm, resp
-        raise error_proto, resp
+            raise error_perm(resp)
+        raise error_proto(resp)
 
     def voidresp(self):
         """Expect a response beginning with '2'."""
         resp = self.getresp()
         if resp[:1] != '2':
-            raise error_reply, resp
+            raise error_reply( resp)
         return resp
 
     def abort(self):
@@ -232,11 +232,11 @@ class FTP:
         IP and Synch; that doesn't seem to work with the servers I've
         tried.  Instead, just send the ABOR command as OOB data.'''
         line = 'ABOR' + CRLF
-        if self.debugging > 1: print '*put urgent*', self.sanitize(line)
+        if self.debugging > 1: print ('*put urgent*', self.sanitize(line))
         self.sock.sendall(line, MSG_OOB)
         resp = self.getmultiline()
         if resp[:3] not in ('426', '225', '226'):
-            raise error_proto, resp
+            raise error_proto(resp)
 
     def sendcmd(self, cmd):
         '''Send a command and return the response.'''
@@ -266,7 +266,7 @@ class FTP:
         if self.af == socket.AF_INET6:
             af = 2
         if af == 0:
-            raise error_proto, 'unsupported address family'
+            raise error_proto('unsupported address family')
         fields = ['', repr(af), host, repr(port), '']
         cmd = 'EPRT ' + '|'.join(fields)
         return self.voidcmd(cmd)
@@ -280,14 +280,14 @@ class FTP:
             try:
                 sock = socket.socket(af, socktype, proto)
                 sock.bind(sa)
-            except socket.error, msg:
+            except socket.error as msg:
                 if sock:
                     sock.close()
                 sock = None
                 continue
             break
         if not sock:
-            raise socket.error, msg
+            raise socket.error(msg)
         sock.listen(1)
         port = sock.getsockname()[1] # Get proper port
         host = self.sock.getsockname()[0] # Get proper host
@@ -338,7 +338,7 @@ class FTP:
                 if resp[0] == '2':
                     resp = self.getresp()
                 if resp[0] != '1':
-                    raise error_reply, resp
+                    raise error_reply(resp)
             except:
                 conn.close()
                 raise
@@ -352,7 +352,7 @@ class FTP:
                 if resp[0] == '2':
                     resp = self.getresp()
                 if resp[0] != '1':
-                    raise error_reply, resp
+                    raise error_reply(resp)
                 conn, sockaddr = sock.accept()
                 if self.timeout is not _GLOBAL_DEFAULT_TIMEOUT:
                     conn.settimeout(self.timeout)
@@ -385,7 +385,7 @@ class FTP:
         if resp[0] == '3': resp = self.sendcmd('PASS ' + passwd)
         if resp[0] == '3': resp = self.sendcmd('ACCT ' + acct)
         if resp[0] != '2':
-            raise error_reply, resp
+            raise error_reply(resp)
         return resp
 
     def retrbinary(self, cmd, callback, blocksize=8192, rest=None):
@@ -430,7 +430,7 @@ class FTP:
         fp = conn.makefile('rb')
         while 1:
             line = fp.readline()
-            if self.debugging > 2: print '*retr*', repr(line)
+            if self.debugging > 2: print ('*retr*', repr(line))
             if not line:
                 break
             if line[-2:] == CRLF:
@@ -525,7 +525,7 @@ class FTP:
         '''Rename a file.'''
         resp = self.sendcmd('RNFR ' + fromname)
         if resp[0] != '3':
-            raise error_reply, resp
+            raise error_reply(resp)
         return self.voidcmd('RNTO ' + toname)
 
     def delete(self, filename):
@@ -534,14 +534,14 @@ class FTP:
         if resp[:3] in ('250', '200'):
             return resp
         else:
-            raise error_reply, resp
+            raise error_reply(resp)
 
     def cwd(self, dirname):
         '''Change to a directory.'''
         if dirname == '..':
             try:
                 return self.voidcmd('CDUP')
-            except error_perm, msg:
+            except error_perm as msg:
                 if msg.args[0][:3] != '500':
                     raise
         elif dirname == '':
@@ -708,7 +708,7 @@ else:
             try:
                 while 1:
                     line = fp.readline()
-                    if self.debugging > 2: print '*retr*', repr(line)
+                    if self.debugging > 2: print ('*retr*', repr(line))
                     if not line:
                         break
                     if line[-2:] == CRLF:
@@ -771,7 +771,7 @@ def parse150(resp):
     be present in the 150 message.
     '''
     if resp[:3] != '150':
-        raise error_reply, resp
+        raise error_reply (resp)
     global _150_re
     if _150_re is None:
         import re
@@ -794,14 +794,14 @@ def parse227(resp):
     Return ('host.addr.as.numbers', port#) tuple.'''
 
     if resp[:3] != '227':
-        raise error_reply, resp
+        raise error_reply(resp)
     global _227_re
     if _227_re is None:
         import re
         _227_re = re.compile(r'(\d+),(\d+),(\d+),(\d+),(\d+),(\d+)')
     m = _227_re.search(resp)
     if not m:
-        raise error_proto, resp
+        raise error_proto(resp)
     numbers = m.groups()
     host = '.'.join(numbers[:4])
     port = (int(numbers[4]) << 8) + int(numbers[5])
@@ -814,17 +814,17 @@ def parse229(resp, peer):
     Return ('host.addr.as.numbers', port#) tuple.'''
 
     if resp[:3] != '229':
-        raise error_reply, resp
+        raise error_reply(resp)
     left = resp.find('(')
-    if left < 0: raise error_proto, resp
+    if left < 0: raise error_proto(resp)
     right = resp.find(')', left + 1)
     if right < 0:
-        raise error_proto, resp # should contain '(|||port|)'
+        raise error_proto(resp) # should contain '(|||port|)'
     if resp[left + 1] != resp[right - 1]:
-        raise error_proto, resp
+        raise error_proto(resp)
     parts = resp[left + 1:right].split(resp[left+1])
     if len(parts) != 5:
-        raise error_proto, resp
+        raise error_proto(resp)
     host = peer[0]
     port = int(parts[3])
     return host, port
@@ -836,7 +836,7 @@ def parse257(resp):
     Returns the directoryname in the 257 reply.'''
 
     if resp[:3] != '257':
-        raise error_reply, resp
+        raise error_reply(resp)
     if resp[3:5] != ' "':
         return '' # Not compliant to RFC 959, but UNIX ftpd does this
     dirname = ''
@@ -855,7 +855,7 @@ def parse257(resp):
 
 def print_line(line):
     '''Default retrlines callback to print a line.'''
-    print line
+    print (line)
 
 
 def ftpcp(source, sourcename, target, targetname = '', type = 'I'):
@@ -895,8 +895,7 @@ class Netrc:
                 filename = os.path.join(os.environ["HOME"],
                                         ".netrc")
             else:
-                raise IOError, \
-                      "specify file to load or set $HOME"
+                raise IOError("specify file to load or set $HOME")
         self.__hosts = {}
         self.__macros = {}
         fp = open(filename, "r")
@@ -994,7 +993,7 @@ def test():
     '''
 
     if len(sys.argv) < 2:
-        print test.__doc__
+        print (test.__doc__)
         sys.exit(0)
 
     debugging = 0

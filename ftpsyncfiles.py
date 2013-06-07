@@ -351,7 +351,7 @@ def replace(source, destination):
 		try:
 			os.rename(source, destination)
 			os.unlink(destinationTemp)
-		except OSError, e:
+		except OSError as e:
 			os.rename(destinationTemp, destination)
 			raise
 
@@ -361,7 +361,9 @@ def replace(source, destination):
 #
 # @type source: callback(file)
 # @param source: operation performed on temporary file
-def viaTempfile(file_path, operation, permissions = 0755):
+def viaTempfile(file_path, operation, permissions):
+	if permissions is None:
+		permissions = '0755'
 	exceptionOccured = None
 	directory = os.path.dirname(file_path.encode('utf-8'))
 
@@ -372,7 +374,7 @@ def viaTempfile(file_path, operation, permissions = 0755):
 
 	try:
 		operation(temp)
-	except Exception, exp:
+	except Exception as exp:
 		exceptionOccured = exp
 	finally:
 		temp.flush()

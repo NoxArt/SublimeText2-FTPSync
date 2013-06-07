@@ -42,12 +42,12 @@ import sys
 try:
     import _strptime
 except ImportError:
-    print "FTPSync > Failed to import _strptime"
+    print("FTPSync > Failed to import _strptime")
 
 # FTPSync libraries
-from ftpsyncfiles import Metafile, isTextFile, viaTempfile
+from FTPSync.ftpsyncfiles import Metafile, isTextFile, viaTempfile
 # exceptions
-from ftpsyncexceptions import FileNotFoundException
+from FTPSync.ftpsyncexceptions import FileNotFoundException
 
 
 # ==== Initialization and optimization =====================================================
@@ -299,7 +299,7 @@ class FTPSConnection(AbstractConnection):
             if os.path.isdir(file_path):
                 return self.__ensurePath(path, True)
 
-            command = "STOR " + self.__encode(path)
+            command = "STOR " + path
             uploaded = open(file_path, "rb")
 
             def perBlock(data):
@@ -308,7 +308,7 @@ class FTPSConnection(AbstractConnection):
 
             try:
                 self.connection.storbinary(command, uploaded, callback = perBlock)
-            except Exception, e:
+            except Exception as e:
                 if self.__isErrorCode(e, ['ok', 'passive']) is True:
                     pass
                 elif self.__isErrorCode(e, 'fileUnavailible') and failed is False:
@@ -325,10 +325,10 @@ class FTPSConnection(AbstractConnection):
             if self.config['set_remote_lastmodified'] and self.__hasFeat("MFMT") :
                 try:
                     self.voidcmd("MFMT " + self.__encodeTime(os.path.getmtime(file_path)) + " " + path)
-                except Exception, e:
+                except Exception as e:
                     if self.__isDebug():
                         try:
-                            print "Failed to set lastModified <Exception: " + str(e) + ">"
+                            print ("Failed to set lastModified <Exception: " + str(e) + ">")
                         except:
                             pass
 
@@ -348,7 +348,7 @@ class FTPSConnection(AbstractConnection):
             command = "RETR " + self.__encode(path)
 
             if self.config['debug_extras']['debug_remote_paths']:
-                print "FTPSync <debug> get path " + file_path + " => " + str(self.__encode(path))
+                print ("FTPSync <debug> get path " + file_path + " => " + str(self.__encode(path)))
 
             def download(tempfile):
 
@@ -360,7 +360,7 @@ class FTPSConnection(AbstractConnection):
 
                 try:
                     self.connection.retrbinary(command, perBlock)
-                except Exception, e:
+                except Exception as e:
                     if self.__isErrorCode(e, ['ok', 'passive']):
                         self.connection.retrbinary(command, perBlock)
                     else:
@@ -384,8 +384,8 @@ class FTPSConnection(AbstractConnection):
                                 os.chmod(file_path, int(metadata[0].getPermissionsNumeric(),8))
                         else:
                             os.chmod(file_path, int(self.config['default_local_permissions'], 8))
-                except Exception, e:
-                    print "FTPSync > Error setting local chmod [Exception: " + str(e) + "]"
+                except Exception as e:
+                    print ("FTPSync > Error setting local chmod [Exception: " + str(e) + "]")
 
         return self.__execute(action)
 
@@ -419,7 +419,7 @@ class FTPSConnection(AbstractConnection):
                 else:
                     self.cwd(path)
                     self.voidcmd("DELE " + base)
-            except Exception, e:
+            except Exception as e:
                 if str(e).find('No such file'):
                     raise FileNotFoundException
                 else:
@@ -451,8 +451,8 @@ class FTPSConnection(AbstractConnection):
             self.cwd(root)
             try:
                 self.voidcmd("RMD " + name)
-            except Exception, e:
-                print e
+            except Exception as e:
+                print (e)
 
                 if self.__isErrorCode(e, 'fileUnavailible'):
                     return False
@@ -480,7 +480,7 @@ class FTPSConnection(AbstractConnection):
 
             try:
                 self.cwd(path)
-            except Exception, e:
+            except Exception as e:
                 if self.__isErrorCode(e, 'fileUnavailible'):
                     self.__ensurePath(path)
                 else:
@@ -491,7 +491,7 @@ class FTPSConnection(AbstractConnection):
 
             try:
                 self.voidcmd("RNFR " + base)
-            except Exception, e:
+            except Exception as e:
                 if self.__isError(e, 'rnfrExists'):
                     self.voidcmd("RNTO " + new_name)
                     return
@@ -506,7 +506,7 @@ class FTPSConnection(AbstractConnection):
 
             try:
                 self.voidcmd("RNFR " + base)
-            except Exception, e:
+            except Exception as e:
                 if self.__isError(e, 'rnfrExists') and str(e).find('Aborting previous'):
                     self.voidcmd("RNTO " + new_name)
                     return
@@ -515,7 +515,7 @@ class FTPSConnection(AbstractConnection):
 
             self.voidcmd("RNTO " + new_name)
 
-        except Exception, e:
+        except Exception as e:
 
             # disconnected - close itself to be refreshed
             if self.__isError(e, 'disconnected') is True:
@@ -532,7 +532,8 @@ class FTPSConnection(AbstractConnection):
     # @type path: string
     def cwd(self, path):
         self._makePassive()
-        self.connection.cwd(self.__encode(path))
+        print ('PATH ', path)
+        self.connection.cwd((path))
 
 
     # Returns whether it provides true last modified mechanism
@@ -572,7 +573,7 @@ class FTPSConnection(AbstractConnection):
             self.voidcmd("SIZE " + path)
 
             return True
-        except Exception, e:
+        except Exception as e:
             if self.__isErrorCode(e, 'fileUnavailible'):
                 return False
             else:
@@ -595,17 +596,17 @@ class FTPSConnection(AbstractConnection):
             else:
                 path = self._getMappedPath(file_path)
 
-            path = self.__encode(path)
+            path = self.path
 
             if self.config['debug_extras']['debug_remote_paths']:
-                print "FTPSync <debug> list path " + file_path + " => " + str(path)
+                print ("FTPSync <debug> list path " + file_path + " => " + str(path))
 
             contents = []
             result = []
 
             try:
                 self.connection.dir(path, lambda data: contents.append(data))
-            except Exception, e:
+            except Exception as e:
                 if self.__isErrorCode(e, ['ok', 'passive']):
                     self.connection.dir(path, lambda data: contents.append(data))
                 elif str(e).find('No such file'):
@@ -616,7 +617,7 @@ class FTPSConnection(AbstractConnection):
             for content in contents:
                 try:
                     if self.config['debug_extras']['print_list_result'] is True:
-                        print "FTPSync <debug> LIST line: " + str(content).encode('utf-8')
+                        print ("FTPSync <debug> LIST line: " + str(content).encode('utf-8'))
                 except KeyError:
                     pass
 
@@ -713,8 +714,8 @@ class FTPSConnection(AbstractConnection):
             for feat in feats:
                 if feat[0] != '2':
                     self.feat.append( feat.strip() )
-        except Exception, e:
-            print e
+        except Exception as e:
+            print (e)            
             self.feat = []
 
 
@@ -739,11 +740,11 @@ class FTPSConnection(AbstractConnection):
         try:
             result = callback()
             return result
-        except Exception, e:
+        except Exception as e:
 
             # bad write - repeat command
             if re_errorOk.search(str(e)) is not None:
-                print "FTPSync > " + str(e)
+                print ("FTPSync > " + str(e))
                 return result
             elif str(e).find(sslErrors['badWrite']) != -1:
                 return callback()
@@ -813,7 +814,7 @@ class FTPSConnection(AbstractConnection):
     #
     # @global ftpError
     # @global re_errorCode
-    def __isErrorCode(self, exception, error):
+    def __isErrorCode(self, Exception, error):
         code = re_errorCode.search(str(exception))
 
         if code is None:
@@ -838,7 +839,7 @@ class FTPSConnection(AbstractConnection):
     # @return boolean
     #
     # @global ftpErrors
-    def __isError(self, exception, error):
+    def __isError(self, Exception, error):
         return str(exception).find(ftpErrors[error]) != -1
 
 
@@ -879,7 +880,7 @@ class FTPSConnection(AbstractConnection):
 
         folders = relative.split("/")
         if 'debug_extras' in self.config and 'print_ensure_folders' in self.config['debug_extras'] and self.config['debug_extras']['print_ensure_folders'] is True:
-            print relative, folders
+            print (relative, folders)
 
         index = 0
         for folder in folders:
@@ -888,13 +889,13 @@ class FTPSConnection(AbstractConnection):
             try:
                 if index < len(folders) or (isFolder and index <= len(folders)):
                     self.cwd(folder)
-            except Exception, e:
+            except Exception as e:
                 if self.__isErrorCode(e, 'fileUnavailible'):
 
                     try:
                         # create folder
                         self.connection.mkd(self.__encode(folder))
-                    except Exception, e:
+                    except Exception as e:
                         if self.__isErrorCode(e, 'fileUnavailible'):
                             # not proper permissions
                             self.chmod(folder, self.config['default_folder_permissions'])
