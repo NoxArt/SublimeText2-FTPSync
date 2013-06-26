@@ -45,9 +45,14 @@ except ImportError:
     print("FTPSync > Failed to import _strptime")
 
 # FTPSync libraries
-from FTPSync.ftpsyncfiles import Metafile, isTextFile, viaTempfile
-# exceptions
-from FTPSync.ftpsyncexceptions import FileNotFoundException
+try:
+    from FTPSync.ftpsyncfiles import Metafile, isTextFile, viaTempfile
+    # exceptions
+    from FTPSync.ftpsyncexceptions import FileNotFoundException
+except ImportError:
+    from ftpsyncfiles import Metafile, isTextFile, viaTempfile
+    # exceptions
+    from ftpsyncexceptions import FileNotFoundException
 
 
 # ==== Initialization and optimization =====================================================
@@ -532,7 +537,6 @@ class FTPSConnection(AbstractConnection):
     # @type path: string
     def cwd(self, path):
         self._makePassive()
-        print ('PATH ', path)
         self.connection.cwd((path))
 
 
@@ -596,7 +600,7 @@ class FTPSConnection(AbstractConnection):
             else:
                 path = self._getMappedPath(file_path)
 
-            path = self.path
+            path = self.__encode(path)
 
             if self.config['debug_extras']['debug_remote_paths']:
                 print ("FTPSync <debug> list path " + file_path + " => " + str(path))
@@ -715,7 +719,7 @@ class FTPSConnection(AbstractConnection):
                 if feat[0] != '2':
                     self.feat.append( feat.strip() )
         except Exception as e:
-            print (e)            
+            print (e)
             self.feat = []
 
 
@@ -814,7 +818,7 @@ class FTPSConnection(AbstractConnection):
     #
     # @global ftpError
     # @global re_errorCode
-    def __isErrorCode(self, Exception, error):
+    def __isErrorCode(self, exception, error):
         code = re_errorCode.search(str(exception))
 
         if code is None:
@@ -839,7 +843,7 @@ class FTPSConnection(AbstractConnection):
     # @return boolean
     #
     # @global ftpErrors
-    def __isError(self, Exception, error):
+    def __isError(self, exception, error):
         return str(exception).find(ftpErrors[error]) != -1
 
 

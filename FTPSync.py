@@ -48,12 +48,20 @@ import traceback
 import sys
 
 # FTPSync libraries
-from FTPSync.ftpsyncwrapper import CreateConnection, TargetAlreadyExists
-from FTPSync.ftpsyncprogress import Progress
-from FTPSync.ftpsyncfiles import getFolders, findFile, getFiles, formatTimestamp, gatherMetafiles, getChangedFiles, replace, addLinks
-from FTPSync.ftpsyncworker import Worker
-# exceptions
-from FTPSync.ftpsyncexceptions import FileNotFoundException
+try:
+	from FTPSync.ftpsyncwrapper import CreateConnection, TargetAlreadyExists
+	from FTPSync.ftpsyncprogress import Progress
+	from FTPSync.ftpsyncfiles import getFolders, findFile, getFiles, formatTimestamp, gatherMetafiles, getChangedFiles, replace, addLinks
+	from FTPSync.ftpsyncworker import Worker
+	# exceptions
+	from FTPSync.ftpsyncexceptions import FileNotFoundException
+except ImportError:
+	from ftpsyncwrapper import CreateConnection, TargetAlreadyExists
+	from ftpsyncprogress import Progress
+	from ftpsyncfiles import getFolders, findFile, getFiles, formatTimestamp, gatherMetafiles, getChangedFiles, replace, addLinks
+	from ftpsyncworker import Worker
+	# exceptions
+	from ftpsyncexceptions import FileNotFoundException
 
 # ==== Initialization and optimization =====================================================
 isDebug = 'true'
@@ -136,13 +144,12 @@ def plugin_loaded():
 	global coreConfig
 	global settings
 	global projectDefaults
-	global nested 
+	global nested
 	global index
-	global ignore	
-	global time_format	
-	global download_on_open_delay	
-	global systemNotifications 
-	
+	global ignore
+	global time_format
+	global download_on_open_delay
+	global systemNotifications
 
 	# global config
 	settings = sublime.load_settings('FTPSync.sublime-settings')
@@ -159,7 +166,7 @@ def plugin_loaded():
 	isDebugVerbose = settings.get('debug_verbose')
 	# default config for a project
 	projectDefaults = settings.get('project_defaults')
-	
+
 	index = 0
 
 	for item in projectDefaults.items():
@@ -186,7 +193,7 @@ def plugin_loaded():
 		'binary_extensions': settings.get('binary_extensions')
 	}
 
-	
+
 	# limit of workers
 	workerLimit = settings.get('max_threads')
 	# debug workers?
@@ -211,6 +218,9 @@ def plugin_loaded():
 
 	# watch pre-scan
 	preScan = {}
+
+if int(sublime.version()) < 3000:
+	plugin_loaded()
 
 
 # ==== Generic =============================================================================
@@ -636,10 +646,10 @@ def loadConfig(file_path):
 		result[name]['file_path'] = file_path
 
 		# merge nested
-		for index in nested:			
+		for index in nested:
 			list1 = list(list(projectDefaults.items())[index][1].items())
 			list2 = list(result[name][list(projectDefaults.items())[index][0]].items())
-			
+
 			result[name][list(projectDefaults.items())[index][0]] = dict(list1 + list2)
 		try:
 			if result[name]['debug_extras']['dump_config_load'] is True:
@@ -648,7 +658,7 @@ def loadConfig(file_path):
 			pass
 
 		result[name] = updateConfig(result[name])
-	
+
 		verification_result = verifyConfig(result[name])
 
 		if verification_result is not True:
@@ -1032,7 +1042,7 @@ class SyncCommandTransfer(SyncCommand):
 
 		toBeRemoved = []
 		for name in self.config['connections']:
-			
+
 			# on save
 			if self.config['connections'][name]['upload_on_save'] is False and onSave is True and forcedSave is False:
 				toBeRemoved.append(name)
