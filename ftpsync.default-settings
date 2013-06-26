@@ -1,116 +1,84 @@
 {
+	// HELP / INFO moved to bottom
+	// Remove "//" to uncomment settings directive
+
+	"default": {
+
+		"host": "ftp.example.com",
+		"username": "your_login",  // or null for anonymous login
+		"password": "your_password",
+		"path": "/"
+		// "port": 21,
+		// "tls": false,
+		// "timeout": 30, // [seconds]
+		// "upload_on_save": true,
+
+
+		// "passive": true,
+		// "download_on_open": false,
+		// "overwrite_newer_prevention": true,
+		// "default_folder_permissions": "755",
+		// "time_offset": 0, // [seconds]
+		// "always_sync_local_permissions": true,
+
+		// Value "auto" = use UTF-8 if availible (FEAT: UTF8), otherwise use local
+		// "encoding": "auto",
+
+		// Trade small performance impact for more stable and secure transfer (old file is intact until the download is finished)
+		// "use_tempfile": true,
+
+		// Regular expression, recommending using \b in general and /.../ for folders to avoid matching substrings
+		// "ignore": "",
+
+		// Can be used for increase of performance or to allow build scripts to finish
+		// "upload_delay": 0, // [seconds]
+
+		// Only if the server has MFMT extension installed
+		// "set_remote_lastmodified": true,
+
+		// Chmod value for files newly downloaded by FTPSync
+		//   "auto" = same as on server
+		//   null = no action taken
+		//   "0644" = example for direct value
+		// "default_local_permissions": "auto",
+
+		// List of lists with pathnames and filenames to folders to be watched for change in between delay (upload_delay)
+		//   example: after_save_watch: [ [ "code/assets/css", "*.css" ], [ "code/assets/", "*.jpg, *.png, *.gif" ] ]
+		//   used only in conjunction with upload_on_save and upload_delay **
+		// For more info see https://github.com/NoxArt/SublimeText2-FTPSync/wiki/Why-and-how-to-use-afterwatch
+		// "after_save_watch": []
+
+	}
 
 	// ------ INFO ----------------------------------------------------------------------
 
-	// ** Commas
+	// For settings description see:
+	// --- https://github.com/NoxArt/SublimeText2-FTPSync
 
-	// don't forget about commas
-	// -> each entry needs a comma at the end of line EXCEPT the last (uncommented) entry
-	// for precise info see www.json.org
+	// For more info see:
+	// --- https://github.com/NoxArt/SublimeText2-FTPSync/wiki/_pages
+
+	// Want to ask? Report a bug?
+	// --- Hit: https://github.com/NoxArt/SublimeText2-FTPSync/issues/new
 
 
-	// ** Comments
+	// ** Commas **
 
-	// the "//" are so called "comments", all text after it is ignored
+	// Don't forget about commas -> each entry needs a comma at the end of line EXCEPT the last (uncommented) entry
+	// For precise info see http://www.json.org
+	// Also try http://jsonlint.com
+
+
+	// ** Comments **
+
+	// The "//" are so called "comments", all text after it is ignored,
 	// they are used for notes or deactivating an entry
 
-	// non-basic settings are deactivated and default options specified in the global settings file,
+	// Non-basic settings are deactivated and default options specified in the global settings file,
 	// that is $packages$/FTPSync/ftpsync.sublime-settings (where $packages$ is a path where Sublime
 	// keeps packages in your Operating System) accessible via Preferences > Package Settings > FTPSync
-	// use Settings - User to override the global defaults
+	// Use Settings - User to override the global defaults
 
-	// more info about Sublime Text 2 settings on http://www.sublimetext.com/docs/2/settings.html
+	// More info about Sublime Text 2 settings on http://www.sublimetext.com/docs/2/settings.html
 
-	// -> if you want to activate a settings entry with preceding //, remove the //
-
-	// ------ SETTINGS ------------------------------------------------------------------
-
-	// your main connection
-	"default": {
-
-		// address
-		"host": "ftp.example.com",
-
-		//"port": 21,
-
-		// credentials
-		"username": "your_login",  // or null for anonymous login
-		"password": "your_password",
-
-		// server path to your project (example: /www/)
-		// start with "/" and then append all the folders you'd need to open to get to your project from topmost folder
-		"path": "/"
-
-		// encoding used for filenames and filepaths ("auto" or other charset name)
-		//
-		// auto = use UTF-8 if availible (FEAT: UTF8), otherwise use local
-		//
-		//"encoding": "auto",
-
-		// Whether to use secured FTP connection
-		// 'true' is recommended
-		//"tls": false,
-
-		// set whether the connection will be passive or active
-		//"passive": true,
-
-		// whether to use temporary files for more stable transfer
-		// has only a very small performance impact when transfering large amounts of files
-		// 'true' is highly recommended
-		//"use_tempfile": true,
-
-		// true = upload on save, false = upload only manually
-		// "upload_on_save": true,
-
-		// how long until connection closes [seconds], unless closed immediately
-		//"timeout": 30,
-
-		// regular expression, when matches the file path of the file-to-be-uploaded, it cancels its upload
-		// recommending using \b in general and /.../ for folders to avoid matching substrings
-		//"ignore": "",
-
-		// whether to check 'last updated' of the target file on server
-		//"overwrite_newer_prevention": true,
-
-		// if set to true it will download the file from server on opening, but only if it's newer than the current file
-		//"download_on_open": false,
-
-		// delay [seconds] before changed file is uploaded !when using upload_on_save!
-		// can be used for increase of performance or to allow build scripts to finish
-		//"upload_delay": 0,
-
-		// If the server you're working with is in a different timezone, you can specify the offset here
-		// in seconds.  For example, if the FTP server is 1 hour ahead of you, use -3600 as the offset to
-		// make comparisons against the server time take 3600 seconds off of the server time.
-		//"time_offset": 0,
-
-		// If the server has MFMT extension installed, it will set true last modified value based on local file's last modified value
-		//"set_remote_lastmodified": true,
-
-
-		// chmod value for directories created on remote server by FTPSync
-		//"default_folder_permissions": "755",
-
-		// chmod value for files newly downloaded by FTPSync
-		//
-		// "auto" = same as on server
-		// null = no action taken
-		// "0644" = example for direct value
-		//
-		//"default_local_permissions": "auto",
-
-		// true = set permissions even if the local file already exists ~ overwrite local permissions
-		//
-		//"always_sync_local_permissions": true,
-
-		// list of lists with pathnames and filenames to folders to be watched for change in between delay (upload_delay)
-		//
-		// ** example:
-		//    after_save_watch: [ [ "code/assets/css", "*.css" ], [ "code/assets/", "*.jpg, *.png, *.gif" ] ]
-		//
-		// ** Used only in conjunction with upload_on_save and upload_delay **
-		//
-		//"after_save_watch": []
-
-	}
 }
