@@ -15,7 +15,7 @@ What's there for you?
 * Progress bar for multiple up/download
 * Remote browsing and manipulating via file list
 
-**Now Sublime Text 3 compatible** thanks to Dmitry Loktev!
+**Now Sublime Text 3 compatible** thanks to **Dmitry Loktev**!
 
 WIP features:
 * Passwords set via dialog, not stored in a file
