@@ -81,12 +81,6 @@ download_on_open_delay = 0
 
 coreConfig = {}
 
-# compiled global ignore pattern
-if type(ignore) is str or type(ignore) is unicode:
-	re_ignore = re.compile(ignore)
-else:
-	re_ignore = None
-
 
 # name of a file to be detected in the project
 configName = 'ftpsync.settings'
@@ -147,6 +141,7 @@ def plugin_loaded():
 	global nested
 	global index
 	global ignore
+	global re_ignore
 	global time_format
 	global download_on_open_delay
 	global systemNotifications
@@ -174,8 +169,6 @@ def plugin_loaded():
 			nested.append(index)
 		index += 1
 
-
-
 	# global ignore pattern
 	ignore = settings.get('ignore')
 	# time format settings
@@ -184,6 +177,12 @@ def plugin_loaded():
 	download_on_open_delay = settings.get('download_on_open_delay')
 	# system notifications
 	systemNotifications = settings.get('system_notifications')
+
+	# compiled global ignore pattern
+	if type(ignore) is str or type(ignore) is unicode:
+		re_ignore = re.compile(ignore)
+	else:
+		re_ignore = None
 
 	# loaded project's config will be merged with this global one
 	coreConfig = {
