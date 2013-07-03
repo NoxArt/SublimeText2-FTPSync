@@ -64,16 +64,16 @@ except ImportError:
 	from ftpsyncexceptions import FileNotFoundException
 
 # ==== Initialization and optimization =====================================================
-isDebug = 'true'
+isDebug = True
 # print overly informative messages?
-isDebugVerbose = 'true'
+isDebugVerbose = True
 # default config for a project
 projectDefaults = {}
 nested = []
 index = 0
 # global config key - for specifying global config in settings file
 globalConfigKey = '__global'
-ignore = 'false'
+ignore = False
 # time format settings
 time_format = ""
 # delay before check of right opened file is performed, cancelled if closed in the meantime
