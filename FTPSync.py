@@ -145,6 +145,8 @@ def plugin_loaded():
 	global time_format
 	global download_on_open_delay
 	global systemNotifications
+	global displayPermissions
+	global displayTimestampFormat
 
 	# global config
 	settings = sublime.load_settings('FTPSync.sublime-settings')
