@@ -64,6 +64,8 @@ except ImportError:
 	from ftpsyncexceptions import FileNotFoundException
 
 # ==== Initialization and optimization =====================================================
+isLoaded = False
+
 isDebug = True
 # print overly informative messages?
 isDebugVerbose = True
@@ -129,9 +131,15 @@ re_parentFolder = re.compile("/([^/]*?)/[^/]*?/?$", re.I)
 # watch pre-scan
 preScan = {}
 
+# temporarily remembered passwords
+#
+# { settings_filepath => { connection_name => password }, ... }
+passwords = {}
+
 
 def plugin_loaded():
 	print ('FTPSync > plugin async loaded')
+	global isLoaded
 	global isDebug
 	global isDebugVerbose
 	global workerLimit
@@ -154,7 +162,7 @@ def plugin_loaded():
 	# test settings
 	if settings.get('project_defaults') is None:
 		print ("="*86)
-		print ("FTPSync > Error loading settings ... please restart Sublime Text 3 after installation")
+		print ("FTPSync > Error loading settings ... please restart Sublime Text after installation")
 		print ("="*86)
 
 	# print debug messages to console?
@@ -194,31 +202,15 @@ def plugin_loaded():
 		'binary_extensions': settings.get('binary_extensions')
 	}
 
-
 	# limit of workers
 	workerLimit = settings.get('max_threads')
 	# debug workers?
 	debugWorkers = settings.get('debug_threads')
 
-
-	# overwrite cancelled
-	overwriteCancelled = []
-
-	# last navigation
-	navigateLast = {
-		'config_file': None,
-		'connection_name': None,
-		'path': None
-	}
 	displayPermissions = settings.get('browse_display_permission')
 	displayTimestampFormat = settings.get('browse_timestamp_format')
 
-	# last folder
-	re_thisFolder = re.compile("/([^/]*?)/?$", re.I)
-	re_parentFolder = re.compile("/([^/]*?)/[^/]*?/?$", re.I)
-
-	# watch pre-scan
-	preScan = {}
+	isLoaded = True
 
 if int(sublime.version()) < 3000:
 	plugin_loaded()
@@ -383,7 +375,7 @@ def getConfigFile(file_path):
 			configFolder = findConfigFile(folders)
 
 			if configFolder is None:
-				printMessage("Found no config for {" + file_path + "}")
+				printMessage("Found no config for {" + file_path + "}", None, True)
 				return None
 
 			config = os.path.join(configFolder, configName)
@@ -523,7 +515,7 @@ def verifyConfig(config):
 	if type(config) is not dict:
 		return "Config is not a {dict} type"
 
-	keys = ["username", "password", "private_key", "private_key_pass", "path", "encoding", "tls", "use_tempfile", "upload_on_save", "port", "timeout", "ignore", "check_time", "download_on_open", "upload_delay", "after_save_watch", "time_offset", "set_remote_lastmodified", "default_folder_permissions", "default_local_permissions", "always_sync_local_permissions"]
+	keys = ["username", "password", "private_key", "private_key_pass", "path", "encoding", "tls", "use_tempfile", "upload_on_save", "port", "timeout", "ignore", "check_time", "download_on_open", "upload_delay", "after_save_watch", "time_offset", "set_remote_lastmodified", "default_folder_permissions", "default_local_permissions", "always_sync_local_permissions", "config_extras"]
 
 	for key in keys:
 		if key not in config:
@@ -610,6 +602,7 @@ def parseJson(file_path):
 	return json.loads(contents)
 
 
+
 # Parses given config and adds default values to each connection entry
 #
 # @type  file_path: string
@@ -617,9 +610,14 @@ def parseJson(file_path):
 #
 # @return config dict or None
 #
+# @global isLoaded
 # @global coreConfig
 # @global projectDefaults
 def loadConfig(file_path):
+
+	if isLoaded is False:
+		printMessage("Settings not loaded (just installed?), please restart Sublime Text")
+		return None
 
 	if os.path.exists(file_path) is False:
 		return None
