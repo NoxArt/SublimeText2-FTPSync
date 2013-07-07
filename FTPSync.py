@@ -2757,9 +2757,15 @@ class FtpSyncBrowseLast(sublime_plugin.TextCommand):
 		if navigateLast['config_file'] is None:
 			file_path = sublime.active_window().active_view().file_name()
 
-			RemoteNavigator(getConfigFile(file_path)).start()
+			def execute(files):
+				RemoteNavigator(getConfigFile(file_path)).start()
+
+			fillPasswords([[ file_path, getConfigFile(file_path) ]], execute, sublime.active_window())
 		else:
-			RemoteNavigator(None, True).start()
+			def execute(files):
+				RemoteNavigator(None, True).start()
+
+			fillPasswords([[ None, getConfigFile(navigateLast['config_file']) ]], execute, sublime.active_window())
 
 # Open FTPSync Github page
 class FtpSyncUrlReadme(sublime_plugin.TextCommand):
