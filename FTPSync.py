@@ -515,7 +515,7 @@ def verifyConfig(config):
 	if type(config) is not dict:
 		return "Config is not a {dict} type"
 
-	keys = ["username", "password", "private_key", "private_key_pass", "path", "encoding", "tls", "use_tempfile", "upload_on_save", "port", "timeout", "ignore", "check_time", "download_on_open", "upload_delay", "after_save_watch", "time_offset", "set_remote_lastmodified", "default_folder_permissions", "default_local_permissions", "always_sync_local_permissions", "config_extras"]
+	keys = ["username", "password", "private_key", "private_key_pass", "path", "encoding", "tls", "use_tempfile", "upload_on_save", "port", "timeout", "ignore", "check_time", "download_on_open", "upload_delay", "after_save_watch", "time_offset", "set_remote_lastmodified", "default_folder_permissions", "default_local_permissions", "always_sync_local_permissions"]
 
 	for key in keys:
 		if key not in config:
