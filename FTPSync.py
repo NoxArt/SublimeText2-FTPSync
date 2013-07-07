@@ -805,15 +805,18 @@ def makeConnection(config, hash=None, handleExceptions=True):
 			return []
 
 		# 4. login
-		if properties['username'] is not None:
+		if properties['username'] is not None and properties['password'] is not None:
 			try:
 				connection.login()
 			except Exception as e:
-				if handleExceptions is False:
-					raise
-
 				printMessage("Login failed [Exception: " + stringifyException(e) + "]", name, status=True)
 				handleException(e)
+
+				if properties['file_path'] in passwords and name in passwords[properties['file_path']]:
+					passwords[properties['file_path']][name] = None
+
+				if handleExceptions is False:
+					raise
 
 				return []
 
