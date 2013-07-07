@@ -603,6 +603,77 @@ def parseJson(file_path):
 
 
 
+# Asks for passwords if missing in configuration
+#
+# @type config_file_path: string
+# @type config: dict
+# @param config: configuration object
+# @type callback: callback
+# @param callback: what should be done after config is filled
+# @type window: Window
+# @param window: SublimeText2 API Window object
+#
+# @global passwords
+def addPasswords(config_file_path, config, callback, window):
+	def setPassword(config, name, password):
+		config['connections'][name]['password'] = password
+
+		if config_file_path not in passwords:
+			passwords[config_file_path] = {}
+
+		passwords[config_file_path][name] = password
+
+		addPasswords(config_file_path, config, callback, window)
+
+	def ask(connectionName):
+		window.show_input_panel('Enter password for ' + str(connectionName), "", lambda password: setPassword(config, connectionName, password), None, None)
+
+	for name in config['connections']:
+		prop = config['connections'][name]
+
+		if prop['password'] is None:
+			if config_file_path in passwords and name in passwords[config_file_path] and passwords[config_file_path][name] is not None:
+				config['connections'][name]['password'] = passwords[config_file_path][name]
+			else:
+				ask(name)
+				return
+
+	return callback()
+
+
+
+# Fills passwords if missing in configuration
+#
+# @type fileList: [ [ filepath, config_file_path ], ... ]
+# @type callback: callback
+# @param callback: what should be done after config is filled
+# @type window: Window
+# @param window: SublimeText2 API Window object
+#
+# @global passwords
+def fillPasswords(fileList, callback, window, index = 0):
+	def ask():
+		fillPasswords(fileList, callback, window, index + 1)
+
+	i = 0
+	length = len(fileList)
+
+	if index >= length:
+		callback(fileList)
+		return
+
+	for filepath, config_file_path in fileList:
+		if i < index:
+			i = i + 1
+			continue
+
+		addPasswords(config_file_path, loadConfig(config_file_path), ask, window)
+		return
+
+	callback(fileList)
+
+
+
 # Parses given config and adds default values to each connection entry
 #
 # @type  file_path: string
@@ -655,6 +726,10 @@ def loadConfig(file_path):
 				printMessage(result[name])
 		except KeyError:
 			pass
+
+		# add passwords
+		if file_path in passwords and name in passwords[file_path] and passwords[file_path][name] is not None:
+			result[name]['password'] = passwords[file_path][name]
 
 		result[name] = updateConfig(result[name])
 
