@@ -33,9 +33,9 @@
 import sys
 
 if sys.version[0] == '2':
-    import ftplib
+    import lib2.ftplib as ftplib
 else:
-    import ftplib3
+    import lib3.ftplib as ftplib
 
 import os
 import re
