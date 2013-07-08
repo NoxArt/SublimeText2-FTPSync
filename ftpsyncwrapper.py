@@ -35,7 +35,7 @@ import sys
 if sys.version[0] == '2':
     import lib2.ftplib as ftplib
 else:
-    import lib3.ftplib as ftplib
+    import FTPSync.lib3.ftplib as ftplib
 
 import os
 import re
@@ -114,6 +114,7 @@ ftpErrors = {
     'fileNotExist': 'Sorry, but that file doesn\'t exist',
     'permissionDenied': 'Permission denied',
     'rnfrExists': 'RNFR accepted - file exists, ready for destination',
+    'rntoReady': '350 Ready for RNTO',
     'disconnected': 'An established connection was aborted by the software in your host machine',
     'timeout': 'timed out',
     'typeIsNow': 'TYPE is now'
@@ -373,6 +374,8 @@ class FTPSConnection(AbstractConnection):
                 except Exception as e:
                     if self.__isErrorCode(e, ['ok', 'passive']):
                         self.connection.retrbinary(command, perBlock)
+                    elif self.__isErrorCode(e, 'fileUnavailible'):
+                        raise FileNotFoundException
                     else:
                         raise
 
@@ -451,7 +454,10 @@ class FTPSConnection(AbstractConnection):
         if name is None:
             return
 
-        path = root + '/' + unicode(name, 'utf-8')
+        if type(name) is not str:
+            name = name.decode('utf-8')
+
+        path = root + '/' + name
 
         if metafile.isDirectory():
             self.cwd(path)
@@ -462,14 +468,12 @@ class FTPSConnection(AbstractConnection):
             try:
                 self.voidcmd("RMD " + name)
             except Exception as e:
-                print (e)
-
                 if self.__isErrorCode(e, 'fileUnavailible'):
                     return False
                 else:
                     raise
         else:
-            self.voidcmd("DELE " + name.decode('utf-8'))
+            self.voidcmd("DELE " + name)
 
 
 
@@ -502,7 +506,7 @@ class FTPSConnection(AbstractConnection):
             try:
                 self.voidcmd("RNFR " + base)
             except Exception as e:
-                if self.__isError(e, 'rnfrExists'):
+                if self.__isError(e, 'rnfrExists') or self.__isError(e, 'rntoReady'):
                     self.voidcmd("RNTO " + new_name)
                     return
                 elif self.__isError(e, 'cwdNoFileOrDirectory') or self.__isError(e, 'fileNotExist'):
@@ -517,7 +521,7 @@ class FTPSConnection(AbstractConnection):
             try:
                 self.voidcmd("RNFR " + base)
             except Exception as e:
-                if self.__isError(e, 'rnfrExists') and str(e).find('Aborting previous'):
+                if (self.__isError(e, 'rnfrExists') and str(e).find('Aborting previous')) or self.__isError(e, 'rntoReady'):
                     self.voidcmd("RNTO " + new_name)
                     return
                 else:
@@ -704,6 +708,12 @@ class FTPSConnection(AbstractConnection):
     #
     # @return encoded string
     def __encode(self, string):
+        if sys.version[0] == '3':
+            if hasattr(string, 'decode'):
+                return string.decode('utf-8')
+            else:
+                return string
+
         if self.config['encoding'].lower() == 'auto':
             if self.__hasFeat("UTF8"):
                 return string.encode('utf-8')
@@ -724,7 +734,6 @@ class FTPSConnection(AbstractConnection):
                 if feat[0] != '2':
                     self.feat.append( feat.strip() )
         except Exception as e:
-            print (e)
             self.feat = []
 
 

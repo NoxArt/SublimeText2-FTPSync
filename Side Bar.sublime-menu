@@ -5,7 +5,6 @@
 		"children":
 		[
 			{ "caption": "Upload", "command": "ftp_sync_target", "args": {"paths": []} },
-			{ "caption": "Upload with delay&watch", "command": "ftp_sync_target_delayed", "args": {"paths": []} },
 			{ "caption": "Download", "command": "ftp_sync_down_target", "args": {"paths": [], "forced": true} },
 			{ "caption": "-" },
 			{ "caption": "Rename", "command": "ftp_sync_rename", "args": {"paths": []} },
