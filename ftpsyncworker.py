@@ -62,7 +62,8 @@ class RunningCommand(threading.Thread):
 				print ("Ending command " + unicode(self.id))
 
 			while self.command.isRunning():
-				print ("Command " + str(self.id) + " running...")
+				if self.debug:
+					print ("Command " + str(self.id) + " running...")
 				sleep(0.5)
 
 			self.onFinish(self.command)
