@@ -1278,6 +1278,9 @@ class SyncCommandUpload(SyncCommandTransfer):
 									print ("Path: " + change.getPath() + " | Name: " + change.getName())
 
 							for change in changed:
+								if change.isSameFilepath(self.file_path):
+									continue
+
 								change = change.getPath()
 								command = SyncCommandUpload(change, getConfigFile(change), None, False, True, [name])
 

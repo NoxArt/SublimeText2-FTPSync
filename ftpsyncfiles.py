@@ -142,6 +142,9 @@ class Metafile:
 	def getFilesize(self):
 		return self.filesize
 
+	def isSameFilepath(self, filepath):
+		return os.path.realpath(self.getPath()) == os.path.realpath(filepath)
+
 	def isNewerThan(self, compared_file):
 		if self.lastModified is None:
 			return False
