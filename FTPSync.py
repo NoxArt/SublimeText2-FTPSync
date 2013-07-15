@@ -29,7 +29,6 @@
 
 # Doc comment syntax inspired by http://stackoverflow.com/a/487203/387503
 
-
 # ==== Libraries ===========================================================================
 
 # Sublime API see http://www.sublimetext.com/docs/2/api_reference.html
@@ -64,6 +63,8 @@ except ImportError:
 	from ftpsyncexceptions import FileNotFoundException
 
 # ==== Initialization and optimization =====================================================
+__dir__ = os.path.dirname(os.path.realpath(__file__))
+
 isLoaded = False
 
 isDebug = True
@@ -1067,7 +1068,7 @@ class SyncCommand(SyncObject):
 	def _localizePath(self, config, remote_path):
 		path = remote_path
 		if path.find(config['path']) == 0:
-			path = os.path.abspath(os.path.join(os.path.dirname(self.config_file_path), remote_path[len(config['path']):]))
+			path = os.path.realpath(os.path.join(os.path.dirname(self.config_file_path), remote_path[len(config['path']):]))
 
 		return path
 
@@ -2609,6 +2610,11 @@ class FtpSyncNewSettings(sublime_plugin.TextCommand):
 			dirs = [os.path.dirname(self.view.file_name())]
 
 		default = os.path.join(sublime.packages_path(), 'FTPSync', connectionDefaultsFilename)
+		if os.path.exists(default) is False:
+			printMessage("Could not find default settings file in {" + default + "}")
+
+			default = os.path.join(__dir__, connectionDefaultsFilename)
+			printMessage("Trying filepath {" + default + "}")
 
 		for directory in dirs:
 			config = os.path.join(directory, configName)
