@@ -2137,7 +2137,7 @@ class SyncNavigator(SyncCommand):
 				return
 
 			if exists and index == 2:
-				RemoteSyncCall(gatherFiles([localFile]), None, False, True).start()
+				RemoteSyncCall(gatherFiles([localFile]), None, True, True).start()
 				return
 
 			if index == 2 + exists:
