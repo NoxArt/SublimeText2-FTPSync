@@ -1,8 +1,8 @@
-SublimeText2-FTPSync
+FTPSync
 ====================
-*For Sublime Text 2 and Sublime Text 3*
+*Addon for Sublime Text 2 and Sublime Text 3*
 
-Simple and free plugin for FTP syncing. Just hit the _save_ as usual and it's upped.
+Simple and free plugin for FTP synchronization. Just hit the _save_ as usual and it's upped.
 
 What's there for you?
 * Multiple named upload targets
@@ -30,8 +30,8 @@ How to use
 
 To mark a folder and descendants for upload insert **ftpsync.settings** file in following format. Don't worry - the skeleton can be simply inserted using *Preferences > Package Settings > FTPSync > Setup FTPSync in this folder* or using context menu in Side bar or using Control/CMD+Shift+P.
 
-Simple settings file:
-(*does not contain all options*)
+Simple settings file:  
+(_does not contain all options_)
 
      {
         <connection_name>: {
@@ -71,9 +71,14 @@ Done by **@NoxArt** ~ [Twitter](https://twitter.com/NoxArt)
 
 Released under **MIT licence**.
 
+You can buy me a snack so I have energy for further improvements :)
+
+**[Support FTPSync page](http://ftpsync.noxart.cz/donate.html)**
+
 Feel free to add issues, ideas, pull requests...
 
-Thanks to [castus](https://github.com/castus), [tommymarshall](https://github.com/tommymarshall), [TotallyInformation](https://github.com/TotallyInformation), [saiori](https://github.com/saiori), [vnabet](https://github.com/vnabet), [Jcrs](https://github.com/Jcrs), [ItayXD](https://github.com/ItayXD), [bibimij](https://github.com/bibimij), [digitalmaster](https://github.com/digitalmaster), [alfaex](https://github.com/alfaex), [seyDoggy](https://github.com/seyDoggy), Nuno, [mikedoug](https://github.com/mikedoug), [stevether](https://github.com/stevether), [zaus](https://github.com/zaus), [noAlvaro](https://github.com/noAlvaro), [zofie86](https://github.com/zofie86), [fma965](https://github.com/fma965), [PixelVibe](https://github.com/PixelVibe), [Kaisercraft](https://github.com/Kaisercraft), [benkaiser](https://github.com/benkaiser), [anupdebnath](https://github.com/anupdebnath), [sy4mil](https://github.com/sy4mil), [leek](https://github.com/leek), [surfac](https://github.com/surfac), [mitsurugi](https://github.com/mitsurugi), [MonoSnippets](https://github.com/MonoSnippets), [Zegnat](https://github.com/Zegnat), [cwhittl](https://github.com/cwhittl), [shadowsdweller](https://github.com/shadowsdweller), [adiulici01](https://github.com/adiulici01), [tablatronix](https://github.com/tablatronix), [bllim](https://github.com/bllim), [Imaulle](https://github.com/Imaulle), [friskfly](https://github.com/friskfly), [lysenkobv](https://github.com/lysenkobv), [nosfan1019](https://github.com/nosfan1019), [smoochieboochies](https://github.com/smoochieboochies), [Dmitry Loktev](https://github.com/unknownexception), [fedesilvaponte](https://github.com/fedesilvaponte), [fedegonzaleznavarro](https://github.com/fedegonzaleznavarro), [camilstaps](https://github.com/camilstaps), [maknapp](https://github.com/maknapp), [certainlyakey](https://github.com/certainlyakey), [victorhqc](https://github.com/victorhqc), [eniocarv](https://github.com/eniocarv), [molokoloco](https://github.com/molokoloco), [tq0fqeu](https://github.com/tq0fqeu), [Arachnoid](https://github.com/Arachnoid) for reporting issues, ideas and fixing!
+Thanks to [castus](https://github.com/castus), [tommymarshall](https://github.com/tommymarshall), [TotallyInformation](https://github.com/TotallyInformation), [saiori](https://github.com/saiori), [vnabet](https://github.com/vnabet), [Jcrs](https://github.com/Jcrs), [ItayXD](https://github.com/ItayXD), [bibimij](https://github.com/bibimij), [digitalmaster](https://github.com/digitalmaster), [alfaex](https://github.com/alfaex), [seyDoggy](https://github.com/seyDoggy), Nuno, [mikedoug](https://github.com/mikedoug), [stevether](https://github.com/stevether), [zaus](https://github.com/zaus), [noAlvaro](https://github.com/noAlvaro), [zofie86](https://github.com/zofie86), [fma965](https://github.com/fma965), [PixelVibe](https://github.com/PixelVibe), [Kaisercraft](https://github.com/Kaisercraft), [benkaiser](https://github.com/benkaiser), [anupdebnath](https://github.com/anupdebnath), [sy4mil](https://github.com/sy4mil), [leek](https://github.com/leek), [surfac](https://github.com/surfac), [mitsurugi](https://github.com/mitsurugi), [MonoSnippets](https://github.com/MonoSnippets), [Zegnat](https://github.com/Zegnat), [cwhittl](https://github.com/cwhittl), [shadowsdweller](https://github.com/shadowsdweller), [adiulici01](https://github.com/adiulici01), [tablatronix](https://github.com/tablatronix), [bllim](https://github.com/bllim), [Imaulle](https://github.com/Imaulle), [friskfly](https://github.com/friskfly), [lysenkobv](https://github.com/lysenkobv), [nosfan1019](https://github.com/nosfan1019), [smoochieboochies](https://github.com/smoochieboochies), [Dmitry Loktev](https://github.com/unknownexception), [fedesilvaponte](https://github.com/fedesilvaponte), [fedegonzaleznavarro](https://github.com/fedegonzaleznavarro), [camilstaps](https://github.com/camilstaps), [maknapp](https://github.com/maknapp), [certainlyakey](https://github.com/certainlyakey), [victorhqc](https://github.com/victorhqc), [eniocarv](https://github.com/eniocarv), [molokoloco](https://github.com/molokoloco), [tq0fqeu](https://github.com/tq0fqeu), [Arachnoid](https://github.com/Arachnoid)  
+for reporting issues, ideas and fixing!
 
 
 

@@ -43,6 +43,10 @@
             {
                 "caption": "Report issue / suggestion (Github)",
                 "command": "ftp_sync_url_report"
+            },
+            {
+                "caption": "Support FTPSync development",
+                "command": "ftp_sync_url_donate"
             }
 
         ]

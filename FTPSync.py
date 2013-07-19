@@ -2806,3 +2806,9 @@ class FtpSyncUrlReport(sublime_plugin.TextCommand):
 	def run(self, edit):
 		import webbrowser
 		webbrowser.open("https://github.com/NoxArt/SublimeText2-FTPSync/issues/new", 2, True)
+
+# Open FTPSync Donate page
+class FtpSyncUrlDonate(sublime_plugin.TextCommand):
+	def run(self, edit):
+		import webbrowser
+		webbrowser.open("http://ftpsync.noxart.cz/donate.html", 2, True)
