@@ -192,11 +192,23 @@ class AbstractConnection:
     # @type file_path: string
     #
     # @return string remote file path
-    def _postprocessPath(self, path):
-        path = path.replace('\\\\', '\\')
-        path = path.replace('\\', '/')
-        path = path.replace('//','/')
-        return path
+    def _postprocessPath(self, file_path):
+        file_path = file_path.replace('\\\\', '\\')
+        file_path = file_path.replace('\\', '/')
+        file_path = file_path.replace('//','/')
+        return file_path
+
+    # Guesses if the file is ASCII file
+    #
+    # @type self: AbstractConnection
+    # @type file_path: string
+    def _isAscii(self, file_path):
+        fileName, fileExtension = os.path.splitext(file_path)
+
+        if fileExtension and fileExtension[1:] in self.generic_config['ascii_extensions']:
+            return True
+
+        return False
 
 
 # FTP(S) connection
@@ -361,19 +373,35 @@ class FTPSConnection(AbstractConnection):
             if self.config['debug_extras']['debug_remote_paths']:
                 print ("FTPSync <debug> get path " + file_path + " => " + str(self.__encode(path)))
 
+            isAscii = self._isAscii(file_path)
+            action = 'retrbinary'
+            mode = 'wb'
+            if isAscii:
+                action = 'retrlines'
+
             def download(tempfile):
 
                 def perBlock(data):
-                    tempfile.write(data)
+                    if sys.version[0] == '2':
+                        tempfile.write(data)
+                    else:
+                        tempfile.write(data.encode('utf-8'))
+
+                    if isAscii:
+                        # intentional, \n will be converted to os.linesep
+                        if sys.version[0] == '2':
+                            tempfile.write("\n")
+                        else:
+                            tempfile.write("\n".encode('utf-8'))
 
                     if blockCallback is not None:
                         blockCallback()
 
                 try:
-                    self.connection.retrbinary(command, perBlock)
+                    getattr(self.connection, action)(command, perBlock)
                 except Exception as e:
                     if self.__isErrorCode(e, ['ok', 'passive']):
-                        self.connection.retrbinary(command, perBlock)
+                        getattr(self.connection, action)(command, perBlock)
                     elif self.__isErrorCode(e, 'fileUnavailible'):
                         raise FileNotFoundException
                     else:
@@ -382,9 +410,9 @@ class FTPSConnection(AbstractConnection):
             existsLocally = os.path.exists(file_path)
 
             if self.config['use_tempfile']:
-                viaTempfile(file_path, download, self.config['default_folder_permissions'])
+                viaTempfile(file_path, download, self.config['default_folder_permissions'], mode)
             else:
-                with open(file_path, 'wb') as destination:
+                with open(file_path, mode) as destination:
                     download(destination)
 
             if existsLocally is False or self.config['always_sync_local_permissions']:

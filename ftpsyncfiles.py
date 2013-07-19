@@ -377,9 +377,12 @@ def replace(source, destination):
 
 # Performing operation on temporary file and replacing it back
 #
-# @type source: callback(file)
-# @param source: operation performed on temporary file
-def viaTempfile(file_path, operation, permissions):
+# @type operation: callback(file)
+# @param operation: operation performed on temporary file
+# @type permissions: int (octal)
+# @type mode: string
+# @param mode: file opening mode
+def viaTempfile(file_path, operation, permissions, mode):
 	if permissions is None:
 		permissions = '0755'
 	exceptionOccured = None
@@ -392,7 +395,7 @@ def viaTempfile(file_path, operation, permissions):
 	if os.path.exists(directory) is False:
 		os.makedirs(directory, int(permissions, 8))
 
-	temp = tempfile.NamedTemporaryFile('wb', suffix = '.ftpsync.temp', dir = directory, delete = False)
+	temp = tempfile.NamedTemporaryFile(mode, suffix = '.ftpsync.temp', dir = directory, delete = False)
 
 	try:
 		operation(temp)

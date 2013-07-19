@@ -52,9 +52,18 @@
 
 	"ignore": "ftpsync\\.settings|\\.gitignore|\\.git|Sublime Text 2/Packages",
 	"ascii_extensions": [
-	    "txt","ini","xml","json",
-	    "html","htm","xhtml","css","asp",
-	    "js","php","py","py3","c","h","cc","ccp","hpp","rb"
+	    "txt","ini","xml","nfo","cgi","cfg","conf","bat","sh","inc","sfv","srt",
+	    "md5","sha","gitignore",
+	    "html","htm","xhtml","dhtml","phtml",
+	    "tpl","twig","latte",
+	    "css","scss","sass","less","styl",
+	    "js","json","coffee","dart","ts",
+	    "php","php3","php4","php5",
+	    "asp","aspx",
+	    "py","py3",
+	    "c","h","cc","ccp","hpp",
+	    "rb","java","lua","cs","scala","hx","sql",
+	    "settings","sublime-menu","sublime-commands","sublime-project","sublime-settings","sublime-workspace","sublime-keymap"
 	],
 	"binary_extensions": [
 	    "raw","exe","mpi",
