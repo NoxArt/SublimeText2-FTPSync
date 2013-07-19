@@ -31,7 +31,7 @@ How to use
 To mark a folder and descendants for upload insert **ftpsync.settings** file in following format. Don't worry - the skeleton can be simply inserted using *Preferences > Package Settings > FTPSync > Setup FTPSync in this folder* or using context menu in Side bar or using Control/CMD+Shift+P.
 
 Simple settings file:  
-(_does not contain all options_)
+( *does not contain all options* )
 
      {
         <connection_name>: {
