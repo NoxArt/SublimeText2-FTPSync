@@ -30,7 +30,7 @@ How to use
 
 To mark a folder and descendants for upload insert **ftpsync.settings** file in following format. Don't worry - the skeleton can be simply inserted using *Preferences > Package Settings > FTPSync > Setup FTPSync in this folder* or using context menu in Side bar or using Control/CMD+Shift+P.
 
-Sample settings file with minimum of options:
+Sample settings file with minimum of options:  
 ( *does not contain all options* )
 
      {
@@ -86,7 +86,9 @@ Tips
 
 * **Set key bindings (hotkeys) for frequent actions you use**
 
-Please edit only `Key Bindings - User` (to open: `Preferences > Package Control > FTPSync > Key Bindings - User`). You can use the contents of `Key Bindings - Default` as a template and copy it there. If you edit `Key Bindings - Default` (either Sublime's or FTPSync's), your changes will be lost on update.
+Please edit only `Key Bindings - User`, open using:  
+`Preferences > Package Control > FTPSync > Key Bindings - User`  
+You can use the contents of `Key Bindings - Default` as a template and copy it there. If you edit `Key Bindings - Default` (either Sublime's or FTPSync's), your changes will be lost on update.  
 [More info](https://github.com/NoxArt/SublimeText2-FTPSync/wiki/Key-bindings)
 
 * **Renaming and deleting**
