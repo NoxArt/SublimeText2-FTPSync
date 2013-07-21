@@ -427,7 +427,7 @@ def viaTempfile(file_path, operation, permissions, mode):
 #
 # @return boolean whether it's likely textual or binary
 def isTextFile(file_path, asciiWhitelist):
-	fileName, fileExtension = os.path.splitext(file_path)
+    fileName, fileExtension = os.path.splitext(file_path)
 
     if fileExtension and fileExtension[1:] in asciiWhitelist:
         return True

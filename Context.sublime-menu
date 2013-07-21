@@ -34,9 +34,6 @@
                 "caption": "-"
             },
             {
-                "caption": "-"
-            },
-            {
                 "caption": "Open README (Github)",
                 "command": "ftp_sync_url_readme"
             },
