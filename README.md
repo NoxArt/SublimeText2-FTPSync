@@ -86,12 +86,12 @@ Tips
 
 * **Set key bindings (hotkeys) for frequent actions you use**
 
-Please edit only `Key Bindings - User` (clicking `Preferences > Package Control > FTPSync > Key Bindings - User` will open that file for you). You can use the contents of `Key Bindings - Default` as a template and copy it there. If you edit `Key Bindings - Default` (either Sublime's or FTPSync's), your changes will be lost on update.
+Please edit only `Key Bindings - User` (to open: `Preferences > Package Control > FTPSync > Key Bindings - User`). You can use the contents of `Key Bindings - Default` as a template and copy it there. If you edit `Key Bindings - Default` (either Sublime's or FTPSync's), your changes will be lost on update.
 [More info](https://github.com/NoxArt/SublimeText2-FTPSync/wiki/Key-bindings)
 
 * **Renaming and deleting**
 
-Please keep in mind that for deleting and renaming on server you need to use `FTPSync > Rename` and `FTPSync > Delete` features, not those in Sublime Text 2 or SideBarEnhancements.
+Please keep in mind that for deleting and renaming on server you need to use `FTPSync > Rename` respectively `FTPSync > Delete` features, not those in Sublime Text 2 or SideBarEnhancements.
 
 * **Working from more places? Or in team?**
 
