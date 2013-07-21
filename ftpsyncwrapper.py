@@ -203,12 +203,7 @@ class AbstractConnection:
     # @type self: AbstractConnection
     # @type file_path: string
     def _isAscii(self, file_path):
-        fileName, fileExtension = os.path.splitext(file_path)
-
-        if fileExtension and fileExtension[1:] in self.generic_config['ascii_extensions']:
-            return True
-
-        return False
+        return isTextFile(file_path, self.generic_config['ascii_extensions'])
 
 
 # FTP(S) connection

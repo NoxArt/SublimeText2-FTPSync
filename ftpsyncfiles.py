@@ -423,52 +423,16 @@ def viaTempfile(file_path, operation, permissions, mode):
 # Guesses whether given file is textual or not
 #
 # @type file_path: string
-# @type asciiWhitelist: None|list<string>
-# @type binaryWhitelist: None|list<string>
+# @type asciiWhitelist: list<string>
 #
 # @return boolean whether it's likely textual or binary
-def isTextFile(file_path, asciiWhitelist=None, binaryWhitelist=None):
+def isTextFile(file_path, asciiWhitelist):
+	fileName, fileExtension = os.path.splitext(file_path)
 
-	return False
+    if fileExtension and fileExtension[1:] in asciiWhitelist:
+        return True
 
-	# check cache
-	if file_path in isTextCache:
-		return isTextCache[file_path]
-
-	# check extension
-	extension = os.path.splitext(file_path)[1][1:]
-
-	if extension:
-
-		if type(asciiWhitelist) is list:
-			if extension in asciiWhitelist:
-				isTextCache[file_path] = True
-				return True
-
-		if type(binaryWhitelist) is list:
-			if extension in binaryWhitelist:
-				isTextCache[file_path] = False
-				return False
-
-	# check BOM
-	f = open(file_path, 'rb')
-	beginning = f.read(bomMaxLength)
-	f.close()
-
-	begin = []
-	for char in beginning:
-		begin.append(ord(char))
-
-	for encoding in bomMarks:
-		subarray = begin[0:len(bomMarks[encoding])]
-
-		if subarray == begin:
-			isTextCache[file_path] = True
-			return True
-
-	# is not
-	isTextCache[file_path] = False
-	return False
+    return False
 
 
 
