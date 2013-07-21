@@ -1,6 +1,6 @@
 FTPSync
 ====================
-![](http://www.sublimetext.com/favicon.ico)  *Addon for Sublime Text 2 and Sublime Text 3*
+*Addon for Sublime Text 2 and Sublime Text 3*
 
 Simple and free plugin for FTP synchronization. Just hit the _save_ as usual and it's upped.
 
