@@ -2608,22 +2608,32 @@ class FtpSyncNewSettings(sublime_plugin.TextCommand):
 		if len(dirs) == 0:
 			dirs = [os.path.dirname(self.view.file_name())]
 
-		default = os.path.join(sublime.packages_path(), 'FTPSync', connectionDefaultsFilename)
-		if os.path.exists(default) is False:
-			printMessage("Could not find default settings file in {" + default + "}")
+		if sublime.version()[0] >= '3':
+			content = sublime.load_resource('Packages/FTPSync/ftpsync.default-settings').replace('\r\n', '\n')
 
-			default = os.path.join(__dir__, connectionDefaultsFilename)
-			printMessage("Trying filepath {" + default + "}")
+			for directory in dirs:
+				config = os.path.join(directory, configName)
 
-		for directory in dirs:
-			config = os.path.join(directory, configName)
+				with open(config, 'w') as configFile:
+					configFile.write(content)
 
-			invalidateConfigCache(directory)
-
-			if os.path.exists(config) is True:
 				self.view.window().open_file(config)
-			else:
-				shutil.copyfile(default, config)
+		else:
+			default = os.path.join(sublime.packages_path(), 'FTPSync', connectionDefaultsFilename)
+			if os.path.exists(default) is False:
+				printMessage("Could not find default settings file in {" + default + "}")
+
+				default = os.path.join(__dir__, connectionDefaultsFilename)
+				printMessage("Trying filepath {" + default + "}")
+
+			for directory in dirs:
+				config = os.path.join(directory, configName)
+
+				invalidateConfigCache(directory)
+
+				if os.path.exists(config) is False:
+					shutil.copyfile(default, config)
+
 				self.view.window().open_file(config)
 
 
