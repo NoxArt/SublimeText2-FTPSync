@@ -945,7 +945,7 @@ def closeConnection(hash):
 	try:
 		for connection in connections[hash]:
 			connection.close(connections, hash)
-			printMessage("closed", connection.name)
+			printMessage("Closed", connection.name)
 
 		if len(connections[hash]) == 0:
 			connections.pop(hash)
@@ -1130,7 +1130,7 @@ class SyncCommandTransfer(SyncCommand):
 		# global ignore
 		if disregardIgnore is False and ignore is not None and re_ignore.search(file_path) is not None:
 			if self._handleIgnore():
-				printMessage("file globally ignored: {" + os.path.basename(file_path) + "}", onlyVerbose=True)
+				printMessage("File globally ignored: {" + os.path.basename(file_path) + "}", onlyVerbose=True)
 				self.close()
 				return
 
@@ -1147,7 +1147,7 @@ class SyncCommandTransfer(SyncCommand):
 				if self._handleIgnore():
 					toBeRemoved.append(name)
 				
-				printMessage("file ignored by rule: {" + self.basename + "}", name, True)
+				printMessage("File ignored by rule: {" + self.basename + "}", name, True)
 				continue
 
 			# whitelist
@@ -1256,7 +1256,7 @@ class SyncCommandUpload(SyncCommandTransfer):
 							printMessage("<debug> dumping pre-scan")
 							print (self.afterwatch['before'])
 			except Exception as e:
-				printMessage("watching failed: {" + self.basename + "} [Exception: " + stringifyException(e) + "]", "", False, True)
+				printMessage("Watching failed: {" + self.basename + "} [Exception: " + stringifyException(e) + "]", "", False, True)
 
 		usingConnections.append(self.config_hash)
 		stored = []
@@ -1288,9 +1288,9 @@ class SyncCommandUpload(SyncCommandTransfer):
 						stored.append(name)
 
 						if self.skip is False:
-							printMessage("uploaded {" + self.basename + "}", name)
+							printMessage("Uploaded {" + self.basename + "}", name)
 						else:
-							printMessage("ignored {" + self.basename + "}", name)
+							printMessage("Ignored {" + self.basename + "}", name)
 
 						# cleanup
 						scheduledUploads.pop(self.file_path)
@@ -1329,7 +1329,7 @@ class SyncCommandUpload(SyncCommandTransfer):
 						self.triggerFinish(self.file_path)
 
 					except Exception as e:
-						printMessage("upload failed: {" + self.basename + "} [Exception: " + stringifyException(e) + "]", name, False, True)
+						printMessage("Upload failed: {" + self.basename + "} [Exception: " + stringifyException(e) + "]", name, False, True)
 						handleException(e)
 
 					finally:
@@ -1338,7 +1338,7 @@ class SyncCommandUpload(SyncCommandTransfer):
 				# delayed
 				if self.onSave is True and self.config['connections'][name]['upload_delay'] > 0:
 					self.delayed = True
-					printMessage("delaying upload of " + self.basename + " by " + str(self.config['connections'][name]['upload_delay']) + " seconds", name, onlyVerbose=True)
+					printMessage("Delaying processing " + self.basename + " by " + str(self.config['connections'][name]['upload_delay']) + " seconds", name, onlyVerbose=True)
 					sublime.set_timeout(action, self.config['connections'][name]['upload_delay'] * 1000)
 				else:
 					action()
@@ -1351,7 +1351,7 @@ class SyncCommandUpload(SyncCommandTransfer):
 				self._closeConnection()
 
 			except Exception as e:
-				printMessage("upload failed: {" + self.basename + "} [Exception: " + stringifyException(e) + "]", name, False, True)
+				printMessage("Upload failed: {" + self.basename + "} [Exception: " + stringifyException(e) + "]", name, False, True)
 				handleException(e)
 
 		if self.progress is not None:
@@ -1368,7 +1368,7 @@ class SyncCommandUpload(SyncCommandTransfer):
 			if self.progress is not None and self.progress.isFinished():
 				dumpMessage(getProgressMessage(stored, self.progress, notify))
 			else:
-				dumpMessage(getProgressMessage(stored, self.progress, "uploaded ", self.basename))
+				dumpMessage(getProgressMessage(stored, self.progress, "Uploaded ", self.basename))
 
 			if systemNotifications and self.progress is None or self.progress.isFinished():
 				systemNotify(notify)
@@ -1462,11 +1462,11 @@ class SyncCommandDownload(SyncCommandTransfer):
 
 				else:
 					if not self.skip or self.forced:
-						self.connections[index].get(self.file_path, blockCallback = lambda: dumpMessage(getProgressMessage([name], self.progress, "downloading", self.basename)))
-						printMessage("downloaded {" + self.basename + "}", name)
+						self.connections[index].get(self.file_path, blockCallback = lambda: dumpMessage(getProgressMessage([name], self.progress, "Downloading", self.basename)))
+						printMessage("Downloaded {" + self.basename + "}", name)
 						self.triggerFinish(self.file_path)
 					else:
-						printMessage("skipping {" + self.basename + "}", name)
+						printMessage("Skipping {" + self.basename + "}", name)
 
 					stored.append(name)
 
@@ -1474,7 +1474,7 @@ class SyncCommandDownload(SyncCommandTransfer):
 				continue
 
 			except FileNotFoundException:
-				printMessage("remote file not found", name, False, True)
+				printMessage("Remote file not found", name, False, True)
 				handleException(e)
 
 			except EOFError:
@@ -1482,7 +1482,7 @@ class SyncCommandDownload(SyncCommandTransfer):
 				self._closeConnection()
 
 			except Exception as e:
-				printMessage("download of {" + self.basename + "} failed [Exception: " + stringifyException(e) + "]", name, False, True)
+				printMessage("Download of {" + self.basename + "} failed [Exception: " + stringifyException(e) + "]", name, False, True)
 				handleException(e)
 
 			finally:
@@ -1515,7 +1515,7 @@ class SyncCommandDownload(SyncCommandTransfer):
 			if self.progress is not None and self.progress.isFinished() and wasFinished is False:
 				dumpMessage(getProgressMessage(stored, self.progress, notify))
 			else:
-				dumpMessage(getProgressMessage(stored, self.progress, "downloaded ", self.basename))
+				dumpMessage(getProgressMessage(stored, self.progress, "Downloaded ", self.basename))
 
 			if systemNotifications and self.progress is None or (self.progress.isFinished() and wasFinished is False):
 				systemNotify(notify)
@@ -1579,7 +1579,7 @@ class SyncCommandRename(SyncCommand):
 
 				try:
 					self.connections[index].rename(self.file_path, self.new_name, forced)
-					printMessage("renamed {" + self.basename + "} -> {" + self.new_name + "}", name)
+					printMessage("Renamed {" + self.basename + "} -> {" + self.new_name + "}", name)
 					renamed.append(name)
 
 				except IndexError:
@@ -1594,10 +1594,10 @@ class SyncCommandRename(SyncCommand):
 
 				except Exception as e:
 					if str(e).find("No such file or directory"):
-						printMessage("remote file not found", name, False, True)
+						printMessage("Remote file not found", name, False, True)
 						renamed.append(name)
 					else:
-						printMessage("renaming failed: {" + self.basename + "} -> {" + self.new_name + "} [Exception: " + stringifyException(e) + "]", name, False, True)
+						printMessage("Renaming failed: {" + self.basename + "} -> {" + self.new_name + "} [Exception: " + stringifyException(e) + "]", name, False, True)
 						handleException(e)
 
 			# message
@@ -1607,7 +1607,7 @@ class SyncCommandRename(SyncCommand):
 
 				self.triggerFinish(self.file_path)
 
-				printMessage("remotely renamed {" + self.basename + "} -> {" + self.new_name + "}", "remotes: " + ','.join(renamed), status=True)
+				printMessage("Remotely renamed {" + self.basename + "} -> {" + self.new_name + "}", "remotes: " + ','.join(renamed), status=True)
 
 
 		if len(exists) == 0:
@@ -1675,21 +1675,21 @@ class SyncCommandDelete(SyncCommandTransfer):
 					# process
 					connection.delete(self.file_path)
 					deleted.append(name)
-					printMessage("deleted {" + self.basename + "}", name)
+					printMessage("Deleted {" + self.basename + "}", name)
 
 				except FileNotFoundException:
 					deleted.append(name)
-					printMessage("no remote version of {" + self.basename + "} found", name)
+					printMessage("No remote version of {" + self.basename + "} found", name)
 
 				except Exception as e:
-					printMessage("delete failed: {" + self.basename + "} [Exception: " + stringifyException(e) + "]", name, False, True)
+					printMessage("Delete failed: {" + self.basename + "} [Exception: " + stringifyException(e) + "]", name, False, True)
 					handleException(e)
 
 			except IndexError:
 				continue
 
 			except FileNotFoundException:
-				printMessage("remote file not found", name, False, True)
+				printMessage("Remote file not found", name, False, True)
 				deleted.append(name)
 				continue
 
@@ -1699,10 +1699,10 @@ class SyncCommandDelete(SyncCommandTransfer):
 
 			except Exception as e:
 				if str(e).find("No such file or directory"):
-					printMessage("remote file not found", name, False, True)
+					printMessage("Remote file not found", name, False, True)
 					deleted.append(name)
 				else:
-					printMessage("delete failed: {" + self.basename + "} [Exception: " + stringifyException(e) + "]", name, False, True)
+					printMessage("Delete failed: {" + self.basename + "} [Exception: " + stringifyException(e) + "]", name, False, True)
 					handleException(e)
 
 		if len(deleted) > 0:
@@ -1713,7 +1713,7 @@ class SyncCommandDelete(SyncCommandTransfer):
 
 			self.triggerFinish(self.file_path)
 
-			dumpMessage(getProgressMessage(deleted, self.progress, "deleted", self.basename))
+			dumpMessage(getProgressMessage(deleted, self.progress, "Deleted", self.basename))
 
 
 # Rename command
@@ -1757,7 +1757,7 @@ class SyncCommandGetMetadata(SyncCommand):
 				self._closeConnection()
 
 			except Exception as e:
-				printMessage("getting metadata failed: {" + self.basename + "} [Exception: " + stringifyException(e) + "]", name, False, True)
+				printMessage("Getting metadata failed: {" + self.basename + "} [Exception: " + stringifyException(e) + "]", name, False, True)
 				handleException(e)
 
 		return results
