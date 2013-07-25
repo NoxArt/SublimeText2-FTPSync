@@ -1121,17 +1121,18 @@ class SyncCommandTransfer(SyncCommand):
 		if sys.version[0] == '3' and type(file_path) is bytes:
 			file_path = file_path.decode('utf-8')
 
-		# global ignore
-		if disregardIgnore is False and ignore is not None and re_ignore.search(file_path) is not None:
-			printMessage("file globally ignored: {" + os.path.basename(file_path) + "}", onlyVerbose=True)
-			self.close()
-			return
-
 		SyncCommand.__init__(self, file_path, config_file_path)
 
 		self.onSave = onSave
 		self.disregardIgnore = False
 		self.local = True
+
+		# global ignore
+		if disregardIgnore is False and ignore is not None and re_ignore.search(file_path) is not None:
+			if self._handleIgnore():
+				printMessage("file globally ignored: {" + os.path.basename(file_path) + "}", onlyVerbose=True)
+				self.close()
+				return
 
 		toBeRemoved = []
 		for name in self.config['connections']:
@@ -1143,8 +1144,10 @@ class SyncCommandTransfer(SyncCommand):
 
 			# ignore
 			if disregardIgnore is False and self.config['connections'][name]['ignore'] is not None and re.search(self.config['connections'][name]['ignore'], file_path):
+				if self._handleIgnore():
+					toBeRemoved.append(name)
+				
 				printMessage("file ignored by rule: {" + self.basename + "}", name, True)
-				toBeRemoved.append(name)
 				continue
 
 			# whitelist
@@ -1154,6 +1157,12 @@ class SyncCommandTransfer(SyncCommand):
 
 		for name in toBeRemoved:
 			self.config['connections'].pop(name)
+
+	def _handleIgnore(self):
+		if self.progress is not None:
+			self.progress.progress()
+
+		return True
 
 	def setRemote(self):
 		self.local = False
@@ -1167,6 +1176,8 @@ class SyncCommandTransfer(SyncCommand):
 class SyncCommandUpload(SyncCommandTransfer):
 
 	def __init__(self, file_path, config_file_path, progress=None, onSave=False, disregardIgnore=False, whitelistConnections=[], forcedSave=False):
+		self.skip = False
+
 		SyncCommandTransfer.__init__(self, file_path, config_file_path, progress, onSave, disregardIgnore, whitelistConnections, forcedSave)
 
 		if os.path.exists(file_path) is False:
@@ -1179,6 +1190,23 @@ class SyncCommandUpload(SyncCommandTransfer):
 			'before': {},
 			'after': {}
 		}
+
+	def _hasAfterWatch(self):
+		for name in self.config['connections']:
+			if self.config['connections'][name]['after_save_watch']:
+				return True
+
+		return False
+
+
+	def _handleIgnore(self):
+		SyncCommandTransfer._handleIgnore(self)
+
+		if self._hasAfterWatch() and self.onSave:
+			self.skip = True
+			return False
+
+		return True
 
 
 	def setScanned(self, event, name, data):
@@ -1219,16 +1247,14 @@ class SyncCommandUpload(SyncCommandTransfer):
 
 		# afterwatch
 		if self.onSave is True:
-			index = -1
-
 			try:
 				for name in self.config['connections']:
-					index += 1
-					self.scanWatched('before', name, self.config['connections'][name])
+					if self.config['connections'][name]['after_save_watch']:
+						self.scanWatched('before', name, self.config['connections'][name])
 
-					if self.config['connections'][name]['debug_extras']['after_save_watch']:
-						printMessage("<debug> dumping pre-scan")
-						print (self.afterwatch['before'])
+						if self.config['connections'][name]['debug_extras']['after_save_watch']:
+							printMessage("<debug> dumping pre-scan")
+							print (self.afterwatch['before'])
 			except Exception as e:
 				printMessage("watching failed: {" + self.basename + "} [Exception: " + stringifyException(e) + "]", "", False, True)
 
@@ -1256,9 +1282,15 @@ class SyncCommandUpload(SyncCommandTransfer):
 							return
 
 						# process
-						connection.put(self.file_path)
+						if self.skip is False:
+							connection.put(self.file_path)
+							
 						stored.append(name)
-						printMessage("uploaded {" + self.basename + "}", name)
+
+						if self.skip is False:
+							printMessage("uploaded {" + self.basename + "}", name)
+						else:
+							printMessage("ignored {" + self.basename + "}", name)
 
 						# cleanup
 						scheduledUploads.pop(self.file_path)
