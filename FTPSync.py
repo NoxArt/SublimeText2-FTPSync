@@ -638,8 +638,8 @@ def addPasswords(config_file_path, config, callback, window):
 
 		addPasswords(config_file_path, config, callback, window)
 
-	def ask(connectionName):
-		window.show_input_panel('Enter password for ' + str(connectionName), "", lambda password: setPassword(config, connectionName, password), None, None)
+	def ask(connectionName, host):
+		window.show_input_panel('FTPSync > please provide password for:  ' + str(host) + ' ', "", lambda password: setPassword(config, connectionName, password), None, None)
 
 	for name in config['connections']:
 		prop = config['connections'][name]
@@ -648,7 +648,7 @@ def addPasswords(config_file_path, config, callback, window):
 			if config_file_path in passwords and name in passwords[config_file_path] and passwords[config_file_path][name] is not None:
 				config['connections'][name]['password'] = passwords[config_file_path][name]
 			else:
-				ask(name)
+				ask(name, prop['host'])
 				return
 
 	return callback()
@@ -2255,92 +2255,95 @@ class RemoteSync(sublime_plugin.EventListener):
 		if config_file_path is None:
 			return
 
-		preScan[config_file_path] = {}
-		root = os.path.dirname(config_file_path)
-		config = loadConfig(config_file_path)
-		blacklistConnections = []
+		def pre_save(_files):
+			preScan[config_file_path] = {}
+			root = os.path.dirname(config_file_path)
+			config = loadConfig(config_file_path)
+			blacklistConnections = []
 
-		for connection in config['connections']:
-			properties = config['connections'][connection]
+			for connection in config['connections']:
+				properties = config['connections'][connection]
 
-			if properties['upload_on_save'] is False:
-				blacklistConnections.append(connection)
+				if properties['upload_on_save'] is False:
+					blacklistConnections.append(connection)
 
-			watch = properties['after_save_watch']
-			if type(watch) is list and len(watch) > 0 and properties['upload_delay'] > 0:
-				preScan[config_file_path][connection] = {}
+				watch = properties['after_save_watch']
+				if type(watch) is list and len(watch) > 0 and properties['upload_delay'] > 0:
+					preScan[config_file_path][connection] = {}
 
-				for folder, filepattern in watch:
-					files = gatherMetafiles(filepattern, os.path.join(root, folder))
-					preScan[config_file_path][connection].update(files.items())
+					for folder, filepattern in watch:
+						files = gatherMetafiles(filepattern, os.path.join(root, folder))
+						preScan[config_file_path][connection].update(files.items())
 
-				if properties['debug_extras']['after_save_watch']:
-					printMessage("<debug> dumping pre-scan")
-					print ("COUNT: " + str(len(preScan[config_file_path][connection])))
-					for change in preScan[config_file_path][connection]:
-						print ("Path: " + preScan[config_file_path][connection][change].getPath() + " | Name: " + preScan[config_file_path][connection][change].getName())
+					if properties['debug_extras']['after_save_watch']:
+						printMessage("<debug> dumping pre-scan")
+						print ("COUNT: " + str(len(preScan[config_file_path][connection])))
+						for change in preScan[config_file_path][connection]:
+							print ("Path: " + preScan[config_file_path][connection][change].getPath() + " | Name: " + preScan[config_file_path][connection][change].getName())
 
-		if len(blacklistConnections) == len(config['connections']):
-			return
+			if len(blacklistConnections) == len(config['connections']):
+				return
 
-		try:
-			metadata = SyncCommandGetMetadata(file_path, config_file_path).execute()
-		except FileNotFoundException:
-			return
-		except Exception as e:
-			if str(e).find('No such file'):
-				printMessage("No version of {" + os.path.basename(file_path) + "} found on any server", status=True)
-			else:
-				printMessage("Error when getting metadata: " + stringifyException(e))
-				handleException(e)
-			metadata = []
-
-		newest = None
-		newer = []
-		index = 0
-
-		for entry in metadata:
-			if (entry['connection'] not in blacklistConnections and config['connections'][entry['connection']]['check_time'] is True and entry['metadata'].isNewerThan(file_path) and entry['metadata'].isDifferentSizeThan(file_path)) or file_path in overwriteCancelled:
-				newer.append(entry['connection'])
-
-				if newest is None or newest > entry['metadata'].getLastModified():
-					newest = index
-
-			index += 1
-
-		if len(newer) > 0:
-			preventUpload.append(file_path)
-
-			def sync(index):
-				if index is 0:
-					printMessage("Overwrite prevention: overwriting")
-
-					if file_path in overwriteCancelled:
-						overwriteCancelled.remove(file_path)
-
-					self.on_post_save(view)
+			try:
+				metadata = SyncCommandGetMetadata(file_path, config_file_path).execute()
+			except FileNotFoundException:
+				return
+			except Exception as e:
+				if str(e).find('No such file'):
+					printMessage("No version of {" + os.path.basename(file_path) + "} found on any server", status=True)
 				else:
-					printMessage("Overwrite prevention: cancelled upload")
+					printMessage("Error when getting metadata: " + stringifyException(e))
+					handleException(e)
+				metadata = []
 
-					if file_path not in overwriteCancelled:
-						overwriteCancelled.append(file_path)
+			newest = None
+			newer = []
+			index = 0
 
-			yes = []
-			yes.append("Yes, overwrite newer")
-			yes.append("Last modified: " + metadata[newest]['metadata'].getLastModifiedFormatted())
+			for entry in metadata:
+				if (entry['connection'] not in blacklistConnections and config['connections'][entry['connection']]['check_time'] is True and entry['metadata'].isNewerThan(file_path) and entry['metadata'].isDifferentSizeThan(file_path)) or file_path in overwriteCancelled:
+					newer.append(entry['connection'])
 
-			for entry in newer:
-				yes.append(entry + " [" + config['connections'][entry]['host'] + "]")
+					if newest is None or newest > entry['metadata'].getLastModified():
+						newest = index
 
-			no = []
-			no.append("No")
-			no.append("Cancel uploading")
+				index += 1
 
-			window = view.window()
-			if window is None:
-				window = sublime.active_window()  # only in main thread!
+			if len(newer) > 0:
+				preventUpload.append(file_path)
 
-			sublime.set_timeout(lambda: window.show_quick_panel([ yes, no ], sync), 1)
+				def sync(index):
+					if index is 0:
+						printMessage("Overwrite prevention: overwriting")
+
+						if file_path in overwriteCancelled:
+							overwriteCancelled.remove(file_path)
+
+						self.on_post_save(view)
+					else:
+						printMessage("Overwrite prevention: cancelled upload")
+
+						if file_path not in overwriteCancelled:
+							overwriteCancelled.append(file_path)
+
+				yes = []
+				yes.append("Yes, overwrite newer")
+				yes.append("Last modified: " + metadata[newest]['metadata'].getLastModifiedFormatted())
+
+				for entry in newer:
+					yes.append(entry + " [" + config['connections'][entry]['host'] + "]")
+
+				no = []
+				no.append("No")
+				no.append("Cancel uploading")
+
+				window = view.window()
+				if window is None:
+					window = sublime.active_window()  # only in main thread!
+
+				sublime.set_timeout(lambda: window.show_quick_panel([ yes, no ], sync), 1)
+
+		fillPasswords([[ None, config_file_path ]], pre_save, sublime.active_window())
 
 	def on_post_save(self, view):
 		file_path = getFileName(view)
@@ -2382,7 +2385,11 @@ class RemoteSync(sublime_plugin.EventListener):
 
 			def check():
 				if file_path in checksScheduled:
-					RemoteSyncCheck(file_path, view.window()).start()
+
+					def execute(files):
+						RemoteSyncCheck(file_path, view.window()).start()
+
+					fillPasswords([[ file_path, getConfigFile(file_path) ]], execute, sublime.active_window())
 
 			sublime.set_timeout(check, download_on_open_delay)
 
@@ -2672,12 +2679,20 @@ class FtpSyncNewSettings(sublime_plugin.TextCommand):
 # Synchronize up selected file/directory
 class FtpSyncTarget(sublime_plugin.TextCommand):
 	def run(self, edit, paths):
-		RemoteSyncCall(gatherFiles(paths), None, False).start()
+		def execute(files):
+			RemoteSyncCall(files, None, False).start()
+
+		files = gatherFiles(paths)
+		fillPasswords(files, execute, sublime.active_window())
 
 # Synchronize up selected file/directory with delay and watch
 class FtpSyncTargetDelayed(sublime_plugin.TextCommand):
 	def run(self, edit, paths):
-		RemoteSyncCall(gatherFiles(paths), None, True, forcedSave = True).start()
+		def execute(files):
+			RemoteSyncCall(files, None, True, forcedSave = True).start()
+
+		files = gatherFiles(paths)
+		fillPasswords(files, execute, sublime.active_window())
 
 
 # Synchronize up current file
@@ -2685,7 +2700,10 @@ class FtpSyncCurrent(sublime_plugin.TextCommand):
 	def run(self, edit):
 		file_path = sublime.active_window().active_view().file_name()
 
-		RemoteSyncCall(file_path, getConfigFile(file_path), False).start()
+		def execute(files):
+			RemoteSyncCall(files[0][0], files[0][1], False).start()
+
+		fillPasswords([[ file_path, getConfigFile(file_path) ]], execute, sublime.active_window())
 
 
 # Synchronize down current file
@@ -2693,7 +2711,10 @@ class FtpSyncDownCurrent(sublime_plugin.TextCommand):
 	def run(self, edit):
 		file_path = sublime.active_window().active_view().file_name()
 
-		RemoteSyncDownCall(file_path, getConfigFile(file_path), False, True).start()
+		def execute(files):
+			RemoteSyncDownCall(files[0][0], files[0][1], True, False).start()
+
+		fillPasswords([[ file_path, getConfigFile(file_path) ]], execute, sublime.active_window())
 
 
 # Checks whether there's a different version of the file on server
@@ -2702,7 +2723,10 @@ class FtpSyncCheckCurrent(sublime_plugin.TextCommand):
 		file_path = sublime.active_window().active_view().file_name()
 		view = sublime.active_window()
 
-		RemoteSyncCheck(file_path, view, True).start()
+		def execute(files):
+			RemoteSyncCheck(file_path, view, True).start()
+
+		fillPasswords([[ file_path, getConfigFile(file_path) ]], execute, sublime.active_window())
 
 # Checks whether there's a different version of the file on server
 class FtpSyncRenameCurrent(sublime_plugin.TextCommand):
@@ -2720,7 +2744,10 @@ class FtpSyncRenameCurrent(sublime_plugin.TextCommand):
 
 	def rename(self, new_name):
 		def action():
-			RemoteSyncRename(self.original_path, getConfigFile(self.original_path), new_name).start()
+			def execute(files):
+				RemoteSyncRename(self.original_path, getConfigFile(self.original_path), new_name).start()
+
+			fillPasswords([[ self.original_path, getConfigFile(self.original_path) ]], execute, sublime.active_window())
 
 		new_path = os.path.join(os.path.dirname(self.original_path), new_name)
 		if os.path.exists(new_path):
@@ -2746,7 +2773,14 @@ class FtpSyncRenameCurrent(sublime_plugin.TextCommand):
 # Synchronize down selected file/directory
 class FtpSyncDownTarget(sublime_plugin.TextCommand):
 	def run(self, edit, paths, forced=False):
-		RemoteSyncDownCall(getFiles(paths, getConfigFile), None, forced=forced).start()
+		filelist = []
+		for path in paths:
+			filelist.append( [ path, getConfigFile(path) ] )
+
+		def execute(files):
+			RemoteSyncDownCall(filelist, None, forced=forced).start()
+
+		fillPasswords(filelist, execute, sublime.active_window())
 
 
 # Renames a file on disk and in folder
@@ -2763,7 +2797,10 @@ class FtpSyncRename(sublime_plugin.TextCommand):
 
 	def rename(self, new_name):
 		def action():
-			RemoteSyncRename(self.original_path, getConfigFile(self.original_path), new_name).start()
+			def execute(files):
+				RemoteSyncRename(self.original_path, getConfigFile(self.original_path), new_name).start()
+
+			fillPasswords([[ self.original_path, getConfigFile(self.original_path) ]], execute, sublime.active_window())
 
 		new_path = os.path.join(os.path.dirname(self.original_path), new_name)
 		if os.path.exists(new_path):
@@ -2789,17 +2826,27 @@ class FtpSyncRename(sublime_plugin.TextCommand):
 # Removes given file(s) or folders
 class FtpSyncDelete(sublime_plugin.TextCommand):
 	def run(self, edit, paths):
-		RemoteSyncDelete(paths).start()
+		filelist = []
+		for path in paths:
+			filelist.append( [ path, getConfigFile(path) ] )
+
+		def execute(files):
+			RemoteSyncDelete(paths).start()
+
+		fillPasswords(filelist, execute, sublime.active_window())
 
 # Remote ftp navigation
 class FtpSyncBrowse(sublime_plugin.TextCommand):
 	def run(self, edit):
 		file_path = sublime.active_window().active_view().file_name()
 
-		command = SyncNavigator(None, getConfigFile(file_path), None, file_path)
-		call = RemoteNavigator(getConfigFile(file_path))
-		call.setCommand(command)
-		call.start()
+		def execute(files):
+			command = SyncNavigator(None, getConfigFile(file_path), None, file_path)
+			call = RemoteNavigator(getConfigFile(file_path))
+			call.setCommand(command)
+			call.start()
+
+		fillPasswords([[ file_path, getConfigFile(file_path) ]], execute, sublime.active_window())
 
 # Remote ftp navigation
 class FtpSyncBrowsePlace(sublime_plugin.TextCommand):
@@ -2809,20 +2856,26 @@ class FtpSyncBrowsePlace(sublime_plugin.TextCommand):
 		else:
 			file_path = os.path.dirname(paths[0])
 
-		command = SyncNavigator(None, getConfigFile(file_path), None, file_path)
-		call = RemoteNavigator(getConfigFile(file_path))
-		call.setCommand(command)
-		call.start()
+		def execute(files):
+			command = SyncNavigator(None, getConfigFile(file_path), None, file_path)
+			call = RemoteNavigator(getConfigFile(file_path))
+			call.setCommand(command)
+			call.start()
+
+		fillPasswords([[ file_path, getConfigFile(file_path) ]], execute, sublime.active_window())
 
 # Remote ftp navigation from current file
 class FtpSyncBrowseCurrent(sublime_plugin.TextCommand):
 	def run(self, edit):
 		file_path = sublime.active_window().active_view().file_name()
 
-		command = SyncNavigator(os.path.dirname(file_path), getConfigFile(file_path), None, os.path.dirname(file_path))
-		call = RemoteNavigator(getConfigFile(file_path))
-		call.setCommand(command)
-		call.start()
+		def execute(files):
+			command = SyncNavigator(os.path.dirname(file_path), getConfigFile(file_path), None, os.path.dirname(file_path))
+			call = RemoteNavigator(getConfigFile(file_path))
+			call.setCommand(command)
+			call.start()
+
+		fillPasswords([[ file_path, getConfigFile(file_path) ]], execute, sublime.active_window())
 
 # Remote ftp navigation from last point
 class FtpSyncBrowseLast(sublime_plugin.TextCommand):
@@ -2830,12 +2883,19 @@ class FtpSyncBrowseLast(sublime_plugin.TextCommand):
 		if navigateLast['config_file'] is None:
 			file_path = sublime.active_window().active_view().file_name()
 
-			command = SyncNavigator(None, getConfigFile(file_path), None, file_path)
-			call = RemoteNavigator(getConfigFile(file_path))
-			call.setCommand(command)
-			call.start()
+			def execute(files):
+				command = SyncNavigator(None, getConfigFile(file_path), None, file_path)
+				call = RemoteNavigator(getConfigFile(file_path))
+				call.setCommand(command)
+				call.start()
+				
+
+			fillPasswords([[ file_path, getConfigFile(file_path) ]], execute, sublime.active_window())
 		else:
-			RemoteNavigator(None, True).start()
+			def execute(files):
+				RemoteNavigator(None, True).start()
+
+			fillPasswords([[ None, getConfigFile(navigateLast['config_file']) ]], execute, sublime.active_window())
 
 # Open FTPSync Github page
 class FtpSyncUrlReadme(sublime_plugin.TextCommand):

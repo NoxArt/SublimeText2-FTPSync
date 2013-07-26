@@ -18,10 +18,6 @@ What's there for you?
 
 **Now Sublime Text 3 compatible**, base commit by Dmitry Loktev!
 
-WIP features:
-* Passwords set via dialog, not stored in a file
-* Considering: Events/hooks in FTPSync actions (preupload)
-
 For more info look into [Wiki](https://github.com/NoxArt/SublimeText2-FTPSync/wiki/_pages)
 
 
@@ -45,6 +41,7 @@ Sample settings file with minimum of options:
         }
     }
 
+Set password to `null` (don't use quotes) if you do not want to store password in a file and set in manually (FTPSync will request the password in such case).
 
 [All connection settings »](https://github.com/NoxArt/SublimeText2-FTPSync/wiki/All-settings)
 
