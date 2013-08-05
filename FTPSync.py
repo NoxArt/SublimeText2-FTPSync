@@ -45,6 +45,7 @@ import re
 import copy
 import traceback
 import sys
+import webbrowser
 
 # FTPSync libraries
 try:
@@ -2900,17 +2901,14 @@ class FtpSyncBrowseLast(sublime_plugin.TextCommand):
 # Open FTPSync Github page
 class FtpSyncUrlReadme(sublime_plugin.TextCommand):
 	def run(self, edit):
-		import webbrowser
 		webbrowser.open("https://github.com/NoxArt/SublimeText2-FTPSync", 2, True)
 
 # Open FTPSync Github New Issue page
 class FtpSyncUrlReport(sublime_plugin.TextCommand):
 	def run(self, edit):
-		import webbrowser
 		webbrowser.open("https://github.com/NoxArt/SublimeText2-FTPSync/issues/new", 2, True)
 
 # Open FTPSync Donate page
 class FtpSyncUrlDonate(sublime_plugin.TextCommand):
 	def run(self, edit):
-		import webbrowser
 		webbrowser.open("http://ftpsync.noxart.cz/donate.html", 2, True)
