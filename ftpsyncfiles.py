@@ -199,6 +199,9 @@ def to_unicode_or_bust(obj, encoding='utf-8'):
 def fileToMetafile(file_path):
 	if type(file_path) is str:
 		file_path = file_path.encode('utf-8')
+	elif type(file_path) is bytes:
+		file_path = file_path.decode('utf-8')
+
 	name = os.path.basename(file_path)
 	path = file_path
 	isDir = os.path.isdir(file_path)
