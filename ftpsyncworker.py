@@ -45,6 +45,12 @@ class RunningCommand(threading.Thread):
 		self.id = int(tid)
 		threading.Thread.__init__(self)
 
+	# Prints debug message if enabled
+	def _debugPrint(self, message):
+		if self.debug:
+			print(message)
+
+	# Runs command
 	def run(self):
 		try:
 			self._debugPrint("Executing command " + unicode(self.id))
@@ -83,6 +89,7 @@ class Worker(object):
 
 		self.debug = False
 
+	# Prints debug message if enabled
 	def _debugPrint(self, message):
 		if self.debug:
 			print(message)
