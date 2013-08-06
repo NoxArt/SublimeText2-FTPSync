@@ -31,7 +31,8 @@
 
 # ==== Libraries ===========================================================================
 
-# Sublime API see http://www.sublimetext.com/docs/2/api_reference.html
+# Sublime Text 2 API: see http://www.sublimetext.com/docs/2/api_reference.html
+# Sublime Text 3 API: see http://www.sublimetext.com/docs/3/api_reference.html
 import sublime
 import sublime_plugin
 
@@ -2249,7 +2250,6 @@ preventUpload = []
 # File watching
 class RemoteSync(sublime_plugin.EventListener):
 
-	# @todo - put into thread
 	def on_pre_save(self, view):
 		file_path = getFileName(view)
 		config_file_path = getConfigFile(file_path)
