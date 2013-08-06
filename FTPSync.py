@@ -37,15 +37,15 @@ import sublime
 import sublime_plugin
 
 # Python's built-in libraries
-import shutil
-import os
+import copy
 import hashlib
 import json
-import threading
+import os
 import re
-import copy
-import traceback
+import shutil
 import sys
+import threading
+import traceback
 import webbrowser
 
 # FTPSync libraries

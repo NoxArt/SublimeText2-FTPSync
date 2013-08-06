@@ -30,12 +30,12 @@
 # ==== Libraries ===========================================================================
 
 # Python's built-in libraries
-import os
 import datetime
 import fnmatch
+import os
 import re
-import tempfile
 import sys
+import tempfile
 
 
 # ==== Initialization and optimization =====================================================

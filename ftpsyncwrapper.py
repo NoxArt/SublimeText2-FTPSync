@@ -37,11 +37,11 @@ if sys.version[0] == '2':
 else:
     import FTPSync.lib3.ftplib as ftplib
 
+import datetime
+import locale
 import os
 import re
 import time
-import datetime
-import locale
 
 # workaround for http://www.gossamer-threads.com/lists/python/dev/755427
 try:
