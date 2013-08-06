@@ -30,18 +30,18 @@
 # ==== Libraries ===========================================================================
 
 # Python's built-in libraries
-import sys
-
-if sys.version[0] == '2':
-    import lib2.ftplib as ftplib
-else:
-    import FTPSync.lib3.ftplib as ftplib
-
 import datetime
 import locale
 import os
 import re
+import sys
 import time
+
+# import FTP library
+if sys.version[0] == '2':
+    import lib2.ftplib as ftplib
+else:
+    import FTPSync.lib3.ftplib as ftplib
 
 # workaround for http://www.gossamer-threads.com/lists/python/dev/755427
 try:
