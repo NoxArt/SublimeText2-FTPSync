@@ -47,23 +47,17 @@ class RunningCommand(threading.Thread):
 
 	def run(self):
 		try:
-			if self.debug:
-				print ("Executing command " + unicode(self.id))
-
+			self._debugPrint("Executing command " + unicode(self.id))
 			self.command.execute()
 		except Exception as e:
-			if self.debug:
-				print (e)
-				print ("Retrying command " + unicode(self.id))
+			self._debugPrint(e)
+			self._debugPrint("Retrying command " + unicode(self.id))
 
 			self.command.execute()
 		finally:
-			if self.debug:
-				print ("Ending command " + unicode(self.id))
-
+			self._debugPrint("Ending command " + unicode(self.id))
 			while self.command.isRunning():
-				if self.debug:
-					print ("Command " + str(self.id) + " running...")
+				self._debugPrint("Command " + str(self.id) + " running...")
 				sleep(0.5)
 
 			self.onFinish(self.command)
@@ -89,6 +83,9 @@ class Worker(object):
 
 		self.debug = False
 
+	def _debugPrint(self, message):
+		if self.debug:
+			print(message)
 
 	# Enables console dumping
 	def enableDebug(self):
@@ -115,35 +112,26 @@ class Worker(object):
 				connection = self.makeConnection(self.makeConfig(config), None, False)
 			except Exception as e:
 				if str(e).lower().find('too many connections') != -1:
-					if self.debug:
-						print ("FTPSync > Too many connections...")
+					self._debugPrint("FTPSync > Too many connections...")
 					sleep(1.5)
 				else:
-					if self.debug:
-						print (e)
+					self._debugPrint(e)
 					raise
 
 			if connection is not None and len(connection) > 0:
 				self.addConnection(connection)
 				self.freeConnections.append(len(self.connections))
 
-			if self.debug:
-				print ("FTPSync > Creating new connection #" + unicode(len(self.connections)))
+			self._debugPrint("FTPSync > Creating new connection #" + unicode(len(self.connections)))
 
 	# Adds a new command to worker
 	def addCommand(self, command, config):
-		if self.debug:
-			print ("FTPSync > Adding command " + self.__commandName(command))
-
+		self._debugPrint("FTPSync > Adding command " + self.__commandName(command))
 		if len(self.commands) >= self.limit:
-			if self.debug:
-				print ("FTPSync > Queuing command " + self.__commandName(command) + " (total: " + str(len(self.waitingCommands) + 1) + ")")
-
+			self._debugPrint("FTPSync > Queuing command " + self.__commandName(command) + " (total: " + str(len(self.waitingCommands) + 1) + ")")
 			self.__waitCommand(command)
 		else:
-			if self.debug:
-				print ("FTPSync > Running command " + self.__commandName(command) + " (total: " + str(len(self.commands) + 1) + ")")
-
+			self._debugPrint("FTPSync > Running command " + self.__commandName(command) + " (total: " + str(len(self.commands) + 1) + ")")
 			self.__run(command, config)
 
 	# Return whether has any scheduled commands
@@ -168,8 +156,7 @@ class Worker(object):
 			index = self.freeConnections.pop()
 			thread = RunningCommand(command, self.__onFinish, self.debug, self.threadId)
 
-			if self.debug:
-				print ("FTPSync > Scheduling thread #" + unicode(self.threadId) + " " + self.__commandName(command) + " run, using connection " + unicode(index))
+			self._debugPrint("FTPSync > Scheduling thread #" + unicode(self.threadId) + " " + self.__commandName(command) + " run, using connection " + unicode(index))
 
 			command.setConnection(self.connections[index - 1])
 			self.commands.append({
@@ -198,12 +185,10 @@ class Worker(object):
 				config = cmd['config']
 				self.commands.remove(cmd)
 
-				if self.debug:
-					print ("FTPSync > Removing thread #" + unicode(cmd['threadId']))
+				self._debugPrint("FTPSync > Removing thread #" + unicode(cmd['threadId']))
 
-		if self.debug:
-			print ("FTPSync > Sleeping commands: " + unicode(len(self.waitingCommands)))
-
+		self._debugPrint("FTPSync > Sleeping commands: " + unicode(len(self.waitingCommands)))
+		
 		# Woke up one sleeping command
 		if len(self.waitingCommands) > 0:
 			awakenCommand = self.waitingCommands.pop()
@@ -219,5 +204,4 @@ class Worker(object):
 			for connection in connections:
 				connection.close()
 
-				if self.debug:
-					print ("FTPSync > Closing connection")
+				self._debugPrint("FTPSync > Closing connection")
