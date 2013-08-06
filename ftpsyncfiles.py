@@ -40,27 +40,9 @@ import tempfile
 
 # ==== Initialization and optimization =====================================================
 
-# difference in time when comes to local vs remote {last modified} [s]
-timeDifferenceTolerance = 1
 # limit for breaking down a filepath structure when looking for config files
 nestingLimit = 30
-# bom marks (decimal)
-bomMarks = {
-	'utf8': [239,187,191],
-	'utf16be': [254,255],
-	'utf16le': [255,254],
-	'utf32be': [0,0,254,255],
-	'utf32le': [255,254,0,0],
-	'utf7': [43,47,118,56,43,47,118,57,43,47,118,43,43,47,118,47],
-	'utf1': [247,100,76],
-	'utfebcdic': [221,115,102,115],
-	'scsu': [14,254,255],
-	'bocu-1': [251,238,40],
-	'gb18030': [132,49,149,51]
-}
-bomMaxLength = 16
-# file_path[string] => textual[boolean]
-isTextCache = {}
+
 # permission triples
 triples = {
 	'---': 0,
