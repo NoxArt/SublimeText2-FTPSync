@@ -2043,6 +2043,7 @@ class SyncNavigator(SyncCommand):
 		actions.append("Rename folder")
 		actions.append("Change permissions")
 		actions.append("Show details")
+		actions.append("Copy path")
 
 		def handleAction(index):
 			if index == -1:
@@ -2109,6 +2110,11 @@ class SyncNavigator(SyncCommand):
 					info.append("[No local version]")
 
 				sublime.set_timeout(lambda: sublime.active_window().show_quick_panel([info], None), 1)
+				return
+
+			if index == 7 + exists:
+				get_path = meta.getPath()
+				sublime.set_clipboard(get_path) 
 				return
 
 
@@ -2228,6 +2234,11 @@ class SyncNavigator(SyncCommand):
 					info.append("[No local version]")
 
 				sublime.set_timeout(lambda: sublime.active_window().show_quick_panel([info], None), 1)
+				return
+
+			if index == 6 + exists + int(hasSidebar):
+				get_path = meta.getPath()
+				sublime.set_clipboard(get_path) 
 				return
 
 		if action is None:
