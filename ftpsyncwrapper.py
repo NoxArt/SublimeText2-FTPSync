@@ -421,6 +421,7 @@ class FTPSConnection(AbstractConnection):
                         if sys.version[0] == '2':
                             tempfile.write("\n")
                         else:
+                            print("isAscii")
                             tempfile.write("\n".encode('utf-8'))
 
                     if blockCallback is not None:
