@@ -403,6 +403,7 @@ class FTPSConnection(AbstractConnection):
                 print ("FTPSync <debug> get path " + file_path + " => " + str(self.__encode(path)))
 
             isAscii = self._isAscii(file_path)
+            isAscii = False
             action = 'retrbinary'
             mode = 'wb'
             if isAscii:
@@ -421,7 +422,6 @@ class FTPSConnection(AbstractConnection):
                         if sys.version[0] == '2':
                             tempfile.write("\n")
                         else:
-                            print("isAscii")
                             tempfile.write("\n".encode('utf-8'))
 
                     if blockCallback is not None:
