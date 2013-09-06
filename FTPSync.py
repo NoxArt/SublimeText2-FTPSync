@@ -703,6 +703,10 @@ def loadConfig(file_path):
 		printMessage("Settings not loaded (just installed?), please restart Sublime Text")
 		return None
 
+	if isString(file_path) is False:
+		printMessage("LoadConfig expects string, " + type(file_path) + " given")
+		return None
+
 	if os.path.exists(file_path) is False:
 		return None
 
