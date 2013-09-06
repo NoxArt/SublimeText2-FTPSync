@@ -318,8 +318,6 @@ class FTPSConnection(AbstractConnection):
     def getInfo(self):
         self.__loadFeat()
 
-        print FTPSConnection.canEncrypt
-
         info = {
             'type': 'FTP',
             'name': self.name,
