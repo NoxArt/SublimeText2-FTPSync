@@ -17,6 +17,8 @@ What's there for you?
 * Remote browsing and manipulating via file list
 
 What's new?
+* Critical fixes for ST3
+* Now handling and showing hidden files
 * _Show info_ sidebar option
 * _Copy path_ browsing action
 
