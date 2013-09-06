@@ -704,7 +704,7 @@ def loadConfig(file_path):
 		return None
 
 	if isString(file_path) is False:
-		printMessage("LoadConfig expects string, " + type(file_path) + " given")
+		printMessage("LoadConfig expects string, " + str(type(file_path)) + " given")
 		return None
 
 	if os.path.exists(file_path) is False:
