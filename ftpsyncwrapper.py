@@ -411,7 +411,7 @@ class FTPSConnection(AbstractConnection):
             def download(tempfile):
 
                 def perBlock(data):
-                    if sys.version[0] == '2':
+                    if sys.version[0] == '2' or type(data) is bytes:
                         tempfile.write(data)
                     else:
                         tempfile.write(data.encode('utf-8'))
