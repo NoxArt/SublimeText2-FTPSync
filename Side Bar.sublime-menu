@@ -6,12 +6,12 @@
 		[
 			{ "caption": "Upload", "command": "ftp_sync_target", "args": {"paths": []} },
 			{ "caption": "Download", "command": "ftp_sync_down_target", "args": {"paths": [], "forced": true} },
-			{ "caption": "-" },
 			{ "caption": "Rename", "command": "ftp_sync_rename", "args": {"paths": []} },
 			{ "caption": "-" },
 			{ "caption": "Delete", "command": "ftp_sync_delete", "args": {"paths": []} },
 			{ "caption": "-" },
 			{ "caption": "Browse here", "command": "ftp_sync_browse_place", "args": {"paths": []} },
+            { "caption": "Show info", "command": "ftp_sync_show_info", "args": {"paths": []} },
 			{ "caption": "-" },
 			{ "caption": "Setup FTPSync in this folder", "command": "ftp_sync_new_settings", "args": {"dirs": []} },
             { "caption": "Open README (Github)", "command": "ftp_sync_url_readme" },
