@@ -58,6 +58,7 @@ Drawbacks and notes
 * Does not support continuous watching and syncing, only (after) manual action
 * Does not support proxy connections
 * Does not support remote diff at the moment
+* Does not support special characters in remote path at the moment
 
 
 About
