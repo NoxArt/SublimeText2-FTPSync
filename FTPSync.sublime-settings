@@ -53,8 +53,9 @@
 	"ignore": "ftpsync\\.settings|\\.gitignore|\\.git|Sublime Text 2/Packages",
 	"ascii_extensions": [
 	    "txt","ini","xml","nfo","cgi","cfg","conf","bat","sh","inc","sfv","srt",
-	    "md5","sha","gitignore",
-	    "html","htm","xhtml","dhtml","phtml",
+	    "htaccess",
+	    "md5","sha","gitignore","pub","ppk",
+	    "html","htm","xhtml","dhtml","phtml","mht",
 	    "tpl","twig","latte",
 	    "css","scss","sass","less","styl",
 	    "js","json","coffee","dart","ts",
