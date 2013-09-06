@@ -675,14 +675,22 @@ class FTPSConnection(AbstractConnection):
             result = []
 
             try:
-                self.connection.dir(path, lambda data: contents.append(data))
+                self.connection.retrlines("LIST -a " + path, lambda data: contents.append(data))
             except Exception as e:
                 if self.__isErrorCode(e, ['ok', 'passive']):
-                    self.connection.dir(path, lambda data: contents.append(data))
+                    self.connection.retrlines("LIST -a " + path, lambda data: contents.append(data))
                 elif str(e).find('No such file'):
                     raise FileNotFoundException
                 else:
-                    raise
+                    try:
+                        self.connection.dir(path, lambda data: contents.append(data))
+                    except Exception as e:
+                        if self.__isErrorCode(e, ['ok', 'passive']):
+                            self.connection.retrlines("LIST -a " + path, lambda data: contents.append(data))
+                        elif str(e).find('No such file'):
+                            raise FileNotFoundException
+                        else:
+                            raise
 
             for content in contents:
                 try:
