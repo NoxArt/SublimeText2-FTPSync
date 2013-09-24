@@ -705,6 +705,10 @@ def loadConfig(file_path):
 		printMessage("Settings not loaded (just installed?), please restart Sublime Text")
 		return None
 
+	if isString(file_path) is False:
+		printMessage("LoadConfig expects string, " + str(type(file_path)) + " given")
+		return None
+
 	if os.path.exists(file_path) is False:
 		return None
 
@@ -1882,6 +1886,82 @@ def performRemoteCheck(file_path, window, forced = False):
 		printMessage("All remote versions of {" + basename + "} are of same size and older", status=True)
 
 
+class ShowInfo(SyncCommand):
+
+	def execute(self, window):
+		if len(self.config['connections']) == 0:
+			printMessage("Cancelling " + str(self.__class__.__name__) + ": zero connections apply")
+			return
+
+		self._createConnection()
+
+		usingConnections.append(self.config_hash)
+		index = -1
+		results = []
+
+		for name in self.config['connections']:
+			index += 1
+
+			try:
+				info = self.connections[index].getInfo()
+
+				if type(info) is dict:
+					results.append(info)
+
+			except IndexError:
+				continue
+
+			except Exception as e:
+				printMessage("Getting info failed [Exception: " + stringifyException(e) + "]", name, False, True)
+				handleException(e)
+
+		maxFeats = 0
+		for item in results:
+			if len(item['features']) > maxFeats:
+				maxFeats = len(item['features'])
+
+		output = []
+		for item in results:
+			if item['config']['tls']:
+				encryption = "enabled"
+			else:
+				encryption = "disabled"
+
+			if item['canEncrypt'] is None:
+				encryption += " [unconfirmed]"
+			elif item['canEncrypt'] is False:
+				encryption += " [NOT SUPPORTED]"
+			else:
+				encryption += " [SUPPORTED]"
+
+			entry = []
+			entry.append(item['name'] + " [" + item['config']['host'] + "]")
+			entry.append("Type: " + item['type'])
+			entry.append("User: " + item['config']['username'])
+			entry.append("Encryption: " + encryption)
+
+			if "MFMT" in item['features']:
+				entry.append("Last modified: SUPPORTED")
+			else:
+				entry.append("Last modified: NOT SUPPORTED")
+
+			entry.append("")
+			entry.append("Server features:")
+
+			feats = 0
+			for feat in item['features']:
+				entry.append(feat)
+				feats = feats + 1
+
+			if feats < maxFeats:
+				for i in range(1, maxFeats - feats):
+					entry.append("")
+
+			output.append(entry)
+		
+		sublime.set_timeout(lambda: window.show_quick_panel(output, None), 1)
+
+
 class SyncNavigator(SyncCommand):
 
 	def __init__(self, file_path, config_file_path, connection_name = None, path = None, remotePath = None):
@@ -2045,6 +2125,7 @@ class SyncNavigator(SyncCommand):
 		actions.append("Rename folder")
 		actions.append("Change permissions")
 		actions.append("Show details")
+		actions.append("Copy path")
 
 		def handleAction(index):
 			if index == -1:
@@ -2111,6 +2192,11 @@ class SyncNavigator(SyncCommand):
 					info.append("[No local version]")
 
 				sublime.set_timeout(lambda: sublime.active_window().show_quick_panel([info], None), 1)
+				return
+
+			if index == 7 + exists:
+				get_path = meta.getPath()
+				sublime.set_clipboard(get_path) 
 				return
 
 
@@ -2230,6 +2316,11 @@ class SyncNavigator(SyncCommand):
 					info.append("[No local version]")
 
 				sublime.set_timeout(lambda: sublime.active_window().show_quick_panel([info], None), 1)
+				return
+
+			if index == 6 + exists + int(hasSidebar):
+				get_path = meta.getPath()
+				sublime.set_clipboard(get_path) 
 				return
 
 		if action is None:
@@ -2897,6 +2988,16 @@ class FtpSyncBrowseLast(sublime_plugin.TextCommand):
 				RemoteNavigator(None, True).start()
 
 			fillPasswords([[ None, getConfigFile(navigateLast['config_file']) ]], execute, sublime.active_window())
+
+# Show connection info
+class FtpSyncShowInfo(sublime_plugin.TextCommand):
+	def run(self, edit, paths):
+		file_path = paths[0]
+
+		def execute(files):
+			ShowInfo(None, getConfigFile(file_path)).execute(sublime.active_window())
+
+		fillPasswords([[ file_path, getConfigFile(file_path) ]], execute, sublime.active_window())
 
 # Open FTPSync Github page
 class FtpSyncUrlReadme(sublime_plugin.TextCommand):

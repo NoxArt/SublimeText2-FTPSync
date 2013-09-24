@@ -214,6 +214,8 @@ class AbstractConnection:
 # shipped with the plugin
 class FTPSConnection(AbstractConnection):
 
+    canEncrypt = {}
+
     # Constructor
     #
     # @type self: FTPSConnection
@@ -295,6 +297,38 @@ class FTPSConnection(AbstractConnection):
         return self.isClosed is False and self.connection.sock is not None and self.connection.file is not None
 
 
+    # Returns whether the remote server supports simple encryption
+    # None = do not know
+    #
+    # @type self: FTPSConnection
+    #
+    # @return bool|None
+    def encryptionSupported(self):
+        if self.config['host'] in FTPSConnection.canEncrypt:
+            return FTPSConnection.canEncrypt[self.config['host']]
+        else:
+            return None
+
+
+    # Returns connection info
+    #
+    # @type self: FTPSConnection
+    #
+    # @return dic{str}
+    def getInfo(self):
+        self.__loadFeat()
+
+        info = {
+            'type': 'FTP',
+            'name': self.name,
+            'config': self.config,
+            'canEncrypt': self.encryptionSupported(),
+            'features': self.feat
+        }
+
+        return info
+
+
     # Uploads a file to remote server
     #
     # @type self: FTPSConnection
@@ -369,6 +403,7 @@ class FTPSConnection(AbstractConnection):
                 print ("FTPSync <debug> get path " + file_path + " => " + str(self.__encode(path)))
 
             isAscii = self._isAscii(file_path)
+            isAscii = False
             action = 'retrbinary'
             mode = 'wb'
             if isAscii:
@@ -377,7 +412,7 @@ class FTPSConnection(AbstractConnection):
             def download(tempfile):
 
                 def perBlock(data):
-                    if sys.version[0] == '2':
+                    if sys.version[0] == '2' or type(data) is bytes:
                         tempfile.write(data)
                     else:
                         tempfile.write(data.encode('utf-8'))
@@ -641,14 +676,22 @@ class FTPSConnection(AbstractConnection):
             result = []
 
             try:
-                self.connection.dir(path, lambda data: contents.append(data))
+                self.connection.retrlines("LIST -a " + path, lambda data: contents.append(data))
             except Exception as e:
                 if self.__isErrorCode(e, ['ok', 'passive']):
-                    self.connection.dir(path, lambda data: contents.append(data))
+                    self.connection.retrlines("LIST -a " + path, lambda data: contents.append(data))
                 elif str(e).find('No such file'):
                     raise FileNotFoundException
                 else:
-                    raise
+                    try:
+                        self.connection.dir(path, lambda data: contents.append(data))
+                    except Exception as e:
+                        if self.__isErrorCode(e, ['ok', 'passive']):
+                            self.connection.retrlines("LIST -a " + path, lambda data: contents.append(data))
+                        elif str(e).find('No such file'):
+                            raise FileNotFoundException
+                        else:
+                            raise
 
             for content in contents:
                 try:
@@ -780,6 +823,7 @@ class FTPSConnection(AbstractConnection):
         result = None
         try:
             result = callback()
+            FTPSConnection.canEncrypt[self.config['host']] = True
             return result
         except Exception as e:
 
@@ -796,8 +840,13 @@ class FTPSConnection(AbstractConnection):
             # timeout - retry
             elif self.__isError(e, 'timeout') is True:
                 return callback()
+            # SSL not enabled
+            elif str(e).find(sslErrors['reuseRequired']) != -1:
+                FTPSConnection.canEncrypt[self.config['host']] = False
+                raise
             # other exception
             else:
+                FTPSConnection.canEncrypt[self.config['host']] = True
                 raise
 
 
