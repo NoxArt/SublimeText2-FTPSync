@@ -257,7 +257,7 @@ def findFile(folders, file_name):
 		return None
 
 	for folder in folders:
-		if type(folder) is not str:
+		if isString(folder) is False:
 			folder = folder.decode('utf-8')
 
 		if os.path.exists(os.path.join(folder, file_name)) is True:

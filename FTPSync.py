@@ -369,7 +369,7 @@ def findConfigFile(folders):
 # @global configs
 def getConfigFile(file_path):
 	cacheKey = file_path
-	if type(cacheKey) is not str:
+	if isString(cacheKey) is False:
 		cacheKey = cacheKey.decode('utf-8')
 
 	# try cached
@@ -682,7 +682,12 @@ def fillPasswords(fileList, callback, window, index = 0):
 			i = i + 1
 			continue
 
-		addPasswords(config_file_path, loadConfig(config_file_path), ask, window)
+		if config_file_path is None:
+			continue
+
+		config = loadConfig(config_file_path)
+		if config is not None:
+			addPasswords(config_file_path, config, ask, window)
 		return
 
 	callback(fileList)
@@ -1769,12 +1774,15 @@ class SyncCommandGetMetadata(SyncCommand):
 		return results
 
 
-def performRemoteCheck(file_path, window, forced = False):
+def performRemoteCheck(file_path, window, forced = False, whitelistConnections=[]):
 	if isString(file_path) is False:
 		return
 
 	if window is None:
 		return
+
+	if len(whitelistConnections) == 0:
+		return printMessage("No connection applies")
 
 	basename = os.path.basename(file_path)
 
@@ -1786,7 +1794,7 @@ def performRemoteCheck(file_path, window, forced = False):
 
 	config = loadConfig(config_file_path)
 	try:
-		metadata = SyncCommandGetMetadata(file_path, config_file_path).execute()
+		metadata = SyncCommandGetMetadata(file_path, config_file_path).whitelistConnections(whitelistConnections).execute()
 	except FileNotFoundException:
 		printMessage("Remote file not found", status=True)
 		return
@@ -2479,7 +2487,18 @@ class RemoteSync(sublime_plugin.EventListener):
 				if file_path in checksScheduled:
 
 					def execute(files):
-						RemoteSyncCheck(file_path, view.window()).start()
+						whitelistConnections = []
+
+						config_file_path = getConfigFile(file_path)
+						if config_file_path is None:
+							return printMessage("Config not found for: " + self.file_path)
+
+						config = loadConfig(config_file_path)
+						for name in config['connections']:
+							if config['connections'][name]['download_on_open'] is True:
+								whitelistConnections.append(name)
+
+						RemoteSyncCheck(file_path, view.window(), forced=False, whitelistConnections=whitelistConnections).start()
 
 					fillPasswords([[ file_path, getConfigFile(file_path) ]], execute, sublime.active_window())
 
@@ -2653,14 +2672,16 @@ class RemoteSyncRename(RemoteThread):
 
 
 class RemoteSyncCheck(RemoteThread):
-	def __init__(self, file_path, window, forced=False):
+	def __init__(self, file_path, window, forced=False, whitelistConnections=[]):
 		self.file_path = file_path
 		self.window = window
 		self.forced = forced
+		self.whitelistConnections = whitelistConnections
 		RemoteThread.__init__(self)
 
 	def run(self):
-		performRemoteCheck(self.file_path, self.window, self.forced)
+		performRemoteCheck(self.file_path, self.window, self.forced, self.whitelistConnections)
+
 
 class RemoteSyncDelete(RemoteThread):
 	def __init__(self, file_paths):
