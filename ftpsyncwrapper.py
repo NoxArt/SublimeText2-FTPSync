@@ -820,10 +820,16 @@ class FTPSConnection(AbstractConnection):
     #
     # @return unknown
     def __execute(self, callback):
+        def checkEncrypt():
+            if self.config['tls'] and FTPSConnection.canEncrypt[self.config['host']] is None:
+                import inspect
+                if inspect.stack()[1][3] in ['get', 'put', 'delete']:
+                    FTPSConnection.canEncrypt[self.config['host']] = True
+
         result = None
         try:
             result = callback()
-            FTPSConnection.canEncrypt[self.config['host']] = True
+            checkEncrypt()
             return result
         except Exception as e:
 
@@ -846,7 +852,7 @@ class FTPSConnection(AbstractConnection):
                 raise
             # other exception
             else:
-                FTPSConnection.canEncrypt[self.config['host']] = True
+                checkEncrypt()
                 raise
 
 
