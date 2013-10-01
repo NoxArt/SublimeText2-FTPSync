@@ -31,8 +31,14 @@
 
 # Python's built-in libraries
 import threading
+import sys
 from time import sleep
 
+# FTPSync libraries
+if sys.version < '3':
+	from ftpsynccommon import Types
+else:
+	from FTPSync.ftpsynccommon import Types
 
 # ==== Content =============================================================================
 
@@ -48,22 +54,22 @@ class RunningCommand(threading.Thread):
 	# Prints debug message if enabled
 	def _debugPrint(self, message):
 		if self.debug:
-			print(message)
+			print( "[command {0}]".format(self.id) + message )
 
 	# Runs command
 	def run(self):
 		try:
-			self._debugPrint("Executing command " + unicode(self.id))
+			self._debugPrint("Executing")
 			self.command.execute()
 		except Exception as e:
 			self._debugPrint(e)
-			self._debugPrint("Retrying command " + unicode(self.id))
+			self._debugPrint("Retrying")
 
 			self.command.execute()
 		finally:
-			self._debugPrint("Ending command " + unicode(self.id))
+			self._debugPrint("Ending")
 			while self.command.isRunning():
-				self._debugPrint("Command " + str(self.id) + " running...")
+				self._debugPrint("Is running...")
 				sleep(0.5)
 
 			self.onFinish(self.command)
@@ -129,16 +135,16 @@ class Worker(object):
 				self.addConnection(connection)
 				self.freeConnections.append(len(self.connections))
 
-			self._debugPrint("FTPSync > Creating new connection #" + unicode(len(self.connections)))
+			self._debugPrint("FTPSync > Creating new connection #{0}".format(len(self.connections)))
 
 	# Adds a new command to worker
 	def addCommand(self, command, config):
 		self._debugPrint("FTPSync > Adding command " + self.__commandName(command))
 		if len(self.commands) >= self.limit:
-			self._debugPrint("FTPSync > Queuing command " + self.__commandName(command) + " (total: " + str(len(self.waitingCommands) + 1) + ")")
+			self._debugPrint("FTPSync > Queuing command " + self.__commandName(command) + " (total: {0})".format(len(self.waitingCommands) + 1))
 			self.__waitCommand(command)
 		else:
-			self._debugPrint("FTPSync > Running command " + self.__commandName(command) + " (total: " + str(len(self.commands) + 1) + ")")
+			self._debugPrint("FTPSync > Running command " + self.__commandName(command) + " (total: {0})".format(len(self.commands) + 1))
 			self.__run(command, config)
 
 	# Return whether has any scheduled commands
@@ -163,7 +169,7 @@ class Worker(object):
 			index = self.freeConnections.pop()
 			thread = RunningCommand(command, self.__onFinish, self.debug, self.threadId)
 
-			self._debugPrint("FTPSync > Scheduling thread #" + unicode(self.threadId) + " " + self.__commandName(command) + " run, using connection " + unicode(index))
+			self._debugPrint("FTPSync > Scheduling thread #{0}".format(self.threadId) + " " + self.__commandName(command) + " run, using connection {0}".format(index))
 
 			command.setConnection(self.connections[index - 1])
 			self.commands.append({
@@ -192,9 +198,9 @@ class Worker(object):
 				config = cmd['config']
 				self.commands.remove(cmd)
 
-				self._debugPrint("FTPSync > Removing thread #" + unicode(cmd['threadId']))
+				self._debugPrint("FTPSync > Removing thread #{0}".format(cmd['threadId']))
 
-		self._debugPrint("FTPSync > Sleeping commands: " + unicode(len(self.waitingCommands)))
+		self._debugPrint("FTPSync > Sleeping commands: {0}".format(len(self.waitingCommands)))
 		
 		# Woke up one sleeping command
 		if len(self.waitingCommands) > 0:
@@ -203,7 +209,7 @@ class Worker(object):
 
 	# Returns classname of given command
 	def __commandName(self, command):
-		return unicode(command.__class__.__name__)
+		return Types.u(command.__class__.__name__)
 
 	# Closes all connections
 	def __del__(self):

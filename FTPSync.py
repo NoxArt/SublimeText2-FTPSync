@@ -1442,6 +1442,9 @@ class SyncCommandDownload(SyncCommandTransfer):
 			try:
 				if self.isDir or os.path.isdir(self.file_path):
 					contents = self.connections[index].list(self.file_path)
+					if type(contents) is not list:
+						printMessage("List returned no entries {0}".format(self.file_path))
+						continue
 
 					if os.path.exists(self.file_path) is False:
 						os.makedirs(self.file_path)
