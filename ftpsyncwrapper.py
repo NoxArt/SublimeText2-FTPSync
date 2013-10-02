@@ -51,10 +51,12 @@ except ImportError:
 
 # FTPSync libraries
 try:
+    from FTPSync.ftpsynccommon import Runtime
     from FTPSync.ftpsyncfiles import Metafile, isTextFile, viaTempfile
     # exceptions
     from FTPSync.ftpsyncexceptions import FileNotFoundException
 except ImportError:
+    from ftpsynccommon import Runtime
     from ftpsyncfiles import Metafile, isTextFile, viaTempfile
     # exceptions
     from ftpsyncexceptions import FileNotFoundException
@@ -234,6 +236,8 @@ class FTPSConnection(AbstractConnection):
             self.connection = ftplib.FTP_TLS()
         else:
             self.connection = ftplib.FTP()
+
+        FTPSConnection.canEncrypt[self.config['host']] = None
 
 
     # Destructor, closes connection
@@ -822,8 +826,7 @@ class FTPSConnection(AbstractConnection):
     def __execute(self, callback):
         def checkEncrypt():
             if self.config['tls'] and FTPSConnection.canEncrypt[self.config['host']] is None:
-                import inspect
-                if inspect.stack()[1][3] in ['get', 'put', 'delete']:
+                if Runtime.getCaller() in ['get', 'put', 'delete']:
                     FTPSConnection.canEncrypt[self.config['host']] = True
 
         result = None

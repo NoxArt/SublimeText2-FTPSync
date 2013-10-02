@@ -30,7 +30,14 @@
 from __future__ import unicode_literals
 
 import codecs
+import inspect
 import sys
+
+class Runtime(object):
+
+	@staticmethod
+	def getCaller():
+		return inspect.stack()[2][3]
 
 class Types(object):
 	if sys.version < '3':
