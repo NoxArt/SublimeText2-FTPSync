@@ -1307,7 +1307,7 @@ class SyncCommandUpload(SyncCommandTransfer):
 					try:
 
 						# cancelled
-						if scheduledUploads[self.file_path] != id:
+						if self.file_path not in scheduledUploads or scheduledUploads[self.file_path] != id:
 							return
 
 						# process
