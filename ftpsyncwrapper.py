@@ -757,13 +757,25 @@ class FTPSConnection(AbstractConnection):
 
     # Returns local path for given remote path
     def getLocalPath(self, remotePath, localRoot):
+        originalRemotePath = remotePath
         if remotePath[-1] == '.':
             remotePath = remotePath[0:-1]
         remotePath = remotePath.replace('//', '/')
 
         path = os.path.join(localRoot, os.path.relpath(remotePath, self.config['path']))
+        normpath = os.path.normpath(path)
 
-        return os.path.normpath(path)
+        if self.config['debug_extras']['debug_get_local_path']:
+            print("FTPSync <debug> getLocalPath:")
+            print("originalRemotePath: " + originalRemotePath)
+            print("remotePath: " + remotePath)
+            print("localRoot: " + localRoot)
+            print("remoteRoot: " + self.config['path'])
+            print("path: " + path)
+            print("normpath: " + normpath)
+            print("</debug>")
+
+        return normpath
 
 
     # Returns normalized path in unix style

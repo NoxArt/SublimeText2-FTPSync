@@ -39,6 +39,7 @@ class Runtime(object):
 	def getCaller():
 		return inspect.stack()[2][3]
 
+
 class Types(object):
 	if sys.version < '3':
 		text = unicode
