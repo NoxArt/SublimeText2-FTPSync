@@ -38,7 +38,7 @@ import sys
 import time
 
 # import FTP library
-if sys.version[0] == '2':
+if sys.version < '3':
     import lib2.ftplib as ftplib
 else:
     import FTPSync.lib3.ftplib as ftplib
@@ -50,16 +50,16 @@ except ImportError:
     print("FTPSync > Failed to import _strptime")
 
 # FTPSync libraries
-try:
-    from FTPSync.ftpsynccommon import Runtime
-    from FTPSync.ftpsyncfiles import Metafile, isTextFile, viaTempfile
-    # exceptions
-    from FTPSync.ftpsyncexceptions import FileNotFoundException
-except ImportError:
+if sys.version < '3':
     from ftpsynccommon import Runtime
     from ftpsyncfiles import Metafile, isTextFile, viaTempfile
     # exceptions
     from ftpsyncexceptions import FileNotFoundException
+else:
+    from FTPSync.ftpsynccommon import Runtime
+    from FTPSync.ftpsyncfiles import Metafile, isTextFile, viaTempfile
+    # exceptions
+    from FTPSync.ftpsyncexceptions import FileNotFoundException
 
 
 # ==== Initialization and optimization =====================================================

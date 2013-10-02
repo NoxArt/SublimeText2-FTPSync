@@ -49,20 +49,20 @@ import traceback
 import webbrowser
 
 # FTPSync libraries
-try:
-	from FTPSync.ftpsyncwrapper import CreateConnection, TargetAlreadyExists
-	from FTPSync.ftpsyncprogress import Progress
-	from FTPSync.ftpsyncfiles import getFolders, findFile, getFiles, formatTimestamp, gatherMetafiles, getChangedFiles, replace, addLinks
-	from FTPSync.ftpsyncworker import Worker
-	# exceptions
-	from FTPSync.ftpsyncexceptions import FileNotFoundException
-except ImportError:
+if sys.version < '3':
 	from ftpsyncwrapper import CreateConnection, TargetAlreadyExists
 	from ftpsyncprogress import Progress
 	from ftpsyncfiles import getFolders, findFile, getFiles, formatTimestamp, gatherMetafiles, getChangedFiles, replace, addLinks
 	from ftpsyncworker import Worker
 	# exceptions
 	from ftpsyncexceptions import FileNotFoundException
+else:
+	from FTPSync.ftpsyncwrapper import CreateConnection, TargetAlreadyExists
+	from FTPSync.ftpsyncprogress import Progress
+	from FTPSync.ftpsyncfiles import getFolders, findFile, getFiles, formatTimestamp, gatherMetafiles, getChangedFiles, replace, addLinks
+	from FTPSync.ftpsyncworker import Worker
+	# exceptions
+	from FTPSync.ftpsyncexceptions import FileNotFoundException
 
 # ==== Initialization and optimization =====================================================
 __dir__ = os.path.dirname(os.path.realpath(__file__))
@@ -2494,7 +2494,7 @@ class RemoteSync(sublime_plugin.EventListener):
 
 						config_file_path = getConfigFile(file_path)
 						if config_file_path is None:
-							return printMessage("Config not found for: " + self.file_path)
+							return printMessage("Config not found for: " + file_path)
 
 						config = loadConfig(config_file_path)
 						for name in config['connections']:
