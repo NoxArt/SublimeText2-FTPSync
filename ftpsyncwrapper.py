@@ -661,6 +661,8 @@ class FTPSConnection(AbstractConnection):
     # @type file_path: string
     # @type mapped: bool
     # @param mapped: whether it's remote path (True) or not
+    # @type all: bool
+    # @param all: whether include . and ..
     #
     # @return list<Metafile>|False
     def list(self, file_path, mapped=False,all=False):
@@ -979,17 +981,30 @@ class FTPSConnection(AbstractConnection):
         return trailingSlash.sub("", remote_path).split("/")[-1]
 
 
+    # Ensures the root path is existing and accessible
+    #
+    # @type self: FTPSConnection
+    # @type path: string
+    def ensureRoot(self):
+        if len(self.config['path']) > 1:
+            self.__ensurePath(self.config['path'], True, '/')
+
+
     # Ensures the given path is existing and accessible
     #
     # @type self: FTPSConnection
     # @type path: string
-    def __ensurePath(self, path, isFolder=False):
-        self.connection.cwd(self.config['path'])
-
-        relative = os.path.relpath(path, self.config['path'])
+    def __ensurePath(self, path, isFolder=False, root=None):
+        if root is None:
+            root = self.config['path']
+            self.connection.cwd(root)
+            relative = os.path.relpath(path, root)
+        else:
+            relative = root + '/' + path
+        
         relative = self._postprocessPath(relative)
 
-        folders = relative.split("/")
+        folders = list(filter(None, relative.split("/")))
         if 'debug_extras' in self.config and 'print_ensure_folders' in self.config['debug_extras'] and self.config['debug_extras']['print_ensure_folders'] is True:
             print (relative, folders)
 

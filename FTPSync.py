@@ -105,6 +105,8 @@ deprecatedNames = {
 connections = {}
 # connections currently marked as {in use}
 usingConnections = []
+# root check cache
+rootCheckCache = {}
 # individual folder config cache, file => config path
 configs = {}
 # scheduled delayed uploads, file_path => action id
@@ -852,7 +854,23 @@ def makeConnection(config, hash=None, handleExceptions=True):
 		else:
 			printMessage("Anonymous connection", name)
 
-		# 5. set initial directory, set name, store connection
+		# 5. ensure that root exists
+		cacheKey = properties['host'] + ":" + properties['path']
+		if cacheKey not in rootCheckCache:
+			try:
+				connection.ensureRoot()
+
+				rootCheckCache[cacheKey] = True
+			except Exception as e:
+				if handleExceptions is False:
+					raise
+
+				printMessage("Failed ensure root exists [Exception: " + stringifyException(e) + "]", name)
+				handleException(e)
+
+				return []
+
+		# 6. set initial directory, set name, store connection
 		try:
 			connection.cwd(properties['path'])
 		except Exception as e:
@@ -864,7 +882,7 @@ def makeConnection(config, hash=None, handleExceptions=True):
 
 			return []
 
-		# 6. add to connections list
+		# 7. add to connections list
 		present = False
 		for con in result:
 			if con.name == connection.name:
