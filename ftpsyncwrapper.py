@@ -237,7 +237,8 @@ class FTPSConnection(AbstractConnection):
         else:
             self.connection = ftplib.FTP()
 
-        FTPSConnection.canEncrypt[self.config['host']] = None
+        if self.config['host'] not in FTPSConnection.canEncrypt:
+            FTPSConnection.canEncrypt[self.config['host']] = None
 
 
     # Destructor, closes connection
@@ -840,7 +841,7 @@ class FTPSConnection(AbstractConnection):
     def __execute(self, callback):
         def checkEncrypt():
             if self.config['tls'] and FTPSConnection.canEncrypt[self.config['host']] is None:
-                if Runtime.getCaller() in ['get', 'put', 'delete']:
+                if Runtime.getCaller(1) in ['get', 'put', 'delete']:
                     FTPSConnection.canEncrypt[self.config['host']] = True
 
         result = None

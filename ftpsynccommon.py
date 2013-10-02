@@ -36,8 +36,8 @@ import sys
 class Runtime(object):
 
 	@staticmethod
-	def getCaller():
-		return inspect.stack()[2][3]
+	def getCaller(up = 0):
+		return inspect.stack()[2 + up][3]
 
 
 class Types(object):
