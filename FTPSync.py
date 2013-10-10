@@ -741,6 +741,10 @@ def loadConfig(file_path):
 		result[name] = dict(list(projectDefaults.items()) + list(config[name].items()))
 		result[name]['file_path'] = file_path
 
+		# fix path
+		if len(result[name]['path']) > 1 and result[name]['path'][-1] != "/":
+			result[name]['path'] = result[name]['path'] + "/"
+
 		# merge nested
 		for index in nested:
 			list1 = list(list(projectDefaults.items())[index][1].items())
