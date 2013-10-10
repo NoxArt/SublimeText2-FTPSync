@@ -52,12 +52,12 @@ except ImportError:
 # FTPSync libraries
 if sys.version < '3':
     from ftpsynccommon import Runtime
-    from ftpsyncfiles import Metafile, isTextFile, viaTempfile
+    from ftpsyncfiles import Metafile, isTextFile, viaTempfile, relpath
     # exceptions
     from ftpsyncexceptions import FileNotFoundException
 else:
     from FTPSync.ftpsynccommon import Runtime
-    from FTPSync.ftpsyncfiles import Metafile, isTextFile, viaTempfile
+    from FTPSync.ftpsyncfiles import Metafile, isTextFile, viaTempfile, relpath
     # exceptions
     from FTPSync.ftpsyncexceptions import FileNotFoundException
 
@@ -765,7 +765,7 @@ class FTPSConnection(AbstractConnection):
             remotePath = remotePath[0:-1]
         remotePath = remotePath.replace('//', '/')
 
-        path = os.path.join(localRoot, os.path.relpath(remotePath, self.config['path']))
+        path = os.path.join(localRoot, relpath(remotePath, self.config['path']))
         normpath = os.path.normpath(path)
 
         if self.config['debug_extras']['debug_get_local_path']:

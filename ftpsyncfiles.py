@@ -37,6 +37,12 @@ import re
 import sys
 import tempfile
 
+# FTPSync libraries
+if sys.version < '3':
+    from ftpsynccommon import Types
+else:
+    from FTPSync.ftpsynccommon import Types
+
 
 # ==== Initialization and optimization =====================================================
 
@@ -180,7 +186,7 @@ def to_unicode_or_bust(obj, encoding='utf-8'):
 # @return Metafile
 def fileToMetafile(file_path):
 	if type(file_path) is str:
-		file_path = file_path.encode('utf-8')
+		file_path = file_path.decode('utf-8')
 	elif type(file_path) is bytes:
 		file_path = file_path.decode('utf-8')
 
@@ -328,8 +334,7 @@ def gatherMetafiles(pattern, root):
 def getChangedFiles(metafilesBefore, metafilesAfter):
 	changed = []
 	for file_path in metafilesAfter:
-		if hasattr(file_path, 'encode'):
-			file_path = file_path.encode('utf-8')
+		#file_path = Types.u(file_path)
 
 		if file_path in metafilesBefore and metafilesAfter[file_path].isNewerThan(metafilesBefore[file_path]):
 			changed.append(metafilesAfter[file_path])
@@ -452,3 +457,22 @@ def addLinks(contents):
 			contents.append(entryUp)
 
 	return contents
+
+
+# Return a relative filepath to path either from the current directory or from an optional start directory
+#
+# Contains a fix for a bug #5117 not fixed in a version used by ST2
+#
+# @type path: string
+# @param path: destination path
+# @type path: string
+# @param path: starting (root) path
+#
+# @return string relative path
+def relpath(path, start):
+	relpath = os.path.relpath(path, start)
+
+	if start == '/' and relpath[0:2] == '..':
+		relpath = relpath[3:]
+
+	return relpath
