@@ -7,12 +7,13 @@
 		"host": "ftp.example.com",
 		"username": "your_login",  // or null for anonymous login
 		"password": "your_password",
-		"path": "/"
+		"path": "/",
+
+		"upload_on_save": true // set *false* if you do not want to upload on save!
+
 		// "port": 21,
 		// "tls": false,
 		// "timeout": 30, // [seconds]
-		// "upload_on_save": true,
-
 
 		// "passive": true,
 		// "download_on_open": false,
