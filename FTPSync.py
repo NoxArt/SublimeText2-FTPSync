@@ -645,15 +645,16 @@ def addPasswords(config_file_path, config, callback, window):
 	def ask(connectionName, host, username):
 		window.show_input_panel('FTPSync > please provide password for:  ' + str(host) + ' ~ ' + str(username), "", lambda password: setPassword(config, connectionName, password), None, None)
 
-	for name in config['connections']:
-		prop = config['connections'][name]
+	if type(config) is dict:
+		for name in config['connections']:
+			prop = config['connections'][name]
 
-		if prop['password'] is None:
-			if config_file_path in passwords and name in passwords[config_file_path] and passwords[config_file_path][name] is not None:
-				config['connections'][name]['password'] = passwords[config_file_path][name]
-			else:
-				ask(name, prop['host'], prop['username'])
-				return
+			if prop['password'] is None:
+				if config_file_path in passwords and name in passwords[config_file_path] and passwords[config_file_path][name] is not None:
+					config['connections'][name]['password'] = passwords[config_file_path][name]
+				else:
+					ask(name, prop['host'], prop['username'])
+					return
 
 	return callback()
 
