@@ -55,7 +55,7 @@ Files are automatically uploaded **on save** (unless disabled by _upload\_on\_sa
 Drawbacks and notes
 ---------------------
 
-* FTPS is not supported at the moment and is not planned in near future (you can use [SFTP](http://wbond.net/sublime_packages/sftp) or [Mote](https://github.com/SublimeText/Mote) plugins)
+* SFTP is not supported at the moment and is not planned in near future (you can use [SFTP](http://wbond.net/sublime_packages/sftp) or [Mote](https://github.com/SublimeText/Mote) plugins)
 * SSL/TLS is not supported for servers that enforce SSL_REUSE
 * Does not support continuous watching and syncing, only (after) manual action
 * Does not support proxy connections
