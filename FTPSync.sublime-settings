@@ -47,7 +47,8 @@
 			"print_ensure_folders": false,
 			"debug_remote_paths": false,
 			"after_save_watch": false,
-			"debug_get_local_path": false
+			"debug_get_local_path": false,
+			"debug_mfmt": false
 		}
 	},
 

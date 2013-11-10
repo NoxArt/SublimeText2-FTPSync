@@ -345,6 +345,7 @@ class FTPSConnection(AbstractConnection):
     # @type blockCallback: callback
     # @param blockCallback: callback called on every block transferred
     def put(self, file_path, new_name = None, failed = False, blockCallback = None):
+        print self.__encodeTime(os.path.getmtime(file_path))
 
         def action():
             remote_file = file_path
@@ -381,6 +382,12 @@ class FTPSConnection(AbstractConnection):
 
             if self.config['set_remote_lastmodified'] and self.__hasFeat("MFMT") :
                 try:
+                    if self.config['debug_extras']['debug_mfmt']:
+                        print("FTPSync <debug> MFMT:")
+                        print("getmtime: " + str(os.path.getmtime(file_path)))
+                        print("encoded: "  + self.__encodeTime(os.path.getmtime(file_path)))
+                        print("---")
+
                     self.voidcmd("MFMT " + self.__encodeTime(os.path.getmtime(file_path)) + " " + path)
                 except Exception as e:
                     if self.__isDebug():
