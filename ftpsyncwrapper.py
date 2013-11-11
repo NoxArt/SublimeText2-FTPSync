@@ -345,7 +345,6 @@ class FTPSConnection(AbstractConnection):
     # @type blockCallback: callback
     # @param blockCallback: callback called on every block transferred
     def put(self, file_path, new_name = None, failed = False, blockCallback = None):
-        print self.__encodeTime(os.path.getmtime(file_path))
 
         def action():
             remote_file = file_path
