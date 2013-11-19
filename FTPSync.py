@@ -2792,8 +2792,9 @@ class FtpSyncNewSettings(sublime_plugin.TextCommand):
 			for directory in dirs:
 				config = os.path.join(directory, configName)
 
-				with open(config, 'w') as configFile:
-					configFile.write(content)
+				if os.path.exists(config) is False:
+					with open(config, 'w') as configFile:
+						configFile.write(content)
 
 				self.view.window().open_file(config)
 		else:
