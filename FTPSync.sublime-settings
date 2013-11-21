@@ -35,6 +35,7 @@
 		"upload_delay": 0,
 		"default_folder_permissions": "755",
 		"default_local_permissions": "auto",
+		"default_upload_permissions": null,
 		"always_sync_local_permissions": true,
 		"time_offset": 0,
 		"set_remote_lastmodified": true,

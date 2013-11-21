@@ -19,6 +19,7 @@
 		// "download_on_open": false,
 		// "overwrite_newer_prevention": true,
 		// "default_folder_permissions": "755",
+		// "default_upload_permissions": null, // null = no action taken
 		// "time_offset": 0, // [seconds]
 		// "always_sync_local_permissions": true,
 

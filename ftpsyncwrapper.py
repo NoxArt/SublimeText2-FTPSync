@@ -51,12 +51,12 @@ except ImportError:
 
 # FTPSync libraries
 if sys.version < '3':
-    from ftpsynccommon import Runtime
+    from ftpsynccommon import Runtime, Types
     from ftpsyncfiles import Metafile, isTextFile, viaTempfile, relpath
     # exceptions
     from ftpsyncexceptions import FileNotFoundException
 else:
-    from FTPSync.ftpsynccommon import Runtime
+    from FTPSync.ftpsynccommon import Runtime, Types
     from FTPSync.ftpsyncfiles import Metafile, isTextFile, viaTempfile, relpath
     # exceptions
     from FTPSync.ftpsyncexceptions import FileNotFoundException
@@ -365,6 +365,12 @@ class FTPSConnection(AbstractConnection):
 
             try:
                 self.connection.storbinary(command, uploaded, callback = perBlock)
+
+                if self.config['default_upload_permissions'] is not None:
+                    try:
+                        self.chmod(path, self.config['default_upload_permissions'])
+                    except Exception as e:
+                        print("FTPSync > failed to set default permissions")
             except Exception as e:
                 if self.__isErrorCode(e, ['ok', 'passive']) is True:
                     pass
@@ -709,7 +715,7 @@ class FTPSConnection(AbstractConnection):
             for content in contents:
                 try:
                     if self.config['debug_extras']['print_list_result'] is True:
-                        print ("FTPSync <debug> LIST line: " + str(content).encode('utf-8'))
+                        print ("FTPSync <debug> LIST line: " + Types.u(content))
                 except KeyError:
                     pass
 
