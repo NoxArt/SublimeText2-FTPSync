@@ -50,6 +50,7 @@ import webbrowser
 
 # FTPSync libraries
 if sys.version < '3':
+	from ftpsynccommon import Types
 	from ftpsyncwrapper import CreateConnection, TargetAlreadyExists
 	from ftpsyncprogress import Progress
 	from ftpsyncfiles import getFolders, findFile, getFiles, formatTimestamp, gatherMetafiles, getChangedFiles, replace, addLinks
@@ -57,6 +58,7 @@ if sys.version < '3':
 	# exceptions
 	from ftpsyncexceptions import FileNotFoundException
 else:
+	from FTPSync.ftpsynccommon import Types
 	from FTPSync.ftpsyncwrapper import CreateConnection, TargetAlreadyExists
 	from FTPSync.ftpsyncprogress import Progress
 	from FTPSync.ftpsyncfiles import getFolders, findFile, getFiles, formatTimestamp, gatherMetafiles, getChangedFiles, replace, addLinks
@@ -2784,7 +2786,27 @@ class RemoteNavigator(RemoteThread):
 class FtpSyncNewSettings(sublime_plugin.TextCommand):
 	def run(self, edit, dirs):
 		if len(dirs) == 0:
-			dirs = [os.path.dirname(self.view.file_name())]
+			if self.view is not None and self.view.file_name() is not None:
+				dirs = [os.path.dirname(self.view.file_name())]
+			elif sublime.active_window() is not None and sublime.active_window().active_view() is not None:
+				dirs = [os.path.dirname(sublime.active_window().active_view().file_name())]
+			elif sublime.active_window() is not None:		
+				sublime.active_window().show_input_panel('Enter setup path', '', self.create, None, None)
+				return
+			else:
+				printMessage("Cannot setup file - no folder path selected and no active view (opened file) detected")
+				return
+
+		self.create(dirs)
+
+	def create(self, dirs):
+		if type(dirs) is Types.text:
+			dirs = [dirs]
+
+		for file_path in dirs:
+			if os.path.exists(file_path) is False:
+				printMessage("Setup: file path does not exist: " + file_path)
+				return
 
 		if sublime.version()[0] >= '3':
 			content = sublime.load_resource('Packages/FTPSync/ftpsync.default-settings').replace('\r\n', '\n')
