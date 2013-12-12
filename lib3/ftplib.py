@@ -634,11 +634,18 @@ class FTP:
             self.sock.close()
         self.file = self.sock = None
 
+sslImported = False
 try:
     import ssl
+    sslImported = True
 except ImportError:
-    pass
-else:
+    try:
+        import FTPSync.lib3.ssl as ssl
+        sslImported = True
+    except ImportError:
+        print "SSL module import failed"
+
+if sslImported:
     class FTP_TLS(FTP):
         '''A FTP subclass which adds TLS support to FTP as described
         in RFC-4217.
