@@ -2465,6 +2465,9 @@ class RemoteSync(sublime_plugin.EventListener):
 				no.append("No")
 				no.append("Cancel uploading")
 
+				for entry in newer:
+					no.append("")
+
 				window = view.window()
 				if window is None:
 					window = sublime.active_window()  # only in main thread!
@@ -2491,6 +2494,9 @@ class RemoteSync(sublime_plugin.EventListener):
 
 	def on_close(self, view):
 		file_path = getFileName(view)
+
+		if file_path is None:
+			return
 
 		config_file_path = getConfigFile(file_path)
 
