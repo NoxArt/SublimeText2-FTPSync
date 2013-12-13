@@ -597,7 +597,7 @@ except ImportError:
         import lib2.ssl as ssl
         sslImported = True
     except ImportError:
-        print "SSL module import failed"
+        print("SSL module import failed")
 
 if sslImported:
     class FTP_TLS(FTP):

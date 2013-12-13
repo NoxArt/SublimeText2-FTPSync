@@ -643,7 +643,7 @@ except ImportError:
         import FTPSync.lib3.ssl as ssl
         sslImported = True
     except ImportError:
-        print "SSL module import failed"
+        print("SSL module import failed")
 
 if sslImported:
     class FTP_TLS(FTP):
