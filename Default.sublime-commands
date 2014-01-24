@@ -2,7 +2,7 @@
     {
         "caption": "FTPSync: Setup FTPSync in this folder",
         "command": "ftp_sync_new_settings",
-        "args": {"dirs": []}
+        "args": {"edit": null, "dirs": []}
     },
     {
         "caption": "FTPSync: Upload current file",
@@ -22,7 +22,8 @@
     },
     {
         "caption": "FTPSync: Browse",
-        "command": "ftp_sync_browse"
+        "command": "ftp_sync_browse",
+        "args": { "edit": null }
     },
     {
         "caption": "FTPSync: Browse from last path",

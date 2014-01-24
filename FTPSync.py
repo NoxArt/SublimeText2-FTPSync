@@ -2035,7 +2035,7 @@ class SyncNavigator(SyncCommand):
 			if self.defaultPath:
 				self.listFiles(self.defaultPath)
 			elif self.defaultRemotePath:
-				self.listFiles(self.defaultRemotePath)
+				self.listFiles(self.defaultRemotePath, True)
 
 	def listConnections(self):
 		connections = []
@@ -2066,7 +2066,7 @@ class SyncNavigator(SyncCommand):
 		navigateLast['connection_name'] = self.configName
 		navigateLast['path'] = path
 
-	def listFiles(self,path=None):
+	def listFiles(self,path=None,forced=False):
 		if self.closed is True:
 			printMessage("Cancelling " + str(self.__class__.__name__) + ": command is closed")
 			return
@@ -2079,6 +2079,8 @@ class SyncNavigator(SyncCommand):
 			remote = False
 		if path is None:
 			path = os.path.dirname(self.config_file_path)
+		if forced:
+			remote = True
 
 		self.updateNavigateLast(path)
 
@@ -2789,12 +2791,10 @@ class RemoteNavigator(RemoteThread):
 # ==== Commands ===========================================================================
 
 # Sets up a config file in a directory
-class FtpSyncNewSettings(sublime_plugin.TextCommand):
+class FtpSyncNewSettings(sublime_plugin.WindowCommand):
 	def run(self, edit, dirs):
 		if len(dirs) == 0:
-			if self.view is not None and self.view.file_name() is not None:
-				dirs = [os.path.dirname(self.view.file_name())]
-			elif sublime.active_window() is not None and sublime.active_window().active_view() is not None:
+			if sublime.active_window() is not None and sublime.active_window().active_view() is not None:
 				dirs = [os.path.dirname(sublime.active_window().active_view().file_name())]
 			elif sublime.active_window() is not None:		
 				sublime.active_window().show_input_panel('Enter setup path', '', self.create, None, None)
@@ -2841,11 +2841,11 @@ class FtpSyncNewSettings(sublime_plugin.TextCommand):
 				if os.path.exists(config) is False:
 					shutil.copyfile(default, config)
 
-				self.view.window().open_file(config)
+				self.window.open_file(config)
 
 
 # Synchronize up selected file/directory
-class FtpSyncTarget(sublime_plugin.TextCommand):
+class FtpSyncTarget(sublime_plugin.WindowCommand):
 	def run(self, edit, paths):
 		def execute(files):
 			RemoteSyncCall(files, None, False).start()
@@ -2854,7 +2854,7 @@ class FtpSyncTarget(sublime_plugin.TextCommand):
 		fillPasswords(files, execute, sublime.active_window())
 
 # Synchronize up selected file/directory with delay and watch
-class FtpSyncTargetDelayed(sublime_plugin.TextCommand):
+class FtpSyncTargetDelayed(sublime_plugin.WindowCommand):
 	def run(self, edit, paths):
 		def execute(files):
 			RemoteSyncCall(files, None, True, forcedSave = True).start()
@@ -2939,7 +2939,7 @@ class FtpSyncRenameCurrent(sublime_plugin.TextCommand):
 
 
 # Synchronize down selected file/directory
-class FtpSyncDownTarget(sublime_plugin.TextCommand):
+class FtpSyncDownTarget(sublime_plugin.WindowCommand):
 	def run(self, edit, paths, forced=False):
 		filelist = []
 		for path in paths:
@@ -2952,7 +2952,7 @@ class FtpSyncDownTarget(sublime_plugin.TextCommand):
 
 
 # Renames a file on disk and in folder
-class FtpSyncRename(sublime_plugin.TextCommand):
+class FtpSyncRename(sublime_plugin.WindowCommand):
 	def run(self, edit, paths):
 		self.original_path = paths[0]
 		self.folder = os.path.dirname(self.original_path)
@@ -2961,7 +2961,7 @@ class FtpSyncRename(sublime_plugin.TextCommand):
 		if self.original_path in checksScheduled:
 			checksScheduled.remove(self.original_path)
 
-		self.view.window().show_input_panel('Enter new name', self.original_name, self.rename, None, None)
+		self.window.show_input_panel('Enter new name', self.original_name, self.rename, None, None)
 
 	def rename(self, new_name):
 		def action():
@@ -2992,7 +2992,7 @@ class FtpSyncRename(sublime_plugin.TextCommand):
 
 
 # Removes given file(s) or folders
-class FtpSyncDelete(sublime_plugin.TextCommand):
+class FtpSyncDelete(sublime_plugin.WindowCommand):
 	def run(self, edit, paths):
 		filelist = []
 		for path in paths:
@@ -3004,9 +3004,9 @@ class FtpSyncDelete(sublime_plugin.TextCommand):
 		fillPasswords(filelist, execute, sublime.active_window())
 
 # Remote ftp navigation
-class FtpSyncBrowse(sublime_plugin.TextCommand):
+class FtpSyncBrowse(sublime_plugin.WindowCommand):
 	def run(self, edit):
-		file_path = sublime.active_window().active_view().file_name()
+		file_path = os.path.dirname(sublime.active_window().active_view().file_name())
 
 		def execute(files):
 			command = SyncNavigator(None, getConfigFile(file_path), None, file_path)
@@ -3017,7 +3017,7 @@ class FtpSyncBrowse(sublime_plugin.TextCommand):
 		fillPasswords([[ file_path, getConfigFile(file_path) ]], execute, sublime.active_window())
 
 # Remote ftp navigation
-class FtpSyncBrowsePlace(sublime_plugin.TextCommand):
+class FtpSyncBrowsePlace(sublime_plugin.WindowCommand):
 	def run(self, edit, paths):
 		if os.path.isdir(paths[0]):
 			file_path = paths[0]
@@ -3046,7 +3046,7 @@ class FtpSyncBrowseCurrent(sublime_plugin.TextCommand):
 		fillPasswords([[ file_path, getConfigFile(file_path) ]], execute, sublime.active_window())
 
 # Remote ftp navigation from last point
-class FtpSyncBrowseLast(sublime_plugin.TextCommand):
+class FtpSyncBrowseLast(sublime_plugin.WindowCommand):
 	def run(self, edit):
 		if navigateLast['config_file'] is None:
 			file_path = sublime.active_window().active_view().file_name()
@@ -3066,7 +3066,7 @@ class FtpSyncBrowseLast(sublime_plugin.TextCommand):
 			fillPasswords([[ None, getConfigFile(navigateLast['config_file']) ]], execute, sublime.active_window())
 
 # Show connection info
-class FtpSyncShowInfo(sublime_plugin.TextCommand):
+class FtpSyncShowInfo(sublime_plugin.WindowCommand):
 	def run(self, edit, paths):
 		file_path = paths[0]
 
@@ -3076,16 +3076,16 @@ class FtpSyncShowInfo(sublime_plugin.TextCommand):
 		fillPasswords([[ file_path, getConfigFile(file_path) ]], execute, sublime.active_window())
 
 # Open FTPSync Github page
-class FtpSyncUrlReadme(sublime_plugin.TextCommand):
-	def run(self, edit):
+class FtpSyncUrlReadme(sublime_plugin.WindowCommand):
+	def run(self):
 		webbrowser.open("https://github.com/NoxArt/SublimeText2-FTPSync", 2, True)
 
 # Open FTPSync Github New Issue page
-class FtpSyncUrlReport(sublime_plugin.TextCommand):
-	def run(self, edit):
+class FtpSyncUrlReport(sublime_plugin.WindowCommand):
+	def run(self):
 		webbrowser.open("https://github.com/NoxArt/SublimeText2-FTPSync/issues/new", 2, True)
 
 # Open FTPSync Donate page
-class FtpSyncUrlDonate(sublime_plugin.TextCommand):
-	def run(self, edit):
+class FtpSyncUrlDonate(sublime_plugin.WindowCommand):
+	def run(self):
 		webbrowser.open("http://ftpsync.noxart.cz/donate.html", 2, True)

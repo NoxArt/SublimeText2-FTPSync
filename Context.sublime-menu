@@ -24,11 +24,13 @@
             },
             {
                 "caption": "Browse",
-                "command": "ftp_sync_browse"
+                "command": "ftp_sync_browse",
+                "args": { "edit": null }
             },
             {
                 "caption": "Browse from last path",
-                "command": "ftp_sync_browse_last"
+                "command": "ftp_sync_browse_last",
+                "args": { "edit": null }
             },
             {
                 "caption": "-"
