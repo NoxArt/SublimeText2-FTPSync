@@ -36,6 +36,17 @@
                 "caption": "-"
             },
             {
+                "caption": "Enable upload on save",
+                "command": "ftp_sync_enable_uos"
+            },
+            {
+                "caption": "Disable upload on save",
+                "command": "ftp_sync_disable_uos"
+            },
+            {
+                "caption": "-"
+            },
+            {
                 "caption": "Open README (Github)",
                 "command": "ftp_sync_url_readme"
             },

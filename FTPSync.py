@@ -143,6 +143,9 @@ preScan = {}
 # { settings_filepath => { connection_name => password }, ... }
 passwords = {}
 
+# Overriding config for on-the-fly modifications
+overridingConfig = {}
+
 def isString(var):
 	var_type = type(var)
 
@@ -337,6 +340,35 @@ def systemNotify(text):
 
 
 # ==== Config =============================================================================
+
+# Alters override config
+#
+# @type  config_dir_name: string
+# @param config_dir_name: path to a folder of a config
+# @type  property: string
+# @param property: property to be modified
+# @type value: mixed
+# @type specificName: string
+# @param specificName: use to only modify specific connection's value
+#
+# @global overrideConfig
+def overrideConfig(config_file_path, property, value, specificName=None):
+	if config_file_path is None or os.path.exists(config_file_path) is False:
+		return
+
+	config = loadConfig(config_file_path)
+
+	if config_file_path not in overridingConfig:
+		overridingConfig[config_file_path] = { 'connections': {} }
+
+	for name in config['connections']:
+		if specificName and name != specificName:
+			continue
+
+		if name not in overridingConfig[config_file_path]['connections']:
+			overridingConfig[config_file_path]['connections'][name] = {}
+
+		overridingConfig[config_file_path]['connections'][name][property] = value
 
 # Invalidates all config cache entries belonging to a certain directory
 # as long as they're empty or less nested in the filesystem
@@ -774,7 +806,12 @@ def loadConfig(file_path):
 	# merge with generics
 	final = dict(list(coreConfig.items()) + list({"connections": result}.items()))
 
-	# replace global config by
+	# override by overridingConfig
+	if file_path in overridingConfig:
+		for name in overridingConfig[file_path]['connections']:
+			if name in final['connections']:
+				for item in overridingConfig[file_path]['connections'][name]:
+					final['connections'][name][item] = overridingConfig[file_path]['connections'][name][item]
 
 	return final
 
@@ -3089,3 +3126,53 @@ class FtpSyncUrlReport(sublime_plugin.WindowCommand):
 class FtpSyncUrlDonate(sublime_plugin.WindowCommand):
 	def run(self):
 		webbrowser.open("http://ftpsync.noxart.cz/donate.html", 2, True)
+
+# Alters overrideConfig to enable upload_on_save
+class FtpSyncEnableUos(sublime_plugin.TextCommand):
+	def run(self, edit):
+		config_file_path = getConfigFile(self.view.file_name())
+		if config_file_path is None:
+			return printMessage("No config file found")
+
+		overrideConfig(config_file_path, 'upload_on_save', True)
+
+	def is_visible(self):
+		if self.view is None:
+			return False
+
+		config_file_path = getConfigFile(self.view.file_name())
+		if config_file_path is None:
+			return False
+
+		config = loadConfig(config_file_path)
+
+		for name in config['connections']:
+			if config['connections'][name]['upload_on_save'] is False:
+				return True
+
+		return False
+
+# Alters overrideConfig to disable upload_on_save
+class FtpSyncDisableUos(sublime_plugin.TextCommand):
+	def run(self, edit):
+		config_file_path = getConfigFile(self.view.file_name())
+		if config_file_path is None:
+			return printMessage("No config file found")
+
+		overrideConfig(config_file_path, 'upload_on_save', False)
+
+	def is_visible(self):
+		if self.view is None:
+			return False
+
+		config_file_path = getConfigFile(self.view.file_name())
+		if config_file_path is None:
+			return False
+
+		config = loadConfig(config_file_path)
+
+		for name in config['connections']:
+			if config['connections'][name]['upload_on_save'] is True:
+				return True
+
+		return False
