@@ -155,7 +155,6 @@ def isString(var):
 		return var_type is str or var_type is unicode
 
 def plugin_loaded():
-	print ('FTPSync > plugin async loaded')
 	global isLoaded
 	global isDebug
 	global isDebugVerbose
@@ -228,6 +227,8 @@ def plugin_loaded():
 	displayTimestampFormat = settings.get('browse_timestamp_format')
 
 	isLoaded = True
+	if isDebug:
+		print ('FTPSync > plugin async loaded')
 
 if int(sublime.version()) < 3000:
 	plugin_loaded()
@@ -1219,7 +1220,7 @@ class SyncCommandTransfer(SyncCommand):
 			if disregardIgnore is False and self.config['connections'][name]['ignore'] is not None and re.search(self.config['connections'][name]['ignore'], file_path):
 				if self._handleIgnore():
 					toBeRemoved.append(name)
-				
+
 				printMessage("File ignored by rule: {" + self.basename + "}", name, True)
 				continue
 
@@ -1357,7 +1358,7 @@ class SyncCommandUpload(SyncCommandTransfer):
 						# process
 						if self.skip is False:
 							connection.put(self.file_path)
-							
+
 						stored.append(name)
 
 						if self.skip is False:
@@ -2031,7 +2032,7 @@ class ShowInfo(SyncCommand):
 					entry.append("")
 
 			output.append(entry)
-		
+
 		sublime.set_timeout(lambda: window.show_quick_panel(output, None), 1)
 
 
@@ -2271,7 +2272,7 @@ class SyncNavigator(SyncCommand):
 
 			if index == 7 + exists:
 				get_path = meta.getPath()
-				sublime.set_clipboard(get_path) 
+				sublime.set_clipboard(get_path)
 				return
 
 
@@ -2395,7 +2396,7 @@ class SyncNavigator(SyncCommand):
 
 			if index == 6 + exists + int(hasSidebar):
 				get_path = meta.getPath()
-				sublime.set_clipboard(get_path) 
+				sublime.set_clipboard(get_path)
 				return
 
 		if action is None:
@@ -2833,7 +2834,7 @@ class FtpSyncNewSettings(sublime_plugin.WindowCommand):
 		if len(dirs) == 0:
 			if sublime.active_window() is not None and sublime.active_window().active_view() is not None:
 				dirs = [os.path.dirname(sublime.active_window().active_view().file_name())]
-			elif sublime.active_window() is not None:		
+			elif sublime.active_window() is not None:
 				sublime.active_window().show_input_panel('Enter setup path', '', self.create, None, None)
 				return
 			else:
@@ -3093,7 +3094,7 @@ class FtpSyncBrowseLast(sublime_plugin.WindowCommand):
 				call = RemoteNavigator(getConfigFile(file_path))
 				call.setCommand(command)
 				call.start()
-				
+
 
 			fillPasswords([[ file_path, getConfigFile(file_path) ]], execute, sublime.active_window())
 		else:
