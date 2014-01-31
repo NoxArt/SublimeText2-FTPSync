@@ -715,7 +715,12 @@ def fillPasswords(fileList, callback, window, index = 0):
 		callback(fileList)
 		return
 
+	config_files = []
 	for filepath, config_file_path in fileList:
+		if config_file_path not in config_files:
+			config_files.append(config_file_path)
+
+	for config_file_path in config_files:
 		if i < index:
 			i = i + 1
 			continue
