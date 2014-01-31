@@ -3128,14 +3128,15 @@ class FtpSyncUrlDonate(sublime_plugin.WindowCommand):
 	def run(self):
 		webbrowser.open("http://ftpsync.noxart.cz/donate.html", 2, True)
 
-# Alters overrideConfig to enable upload_on_save
-class FtpSyncEnableUos(sublime_plugin.TextCommand):
+# Base class for option toggling
+class FTPSyncToggleSettings(sublime_plugin.TextCommand):
+
 	def run(self, edit):
 		config_file_path = getConfigFile(self.view.file_name())
 		if config_file_path is None:
 			return printMessage("No config file found")
 
-		overrideConfig(config_file_path, 'upload_on_save', True)
+		overrideConfig(config_file_path, self.property_name, self.property_value_from)
 
 	def is_visible(self):
 		if self.view is None:
@@ -3148,32 +3149,19 @@ class FtpSyncEnableUos(sublime_plugin.TextCommand):
 		config = loadConfig(config_file_path)
 
 		for name in config['connections']:
-			if config['connections'][name]['upload_on_save'] is False:
+			if config['connections'][name]['upload_on_save'] is self.property_value_to:
 				return True
 
 		return False
+
+# Alters overrideConfig to enable upload_on_save
+class FtpSyncEnableUos(FTPSyncToggleSettings):
+	property_name = 'upload_on_save'
+	property_value_from = True
+	property_value_to = False
 
 # Alters overrideConfig to disable upload_on_save
-class FtpSyncDisableUos(sublime_plugin.TextCommand):
-	def run(self, edit):
-		config_file_path = getConfigFile(self.view.file_name())
-		if config_file_path is None:
-			return printMessage("No config file found")
-
-		overrideConfig(config_file_path, 'upload_on_save', False)
-
-	def is_visible(self):
-		if self.view is None:
-			return False
-
-		config_file_path = getConfigFile(self.view.file_name())
-		if config_file_path is None:
-			return False
-
-		config = loadConfig(config_file_path)
-
-		for name in config['connections']:
-			if config['connections'][name]['upload_on_save'] is True:
-				return True
-
-		return False
+class FtpSyncDisableUos(FTPSyncToggleSettings):
+	property_name = 'upload_on_save'
+	property_value_from = False
+	property_value_to = True
