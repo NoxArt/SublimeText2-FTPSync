@@ -3144,7 +3144,7 @@ class FTPSyncToggleSettings(sublime_plugin.TextCommand):
 		overrideConfig(config_file_path, self.property_name, self.property_value_from)
 
 	def is_visible(self):
-		if self.view is None:
+		if self.view is None or self.view.file_name() is None:
 			return False
 
 		config_file_path = getConfigFile(self.view.file_name())
