@@ -2835,7 +2835,7 @@ class RemoteNavigator(RemoteThread):
 
 # Sets up a config file in a directory
 class FtpSyncNewSettings(sublime_plugin.WindowCommand):
-	def run(self, edit, dirs):
+	def run(self, edit = None, dirs = []):
 		if len(dirs) == 0:
 			if sublime.active_window() is not None and sublime.active_window().active_view() is not None:
 				dirs = [os.path.dirname(sublime.active_window().active_view().file_name())]
