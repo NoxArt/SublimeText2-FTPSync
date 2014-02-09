@@ -3028,6 +3028,7 @@ class FtpSyncRename(sublime_plugin.WindowCommand):
 
 			cancel = []
 			cancel.append("Cancel renaming")
+			cancel.append("")
 
 			sublime.set_timeout(lambda: sublime.active_window().show_quick_panel([ overwrite, cancel ], sync), 1)
 		else:
