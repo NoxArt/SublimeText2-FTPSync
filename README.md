@@ -16,6 +16,15 @@ What's there for you?
 * Progress bar for multiple up/download
 * Remote browsing and manipulating via file list
 
+
+**In progress**
+* Asynchronous on-save handling
+* Feature to be able to stop running upload/download
+
+**Planned**
+* Case sensitivity handling
+
+
 For more info look into [Wiki](https://github.com/NoxArt/SublimeText2-FTPSync/wiki/_pages)
 
 
@@ -60,7 +69,7 @@ Drawbacks and notes
 About
 -----
 
-Done by **@NoxArt** ~ [Twitter](https://twitter.com/NoxArt)
+Done by **Jiří @NoxArt Petruželka** ~ [Twitter](https://twitter.com/NoxArt)
 
 Released under **MIT licence**.
 
@@ -68,11 +77,11 @@ You can buy me a snack so I have energy for further improvements :)
 
 **[Support FTPSync page](http://ftpsync.noxart.cz/donate.html)**
 
-Supported by: **Yang Guo Jun**
+Supported by: **Yang Guo Jun**, **Winfried van Loon** ... thank you!
 
 Feel free to add [issues, ideas](https://github.com/NoxArt/SublimeText2-FTPSync/issues), pull requests...
 
-Thanks to [castus](https://github.com/castus), [tommymarshall](https://github.com/tommymarshall), [TotallyInformation](https://github.com/TotallyInformation), [saiori](https://github.com/saiori), [vnabet](https://github.com/vnabet), [Jcrs](https://github.com/Jcrs), [ItayXD](https://github.com/ItayXD), [bibimij](https://github.com/bibimij), [digitalmaster](https://github.com/digitalmaster), [alfaex](https://github.com/alfaex), [seyDoggy](https://github.com/seyDoggy), Nuno, [mikedoug](https://github.com/mikedoug), [stevether](https://github.com/stevether), [zaus](https://github.com/zaus), [noAlvaro](https://github.com/noAlvaro), [zofie86](https://github.com/zofie86), [fma965](https://github.com/fma965), [PixelVibe](https://github.com/PixelVibe), [Kaisercraft](https://github.com/Kaisercraft), [benkaiser](https://github.com/benkaiser), [anupdebnath](https://github.com/anupdebnath), [sy4mil](https://github.com/sy4mil), [leek](https://github.com/leek), [surfac](https://github.com/surfac), [mitsurugi](https://github.com/mitsurugi), [MonoSnippets](https://github.com/MonoSnippets), [Zegnat](https://github.com/Zegnat), [cwhittl](https://github.com/cwhittl), [shadowsdweller](https://github.com/shadowsdweller), [adiulici01](https://github.com/adiulici01), [tablatronix](https://github.com/tablatronix), [bllim](https://github.com/bllim), [Imaulle](https://github.com/Imaulle), [friskfly](https://github.com/friskfly), [lysenkobv](https://github.com/lysenkobv), [nosfan1019](https://github.com/nosfan1019), [smoochieboochies](https://github.com/smoochieboochies), [Dmitry Loktev](https://github.com/unknownexception), [fedesilvaponte](https://github.com/fedesilvaponte), [fedegonzaleznavarro](https://github.com/fedegonzaleznavarro), [camilstaps](https://github.com/camilstaps), [maknapp](https://github.com/maknapp), [certainlyakey](https://github.com/certainlyakey), [victorhqc](https://github.com/victorhqc), [eniocarv](https://github.com/eniocarv), [molokoloco](https://github.com/molokoloco), [tq0fqeu](https://github.com/tq0fqeu), [Arachnoid](https://github.com/Arachnoid), [ahgood](https://github.com/ahgood), [SourceR85](https://github.com/SourceR85), [nirajaryal](https://github.com/nirajaryal), [Stock-webdesign](https://github.com/Stock-Webdesign), [chachan](https://github.com/chachan), [webattitude](https://github.com/webattitude), [VarinderS](https://github.com/VarinderS), [Gadoma](https://github.com/Gadoma), [pnukeid](https://github.com/pnukeid), [patatjenl](https://github.com/patatjenl), [ridethepinguin](https://github.com/ridethepenguin), [Kovas](https://github.com/Kovas)
+Thanks to [castus](https://github.com/castus), [tommymarshall](https://github.com/tommymarshall), [TotallyInformation](https://github.com/TotallyInformation), [saiori](https://github.com/saiori), [vnabet](https://github.com/vnabet), [Jcrs](https://github.com/Jcrs), [ItayXD](https://github.com/ItayXD), [bibimij](https://github.com/bibimij), [digitalmaster](https://github.com/digitalmaster), [alfaex](https://github.com/alfaex), [seyDoggy](https://github.com/seyDoggy), Nuno, [mikedoug](https://github.com/mikedoug), [stevether](https://github.com/stevether), [zaus](https://github.com/zaus), [noAlvaro](https://github.com/noAlvaro), [zofie86](https://github.com/zofie86), [fma965](https://github.com/fma965), [PixelVibe](https://github.com/PixelVibe), [Kaisercraft](https://github.com/Kaisercraft), [benkaiser](https://github.com/benkaiser), [anupdebnath](https://github.com/anupdebnath), [sy4mil](https://github.com/sy4mil), [leek](https://github.com/leek), [surfac](https://github.com/surfac), [mitsurugi](https://github.com/mitsurugi), [MonoSnippets](https://github.com/MonoSnippets), [Zegnat](https://github.com/Zegnat), [cwhittl](https://github.com/cwhittl), [shadowsdweller](https://github.com/shadowsdweller), [adiulici01](https://github.com/adiulici01), [tablatronix](https://github.com/tablatronix), [bllim](https://github.com/bllim), [Imaulle](https://github.com/Imaulle), [friskfly](https://github.com/friskfly), [lysenkobv](https://github.com/lysenkobv), [nosfan1019](https://github.com/nosfan1019), [smoochieboochies](https://github.com/smoochieboochies), [Dmitry Loktev](https://github.com/unknownexception), [fedesilvaponte](https://github.com/fedesilvaponte), [fedegonzaleznavarro](https://github.com/fedegonzaleznavarro), [camilstaps](https://github.com/camilstaps), [maknapp](https://github.com/maknapp), [certainlyakey](https://github.com/certainlyakey), [victorhqc](https://github.com/victorhqc), [eniocarv](https://github.com/eniocarv), [molokoloco](https://github.com/molokoloco), [tq0fqeu](https://github.com/tq0fqeu), [Arachnoid](https://github.com/Arachnoid), [ahgood](https://github.com/ahgood), [SourceR85](https://github.com/SourceR85), [nirajaryal](https://github.com/nirajaryal), [Stock-webdesign](https://github.com/Stock-Webdesign), [chachan](https://github.com/chachan), [webattitude](https://github.com/webattitude), [VarinderS](https://github.com/VarinderS), [Gadoma](https://github.com/Gadoma), [pnukeid](https://github.com/pnukeid), [patatjenl](https://github.com/patatjenl), [ridethepinguin](https://github.com/ridethepenguin), [Kovas](https://github.com/Kovas), [giolvani](https://github.com/giolvani)
 for reporting issues, ideas and fixing!
 
 [![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/NoxArt/SublimeText2-FTPSync/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
