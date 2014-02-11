@@ -1723,11 +1723,6 @@ class SyncCommandRename(SyncCommand):
 class SyncCommandDelete(SyncCommandTransfer):
 
 	def __init__(self, file_path, config_file_path, progress=None, onSave=False, disregardIgnore=False, whitelistConnections=[]):
-		if os.path.exists(file_path) is False:
-			printMessage("Cancelling " + str(self.__class__.__name__) + ": file_path: No such file")
-			self.close()
-			return
-
 		SyncCommandTransfer.__init__(self, file_path, config_file_path, progress, False, False, whitelistConnections)
 
 	def execute(self):
@@ -1792,10 +1787,11 @@ class SyncCommandDelete(SyncCommandTransfer):
 					handleException(e)
 
 		if len(deleted) > 0:
-			if os.path.isdir(self.file_path):
-				shutil.rmtree(self.file_path)
-			else:
-				os.remove(self.file_path)
+			if os.path.exists(self.file_path):
+				if os.path.isdir(self.file_path):
+					shutil.rmtree(self.file_path)
+				else:
+					os.remove(self.file_path)
 
 			self.triggerFinish(self.file_path)
 
