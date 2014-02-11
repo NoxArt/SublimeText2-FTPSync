@@ -1731,12 +1731,12 @@ class SyncCommandDelete(SyncCommandTransfer):
 		SyncCommandTransfer.__init__(self, file_path, config_file_path, progress, False, False, whitelistConnections)
 
 	def execute(self):
-		if self.progress is not None:
-			self.progress.progress()
-
 		if self.closed is True:
 			printMessage("Cancelling " + str(self.__class__.__name__) + ": command is closed")
 			return
+
+		if self.progress is not None:
+			self.progress.progress()
 
 		if len(self.config['connections']) == 0:
 			printMessage("Cancelling " + str(self.__class__.__name__) + ": zero connections apply")
