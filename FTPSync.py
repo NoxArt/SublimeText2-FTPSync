@@ -2870,7 +2870,7 @@ class FtpSyncNewSettings(sublime_plugin.WindowCommand):
 					with open(config, 'w') as configFile:
 						configFile.write(content)
 
-				self.view.window().open_file(config)
+				self.window.open_file(config)
 		else:
 			default = os.path.join(sublime.packages_path(), 'FTPSync', connectionDefaultsFilename)
 			if os.path.exists(default) is False:
