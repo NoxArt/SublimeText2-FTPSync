@@ -1648,6 +1648,7 @@ class SyncCommandRename(SyncCommand):
 		for name in self.config['connections']:
 			index += 1
 
+			check = None
 			try:
 				check = self.connections[index].list(remote_new_name)
 			except FileNotFoundException:
