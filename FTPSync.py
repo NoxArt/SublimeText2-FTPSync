@@ -2865,7 +2865,7 @@ class FtpSyncNewSettings(sublime_plugin.WindowCommand):
 
 				if os.path.exists(config) is False:
 					with open(config, 'w') as configFile:
-						printMessage("Settings file created in: " + Types.u(config))
+						printMessage("Settings file created in: " + config)
 						configFile.write(content)
 
 				self.window.open_file(config)
@@ -2883,7 +2883,7 @@ class FtpSyncNewSettings(sublime_plugin.WindowCommand):
 				invalidateConfigCache(directory)
 
 				if os.path.exists(config) is False:
-					printMessage("Settings file created in: " + Types.u(config))
+					printMessage("Settings file created in: " + config)
 					shutil.copyfile(default, config)
 
 				self.window.open_file(config)

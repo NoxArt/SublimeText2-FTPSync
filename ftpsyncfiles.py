@@ -377,10 +377,7 @@ def viaTempfile(file_path, operation, permissions, mode):
 		permissions = '0755'
 	exceptionOccured = None
 
-	if sys.version[0] == '3':
-		directory = os.path.dirname(file_path)
-	else:
-		directory = os.path.dirname(file_path.encode('utf-8'))
+	directory = os.path.dirname(file_path)
 
 	if os.path.exists(directory) is False:
 		os.makedirs(directory, int(permissions, 8))
