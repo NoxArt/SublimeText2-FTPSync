@@ -1968,6 +1968,10 @@ def performRemoteCheck(file_path, window, forced = False, whitelistConnections=[
 class ShowInfo(SyncCommand):
 
 	def execute(self, window):
+		if self.closed:
+			printMessage("Cancelling " + str(self.__class__.__name__) + ": command closed")
+			return
+
 		if len(self.config['connections']) == 0:
 			printMessage("Cancelling " + str(self.__class__.__name__) + ": zero connections apply")
 			return
