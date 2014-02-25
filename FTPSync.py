@@ -2265,7 +2265,7 @@ class SyncNavigator(SyncCommand):
 				if connection.hasTrueLastModified():
 					info.append("Last Modified: " + meta.getLastModifiedFormatted())
 				else:
-					info.append("Last upload time: " + formatTimestamp(os.path.getmtime(localFile), displayTimestampFormat))
+					info.append("Last upload time: " + meta.getLastModifiedFormatted())
 
 				info.append("")
 				if os.path.exists(localFile):
@@ -2388,7 +2388,7 @@ class SyncNavigator(SyncCommand):
 				if connection.hasTrueLastModified():
 					info.append("Last Modified: " + meta.getLastModifiedFormatted())
 				else:
-					info.append("Last upload time: " + formatTimestamp(os.path.getmtime(localFile), displayTimestampFormat))
+					info.append("Last upload time: " + meta.getLastModifiedFormatted())
 
 				info.append("")
 				if os.path.exists(localFile):
@@ -2437,15 +2437,11 @@ class RemoteSync(sublime_plugin.EventListener):
 			if window is None:
 				window = sublime.active_window()
 
-			RemotePresave(file_path, config_file_path, _files, view, window, self._on_post_save).start()
+			RemotePresave(file_path, config_file_path, _files, view, window, self.manual_on_post_save).start()
 
 		fillPasswords([[ None, config_file_path ]], pre_save, sublime.active_window())
 
-	def _on_post_save(self, file_path):
-		if file_path in preventUpload:
-			preventUpload.remove(file_path)
-			return
-
+	def manual_on_post_save(self, file_path):
 		config_file_path = getConfigFile(file_path)
 
 		command = RemoteSyncCall(file_path, config_file_path, True)
