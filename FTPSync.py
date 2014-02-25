@@ -2429,101 +2429,15 @@ class RemoteSync(sublime_plugin.EventListener):
 			return
 
 		def pre_save(_files):
-			preScan[config_file_path] = {}
-			root = os.path.dirname(config_file_path)
-			config = loadConfig(config_file_path)
-			blacklistConnections = []
+			window = view.window()
+			if window is None:
+				window = sublime.active_window()
 
-			for connection in config['connections']:
-				properties = config['connections'][connection]
-
-				if properties['upload_on_save'] is False:
-					blacklistConnections.append(connection)
-
-				watch = properties['after_save_watch']
-				if type(watch) is list and len(watch) > 0 and properties['upload_delay'] > 0:
-					preScan[config_file_path][connection] = {}
-
-					for folder, filepattern in watch:
-						files = gatherMetafiles(filepattern, os.path.join(root, folder))
-						preScan[config_file_path][connection].update(files.items())
-
-					if properties['debug_extras']['after_save_watch']:
-						printMessage("<debug> dumping pre-scan")
-						print ("COUNT: " + str(len(preScan[config_file_path][connection])))
-						for change in preScan[config_file_path][connection]:
-							print ("Path: " + preScan[config_file_path][connection][change].getPath() + " | Name: " + preScan[config_file_path][connection][change].getName())
-
-			if len(blacklistConnections) == len(config['connections']):
-				return
-
-			try:
-				metadata = SyncCommandGetMetadata(file_path, config_file_path).execute()
-			except FileNotFoundException:
-				return
-			except Exception as e:
-				if str(e).find('No such file'):
-					printMessage("No version of {" + os.path.basename(file_path) + "} found on any server", status=True)
-				else:
-					printMessage("Error when getting metadata: " + stringifyException(e))
-					handleException(e)
-				metadata = []
-
-			newest = None
-			newer = []
-			index = 0
-
-			for entry in metadata:
-				if (entry['connection'] not in blacklistConnections and config['connections'][entry['connection']]['check_time'] is True and entry['metadata'].isNewerThan(file_path) and entry['metadata'].isDifferentSizeThan(file_path)) or file_path in overwriteCancelled:
-					newer.append(entry['connection'])
-
-					if newest is None or newest > entry['metadata'].getLastModified():
-						newest = index
-
-				index += 1
-
-			if len(newer) > 0:
-				preventUpload.append(file_path)
-
-				def sync(index):
-					if index is 0:
-						printMessage("Overwrite prevention: overwriting")
-
-						if file_path in overwriteCancelled:
-							overwriteCancelled.remove(file_path)
-
-						self.on_post_save(view)
-					else:
-						printMessage("Overwrite prevention: cancelled upload")
-
-						if file_path not in overwriteCancelled:
-							overwriteCancelled.append(file_path)
-
-				yes = []
-				yes.append("Yes, overwrite newer")
-				yes.append("Last modified: " + metadata[newest]['metadata'].getLastModifiedFormatted())
-
-				for entry in newer:
-					yes.append(entry + " [" + config['connections'][entry]['host'] + "]")
-
-				no = []
-				no.append("No")
-				no.append("Cancel uploading")
-
-				for entry in newer:
-					no.append("")
-
-				window = view.window()
-				if window is None:
-					window = sublime.active_window()  # only in main thread!
-
-				sublime.set_timeout(lambda: window.show_quick_panel([ yes, no ], sync), 1)
+			RemotePresave(file_path, config_file_path, _files, view, window, self._on_post_save).start()
 
 		fillPasswords([[ None, config_file_path ]], pre_save, sublime.active_window())
 
-	def on_post_save(self, view):
-		file_path = getFileName(view)
-
+	def _on_post_save(self, file_path):
 		if file_path in preventUpload:
 			preventUpload.remove(file_path)
 			return
@@ -2633,6 +2547,110 @@ class RemoteThread(threading.Thread):
 			return self._onFinish
 		else:
 			return None
+
+
+class RemotePresave(RemoteThread):
+	def __init__(self, file_path, config_file_path, _files, view, window, callback):
+		self.file_path = file_path
+		self.config_file_path = config_file_path
+		self._files = _files
+		self.view = view
+		self.window = window
+		self.callback = callback
+		RemoteThread.__init__(self)
+
+	def run(self):
+		_files = self._files
+		file_path = self.file_path
+		config_file_path = self.config_file_path
+		view = self.view
+		preScan[config_file_path] = {}
+		root = os.path.dirname(config_file_path)
+		config = loadConfig(config_file_path)
+		blacklistConnections = []
+
+		for connection in config['connections']:
+			properties = config['connections'][connection]
+
+			if properties['upload_on_save'] is False:
+				blacklistConnections.append(connection)
+
+			watch = properties['after_save_watch']
+			if type(watch) is list and len(watch) > 0 and properties['upload_delay'] > 0:
+				preScan[config_file_path][connection] = {}
+
+				for folder, filepattern in watch:
+					files = gatherMetafiles(filepattern, os.path.join(root, folder))
+					preScan[config_file_path][connection].update(files.items())
+
+				if properties['debug_extras']['after_save_watch']:
+					printMessage("<debug> dumping pre-scan")
+					print ("COUNT: " + str(len(preScan[config_file_path][connection])))
+					for change in preScan[config_file_path][connection]:
+						print ("Path: " + preScan[config_file_path][connection][change].getPath() + " | Name: " + preScan[config_file_path][connection][change].getName())
+
+		if len(blacklistConnections) == len(config['connections']):
+			return
+
+		try:
+			metadata = SyncCommandGetMetadata(file_path, config_file_path).execute()
+		except FileNotFoundException:
+			return
+		except Exception as e:
+			if str(e).find('No such file'):
+				printMessage("No version of {" + os.path.basename(file_path) + "} found on any server", status=True)
+			else:
+				printMessage("Error when getting metadata: " + stringifyException(e))
+				handleException(e)
+			metadata = []
+
+		newest = None
+		newer = []
+		index = 0
+
+		for entry in metadata:
+			if (entry['connection'] not in blacklistConnections and config['connections'][entry['connection']]['check_time'] is True and entry['metadata'].isNewerThan(file_path) and entry['metadata'].isDifferentSizeThan(file_path)) or file_path in overwriteCancelled:
+				newer.append(entry['connection'])
+
+				if newest is None or newest > entry['metadata'].getLastModified():
+					newest = index
+
+			index += 1
+
+		if len(newer) > 0:
+			preventUpload.append(file_path)
+
+			def sync(index):
+				if index is 0:
+					printMessage("Overwrite prevention: overwriting")
+
+					if file_path in overwriteCancelled:
+						overwriteCancelled.remove(file_path)
+
+					self.callback(self.file_path)
+				else:
+					printMessage("Overwrite prevention: cancelled upload")
+
+					if file_path not in overwriteCancelled:
+						overwriteCancelled.append(file_path)
+
+			yes = []
+			yes.append("Yes, overwrite newer")
+			yes.append("Last modified: " + metadata[newest]['metadata'].getLastModifiedFormatted())
+
+			for entry in newer:
+				yes.append(entry + " [" + config['connections'][entry]['host'] + "]")
+
+			no = []
+			no.append("No")
+			no.append("Cancel uploading")
+
+			for entry in newer:
+				no.append("")
+
+			sublime.set_timeout(lambda: self.window.show_quick_panel([ yes, no ], sync), 1)
+		else:
+			self.callback(self.file_path)
 
 
 class RemoteSyncCall(RemoteThread):
