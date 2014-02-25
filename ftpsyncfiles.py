@@ -134,8 +134,6 @@ class Metafile:
 		return os.path.realpath(self.getPath()) == os.path.realpath(filepath)
 
 	def isNewerThan(self, compared_file):
-		return True
-		
 		if self.lastModified is None:
 			return False
 
