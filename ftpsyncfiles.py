@@ -185,7 +185,7 @@ def to_unicode_or_bust(obj, encoding='utf-8'):
 #
 # @return Metafile
 def fileToMetafile(file_path):
-	if type(file_path) is str:
+	if sys.version[0] < '3' and type(file_path) is str:
 		file_path = file_path.decode('utf-8')
 	elif type(file_path) is bytes:
 		file_path = file_path.decode('utf-8')
