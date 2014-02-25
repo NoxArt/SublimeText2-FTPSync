@@ -53,7 +53,7 @@ if sys.version < '3':
 	from ftpsynccommon import Types
 	from ftpsyncwrapper import CreateConnection, TargetAlreadyExists
 	from ftpsyncprogress import Progress
-	from ftpsyncfiles import getFolders, findFile, getFiles, formatTimestamp, gatherMetafiles, getChangedFiles, replace, addLinks
+	from ftpsyncfiles import getFolders, findFile, getFiles, formatTimestamp, gatherMetafiles, getChangedFiles, replace, addLinks, fileToMetafile
 	from ftpsyncworker import Worker
 	# exceptions
 	from ftpsyncexceptions import FileNotFoundException
@@ -61,7 +61,7 @@ else:
 	from FTPSync.ftpsynccommon import Types
 	from FTPSync.ftpsyncwrapper import CreateConnection, TargetAlreadyExists
 	from FTPSync.ftpsyncprogress import Progress
-	from FTPSync.ftpsyncfiles import getFolders, findFile, getFiles, formatTimestamp, gatherMetafiles, getChangedFiles, replace, addLinks
+	from FTPSync.ftpsyncfiles import getFolders, findFile, getFiles, formatTimestamp, gatherMetafiles, getChangedFiles, replace, addLinks, fileToMetafile
 	from FTPSync.ftpsyncworker import Worker
 	# exceptions
 	from FTPSync.ftpsyncexceptions import FileNotFoundException
@@ -2437,7 +2437,7 @@ class RemoteSync(sublime_plugin.EventListener):
 			if window is None:
 				window = sublime.active_window()
 
-			RemotePresave(file_path, config_file_path, _files, view, window, self.manual_on_post_save).start()
+			RemotePresave(file_path, fileToMetafile(file_path), config_file_path, _files, view, window, self.manual_on_post_save).start()
 
 		fillPasswords([[ None, config_file_path ]], pre_save, sublime.active_window())
 
@@ -2550,8 +2550,9 @@ class RemoteThread(threading.Thread):
 
 
 class RemotePresave(RemoteThread):
-	def __init__(self, file_path, config_file_path, _files, view, window, callback):
+	def __init__(self, file_path, metafile, config_file_path, _files, view, window, callback):
 		self.file_path = file_path
+		self.metafile = metafile
 		self.config_file_path = config_file_path
 		self._files = _files
 		self.view = view
@@ -2609,7 +2610,7 @@ class RemotePresave(RemoteThread):
 		index = 0
 
 		for entry in metadata:
-			if (entry['connection'] not in blacklistConnections and config['connections'][entry['connection']]['check_time'] is True and entry['metadata'].isNewerThan(file_path) and entry['metadata'].isDifferentSizeThan(file_path)) or file_path in overwriteCancelled:
+			if (entry['connection'] not in blacklistConnections and config['connections'][entry['connection']]['check_time'] is True and entry['metadata'].isNewerThan(self.metafile) and entry['metadata'].isDifferentSizeThan(file_path)) or file_path in overwriteCancelled:
 				newer.append(entry['connection'])
 
 				if newest is None or newest > entry['metadata'].getLastModified():
