@@ -1123,7 +1123,6 @@ class SyncCommand(SyncObject):
 			return
 
 		self.config = loadConfig(config_file_path)
-
 		if file_path is not None:
 			self.basename = os.path.relpath(file_path, os.path.dirname(config_file_path))
 
@@ -1852,9 +1851,6 @@ def performRemoteCheck(file_path, window, forced = False, whitelistConnections=[
 	if window is None:
 		return
 
-	if len(whitelistConnections) == 0:
-		return printMessage("No connection applies")
-
 	basename = os.path.basename(file_path)
 
 	printMessage("Checking {" + basename + "} if up-to-date", status=True)
@@ -1865,7 +1861,10 @@ def performRemoteCheck(file_path, window, forced = False, whitelistConnections=[
 
 	config = loadConfig(config_file_path)
 	try:
-		metadata = SyncCommandGetMetadata(file_path, config_file_path).whitelistConnections(whitelistConnections).execute()
+		metadata = SyncCommandGetMetadata(file_path, config_file_path)
+		if len(whitelistConnections) > 0:
+			metadata.whitelistConnections(whitelistConnections)
+		metadata = metadata.execute()
 	except FileNotFoundException:
 		printMessage("Remote file not found", status=True)
 		return
