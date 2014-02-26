@@ -7,6 +7,7 @@
 	"keep_alive_interval": 5,
 	"max_threads": 4,
 	"debug_threads": false,
+	"debug_json": false,
 
 	"system_notifications": true,
 

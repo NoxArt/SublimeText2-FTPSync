@@ -116,7 +116,9 @@ scheduledUploads = {}
 # limit of workers
 workerLimit = 0
 # debug workers?
-debugWorkers = 0
+debugWorkers = False
+# debug json?
+debugJson = False
 
 
 # overwrite cancelled
@@ -171,6 +173,8 @@ def plugin_loaded():
 	global systemNotifications
 	global displayPermissions
 	global displayTimestampFormat
+	global debugWorkers
+	global debugJson
 
 	# global config
 	settings = sublime.load_settings('FTPSync.sublime-settings')
@@ -222,6 +226,8 @@ def plugin_loaded():
 	workerLimit = settings.get('max_threads')
 	# debug workers?
 	debugWorkers = settings.get('debug_threads')
+	# debug json?
+	debugJson = settings.get('debug_json')
 
 	displayPermissions = settings.get('browse_display_permission')
 	displayTimestampFormat = settings.get('browse_timestamp_format')
@@ -650,6 +656,12 @@ def parseJson(file_path):
 			contents += removeLineComment.sub('', line)
 	finally:
 		file.close()
+
+	if debugJson:
+		printMessage("Debug JSON:")
+		print ("="*86)
+		print (contents)
+		print ("="*86)
 
 	return json.loads(contents)
 
