@@ -18,7 +18,6 @@ What's there for you?
 
 
 **In progress**
-* Asynchronous on-save handling
 * Feature to be able to stop running upload/download
 
 **Planned**
@@ -59,7 +58,7 @@ Drawbacks and notes
 ---------------------
 
 * SFTP is not supported at the moment and is not planned in near future (you can use [SFTP](http://wbond.net/sublime_packages/sftp) or [Mote](https://github.com/SublimeText/Mote) plugins)
-* SSL/TLS is not supported for servers that enforce SSL_REUSE
+* SSL/TLS is not supported for servers that enforce SSL_REUSE (encryption support will hopefully increase in future)
 * Does not support continuous watching and syncing, only (after) manual action
 * Does not support proxy connections
 * Does not support remote diff at the moment
@@ -77,7 +76,7 @@ You can buy me a snack so I have energy for further improvements :)
 
 **[Support FTPSync page](http://ftpsync.noxart.cz/donate.html)**
 
-Supported by: **Yang Guo Jun**, **Winfried van Loon** ... thank you!
+Supported by: **Yang Guo Jun**, **Winfried van Loon**, **Pedro-Martir Estrada** ... thank you!
 
 Feel free to add [issues, ideas](https://github.com/NoxArt/SublimeText2-FTPSync/issues), pull requests...
 
