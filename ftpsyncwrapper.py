@@ -43,6 +43,11 @@ if sys.version < '3':
 else:
     import FTPSync.lib3.ftplib as ftplib
 
+try:
+    import encodings.idna
+except ImportError:
+    print("FTPSync > Failed to import encodings.idna")
+
 # workaround for http://www.gossamer-threads.com/lists/python/dev/755427
 try:
     import _strptime
