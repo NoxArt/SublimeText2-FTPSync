@@ -615,6 +615,22 @@ class FTPSConnection(AbstractConnection):
                 raise
 
 
+    # Aborts command and calls on{Command}Abort if available
+    #
+    # @type self: FTPSConnection
+    # @type command: string|None
+    # @type args: mixed
+    def abort(self, command = None, args = None):
+        self.connection.abort()
+
+        if command is None:
+            return
+
+        method = 'on' + command[0].upper() + command[1:] + 'Abort'
+        if hasattr(self, method):
+            getattr(self, method)(args)
+
+
     # Changes a current path on remote server
     #
     # @type self: FTPSConnection
