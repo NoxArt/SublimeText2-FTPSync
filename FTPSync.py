@@ -1111,12 +1111,12 @@ class SyncCommand(SyncObject):
 		self.config_file_path = config_file_path
 
 		if isString(config_file_path) is False:
-			printMessage("Cancelling " + str(self.__class__.__name__) + ": invalid config_file_path given (type: " + str(type(config_file_path)) + ")")
+			printMessage("Cancelling " + self.getIdentification() + ": invalid config_file_path given (type: " + str(type(config_file_path)) + ")")
 			self.close()
 			return
 
 		if os.path.exists(config_file_path) is False:
-			printMessage("Cancelling " + str(self.__class__.__name__) + ": config_file_path: No such file")
+			printMessage("Cancelling " + self.getIdentification() + ": config_file_path: No such file")
 			self.close()
 			return
 
@@ -1127,6 +1127,9 @@ class SyncCommand(SyncObject):
 		self.config_hash = getFilepathHash(self.config_file_path)
 		self.connections = None
 		self.worker = None
+
+	def getIdentification(self):
+		return str(self.__class__.__name__) + " [" + self.file_path + "]"
 
 	def setWorker(self, worker):
 		self.worker = worker
@@ -1270,7 +1273,7 @@ class SyncCommandUpload(SyncCommandTransfer):
 
 		self.watcher = FileWatcher(self.config_file_path, self.config['connections'])
 		if os.path.exists(file_path) is False:
-			printMessage("Cancelling " + str(self.__class__.__name__) + ": file_path: No such file")
+			printMessage("Cancelling " + self.getIdentification() + ": file_path: No such file")
 			self.close()
 			return
 
@@ -1304,12 +1307,12 @@ class SyncCommandUpload(SyncCommandTransfer):
 	# Executes command
 	def execute(self):
 		if self.closed is True:
-			printMessage("Cancelling " + str(self.__class__.__name__) + ": command is closed")
+			printMessage("Cancelling " + self.getIdentification() + ": command is closed")
 			self.close()
 			return
 
 		if len(self.config['connections']) == 0:
-			printMessage("Cancelling " + str(self.__class__.__name__) + ": zero connections apply")
+			printMessage("Cancelling " + self.getIdentification() + ": zero connections apply")
 			self.close()
 			return
 
@@ -1448,12 +1451,12 @@ class SyncCommandDownload(SyncCommandTransfer):
 		self.forced = True
 
 		if self.closed is True:
-			printMessage("Cancelling " + str(self.__class__.__name__) + ": command is closed")
+			printMessage("Cancelling " + self.getIdentification() + ": command is closed")
 			self.close()
 			return
 
 		if len(self.config['connections']) == 0:
-			printMessage("Cancelling " + str(self.__class__.__name__) + ": zero connections apply")
+			printMessage("Cancelling " + self.getIdentification() + ": zero connections apply")
 			self.close()
 			return
 
@@ -1554,7 +1557,7 @@ class SyncCommandRename(SyncCommand):
 
 	def __init__(self, file_path, config_file_path, new_name):
 		if os.path.exists(file_path) is False:
-			printMessage("Cancelling " + str(self.__class__.__name__) + ": file_path: No such file")
+			printMessage("Cancelling " + self.getIdentification() + ": file_path: No such file")
 			self.close()
 			return
 
@@ -1574,12 +1577,12 @@ class SyncCommandRename(SyncCommand):
 
 	def execute(self):
 		if self.closed is True:
-			printMessage("Cancelling " + str(self.__class__.__name__) + ": command is closed")
+			printMessage("Cancelling " + self.getIdentification() + ": command is closed")
 			self.close()
 			return
 
 		if len(self.config['connections']) == 0:
-			printMessage("Cancelling " + str(self.__class__.__name__) + ": zero connections apply")
+			printMessage("Cancelling " + self.getIdentification() + ": zero connections apply")
 			self.close()
 			return
 
@@ -1673,14 +1676,14 @@ class SyncCommandDelete(SyncCommandTransfer):
 
 	def execute(self):
 		if self.closed is True:
-			printMessage("Cancelling " + str(self.__class__.__name__) + ": command is closed")
+			printMessage("Cancelling " + self.getIdentification() + ": command is closed")
 			return
 
 		if self.progress is not None:
 			self.progress.progress()
 
 		if len(self.config['connections']) == 0:
-			printMessage("Cancelling " + str(self.__class__.__name__) + ": zero connections apply")
+			printMessage("Cancelling " + self.getIdentification() + ": zero connections apply")
 			return
 
 		self._createConnection()
@@ -1747,11 +1750,11 @@ class SyncCommandGetMetadata(SyncCommand):
 
 	def execute(self):
 		if self.closed is True:
-			printMessage("Cancelling " + str(self.__class__.__name__) + ": command is closed")
+			printMessage("Cancelling " + self.getIdentification() + ": command is closed")
 			return
 
 		if len(self.config['connections']) == 0:
-			printMessage("Cancelling " + str(self.__class__.__name__) + ": zero connections apply")
+			printMessage("Cancelling " + self.getIdentification() + ": zero connections apply")
 			return
 
 		self._createConnection()
@@ -1913,11 +1916,11 @@ class ShowInfo(SyncCommand):
 
 	def execute(self, window):
 		if self.closed:
-			printMessage("Cancelling " + str(self.__class__.__name__) + ": command closed")
+			printMessage("Cancelling " + self.getIdentification() + ": command closed")
 			return
 
 		if len(self.config['connections']) == 0:
-			printMessage("Cancelling " + str(self.__class__.__name__) + ": zero connections apply")
+			printMessage("Cancelling " + self.getIdentification() + ": zero connections apply")
 			return
 
 		self._createConnection()
@@ -2005,11 +2008,11 @@ class SyncNavigator(SyncCommand):
 
 	def execute(self):
 		if self.closed is True:
-			printMessage("Cancelling " + str(self.__class__.__name__) + ": command is closed")
+			printMessage("Cancelling " + self.getIdentification() + ": command is closed")
 			return
 
 		if len(self.config['connections']) == 0:
-			printMessage("Cancelling " + str(self.__class__.__name__) + ": zero connections apply")
+			printMessage("Cancelling " + self.getIdentification() + ": zero connections apply")
 			return
 
 		usingConnections.append(self.config_hash)
@@ -2059,7 +2062,7 @@ class SyncNavigator(SyncCommand):
 
 	def listFiles(self,path=None,forced=False):
 		if self.closed is True:
-			printMessage("Cancelling " + str(self.__class__.__name__) + ": command is closed")
+			printMessage("Cancelling " + self.getIdentification() + ": command is closed")
 			return
 
 		self._createConnection()
@@ -2120,7 +2123,7 @@ class SyncNavigator(SyncCommand):
 
 	def listFolderActions(self, meta, action = None):
 		if self.closed is True:
-			printMessage("Cancelling " + str(self.__class__.__name__) + ": command is closed")
+			printMessage("Cancelling " + self.getIdentification() + ": command is closed")
 			return
 
 		self._createConnection()
@@ -2236,7 +2239,7 @@ class SyncNavigator(SyncCommand):
 
 	def listFileActions(self, meta, action = None):
 		if self.closed is True:
-			printMessage("Cancelling " + str(self.__class__.__name__) + ": command is closed")
+			printMessage("Cancelling " + self.getIdentification() + ": command is closed")
 			return
 
 		path = meta.getPath() + '/' + meta.getName()
@@ -3136,3 +3139,35 @@ class FtpSyncDisableUos(FTPSyncToggleSettings):
 	property_name = 'upload_on_save'
 	property_value_from = False
 	property_value_to = True
+
+class FtpSyncCleanup(sublime_plugin.WindowCommand):
+	def run(self, edit, paths):
+		self.files = []
+		for path in paths:
+			self.files.extend(gatherMetafiles('*.ftpsync.temp', path))
+
+		self.prompt()
+
+	def prompt(self):
+		if len(self.files) == 0:
+			printMessage("No temporary files found")
+			return
+
+		toRemove = []
+		toRemove.append("Remove these temporary files?")
+		for path in self.files:
+			toRemove.append(os.path.join(os.path.dirname(path), os.path.basename(path)))
+
+		cancel = []
+		cancel.append("Cancel removal")
+		for path in self.files:
+			cancel.append("")
+
+		sublime.set_timeout(lambda: sublime.active_window().show_quick_panel([ toRemove, cancel ], self.remove), 1)
+
+	def remove(self, index):
+		if hasattr(self, 'files') and index == 0:
+			for path in self.files:
+				os.remove(path)
+				printMessage("Removed tempfile: " + path)
+

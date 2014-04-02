@@ -294,7 +294,6 @@ def getFiles(paths, getConfigFile):
 	return files
 
 
-
 # Goes through paths using glob and returns list of Metafiles
 #
 # @type pattern: string
