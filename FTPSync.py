@@ -82,9 +82,9 @@ index = 0
 globalConfigKey = '__global'
 ignore = False
 # time format settings
-time_format = ""
+timeFormat = ""
 # delay before check of right opened file is performed, cancelled if closed in the meantime
-download_on_open_delay = 0
+downloadOnOpenDelay = 0
 
 coreConfig = {}
 
@@ -157,24 +157,24 @@ def isString(var):
 		return var_type is str or var_type is unicode
 
 def plugin_loaded():
-	global isLoaded
-	global isDebug
-	global isDebugVerbose
-	global workerLimit
 	global coreConfig
-	global settings
-	global projectDefaults
-	global nested
-	global index
-	global ignore
-	global re_ignore
-	global time_format
-	global download_on_open_delay
-	global systemNotifications
+	global debugJson
+	global debugWorkers
 	global displayPermissions
 	global displayTimestampFormat
-	global debugWorkers
-	global debugJson
+	global downloadOnOpenDelay
+	global ignore
+	global index
+	global isDebug
+	global isDebugVerbose
+	global isLoaded
+	global nested
+	global projectDefaults
+	global re_ignore
+	global settings
+	global systemNotifications
+	global timeFormat
+	global workerLimit
 
 	# global config
 	settings = sublime.load_settings('FTPSync.sublime-settings')
@@ -202,9 +202,9 @@ def plugin_loaded():
 	# global ignore pattern
 	ignore = settings.get('ignore')
 	# time format settings
-	time_format = settings.get('time_format')
+	timeFormat = settings.get('time_format')
 	# delay before check of right opened file is performed, cancelled if closed in the meantime
-	download_on_open_delay = settings.get('download_on_open_delay')
+	downloadOnOpenDelay = settings.get('download_on_open_delay')
 	# system notifications
 	systemNotifications = settings.get('system_notifications')
 
@@ -257,13 +257,6 @@ def stringifyException(exception):
 # Checks whether cerain package exists
 def packageExists(packageName):
 	return os.path.exists(os.path.join(sublime.packages_path(), packageName))
-
-# Returns global config
-def getGlobalConfig(key, config):
-	if globalConfigKey in config and key in config[globalConfigKey]:
-		return config[globalConfigKey][key]
-	else:
-		return settings.get(key)
 
 
 def decode(string):
@@ -787,9 +780,6 @@ def loadConfig(file_path):
 		if type(config[name]) is not dict:
 			printMessage("Failed using configuration: contents are not dictionaries but values", status=True)
 			return None
-
-		if name == globalConfigKey:
-			continue
 
 		result[name] = dict(list(projectDefaults.items()) + list(config[name].items()))
 		result[name]['file_path'] = file_path
@@ -1950,7 +1940,7 @@ def performRemoteCheck(file_path, window, forced = False, whitelistConnections=[
 				else:
 					item_filesize = str(round(item_filesize / 1024, 3)) + " kB ~ smaller"
 
-			time = str(item['metadata'].getLastModifiedFormatted(time_format))
+			time = str(item['metadata'].getLastModifiedFormatted(timeFormat))
 
 			if item in newest:
 				time += " ~ newer"
@@ -2506,7 +2496,7 @@ class RemoteSync(sublime_plugin.EventListener):
 
 					fillPasswords([[ file_path, getConfigFile(file_path) ]], execute, sublime.active_window())
 
-			sublime.set_timeout(check, download_on_open_delay)
+			sublime.set_timeout(check, downloadOnOpenDelay)
 
 
 # ==== Threading ===========================================================================
