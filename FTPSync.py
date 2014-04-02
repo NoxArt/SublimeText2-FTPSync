@@ -53,16 +53,18 @@ if sys.version < '3':
 	from ftpsynccommon import Types
 	from ftpsyncwrapper import CreateConnection, TargetAlreadyExists
 	from ftpsyncprogress import Progress
-	from ftpsyncfiles import getFolders, findFile, getFiles, formatTimestamp, gatherMetafiles, getChangedFiles, replace, addLinks, fileToMetafile
+	from ftpsyncfiles import getFolders, findFile, getFiles, formatTimestamp, gatherMetafiles, replace, addLinks, fileToMetafile
 	from ftpsyncworker import Worker
+	from ftpsyncfilewatcher import FileWatcher
 	# exceptions
 	from ftpsyncexceptions import FileNotFoundException
 else:
 	from FTPSync.ftpsynccommon import Types
 	from FTPSync.ftpsyncwrapper import CreateConnection, TargetAlreadyExists
 	from FTPSync.ftpsyncprogress import Progress
-	from FTPSync.ftpsyncfiles import getFolders, findFile, getFiles, formatTimestamp, gatherMetafiles, getChangedFiles, replace, addLinks, fileToMetafile
+	from FTPSync.ftpsyncfiles import getFolders, findFile, getFiles, formatTimestamp, gatherMetafiles, replace, addLinks, fileToMetafile
 	from FTPSync.ftpsyncworker import Worker
+	from FTPSync.ftpsyncfilewatcher import FileWatcher
 	# exceptions
 	from FTPSync.ftpsyncexceptions import FileNotFoundException
 
@@ -339,6 +341,41 @@ def systemNotify(text):
 		handleExceptions(e)
 
 
+# Creates a process message with progress bar (to be used in status bar)
+#
+# @type  stored: list<string>
+# @param stored: usually list of connection names
+# @type progress: Progress
+# @type action: string
+# @type action: action that the message reports about ("uploaded", "downloaded"...)
+# @type  basename: string
+# @param basename: name of a file connected with the action
+#
+# @return string message
+def getProgressMessage(stored, progress, action, basename = None):
+	base = "FTPSync [remotes: " + ",".join(stored) + "] "
+	action = "> " + action + " "
+
+	if progress is not None:
+		base += " ["
+
+		percent = progress.getPercent()
+
+		for i in range(0, int(percent)):
+			base += "="
+		for i in range(int(percent), 20):
+			base += "--"
+
+		base += " " + str(progress.current) + "/" + str(progress.getTotal()) + "] "
+
+	base += action
+
+	if basename is not None:
+		base += " {" + basename + "}"
+
+	return base
+
+
 # ==== Config =============================================================================
 
 # Alters override config
@@ -369,6 +406,7 @@ def overrideConfig(config_file_path, property, value, specificName=None):
 			overridingConfig[config_file_path]['connections'][name] = {}
 
 		overridingConfig[config_file_path]['connections'][name][property] = value
+
 
 # Invalidates all config cache entries belonging to a certain directory
 # as long as they're empty or less nested in the filesystem
@@ -464,12 +502,7 @@ def getRootPath(file_path, prefix = ''):
 #
 # @return string file path
 def getFileName(view):
-	file_path = view.file_name()
-
-	#if file_path is not None:
-	#    file_path = file_path.encode('utf-8')
-
-	return file_path
+	return view.file_name()
 
 
 # Gathers all entries from selected paths
@@ -659,7 +692,6 @@ def parseJson(file_path):
 	return json.loads(contents)
 
 
-
 # Asks for passwords if missing in configuration
 #
 # @type config_file_path: string
@@ -697,7 +729,6 @@ def addPasswords(config_file_path, config, callback, window):
 					return
 
 	return callback()
-
 
 
 # Fills passwords if missing in configuration
@@ -739,7 +770,6 @@ def fillPasswords(fileList, callback, window, index = 0):
 		return
 
 	callback(fileList)
-
 
 
 # Parses given config and adds default values to each connection entry
@@ -1036,41 +1066,6 @@ def closeConnection(hash):
 		handleException(e)
 
 
-# Creates a process message with progress bar (to be used in status bar)
-#
-# @type  stored: list<string>
-# @param stored: usually list of connection names
-# @type progress: Progress
-# @type action: string
-# @type action: action that the message reports about ("uploaded", "downloaded"...)
-# @type  basename: string
-# @param basename: name of a file connected with the action
-#
-# @return string message
-def getProgressMessage(stored, progress, action, basename = None):
-	base = "FTPSync [remotes: " + ",".join(stored) + "] "
-	action = "> " + action + " "
-
-	if progress is not None:
-		base += " ["
-
-		percent = progress.getPercent()
-
-		for i in range(0, int(percent)):
-			base += "="
-		for i in range(int(percent), 20):
-			base += "--"
-
-		base += " " + str(progress.current) + "/" + str(progress.getTotal()) + "] "
-
-	base += action
-
-	if basename is not None:
-		base += " {" + basename + "}"
-
-	return base
-
-
 # Returns a new worker
 def createWorker():
 	queue = Worker(workerLimit, makeConnection, loadConfig)
@@ -1089,9 +1084,6 @@ class SyncObject(object):
 		self.onFinish = []
 
 	def addOnFinish(self, callback):
-		if hasattr(self, 'onFinish') is False:
-			self.onFinish = []
-
 		self.onFinish.append(callback)
 
 		return self
@@ -1108,8 +1100,12 @@ class SyncCommand(SyncObject):
 	def __init__(self, file_path, config_file_path):
 		SyncObject.__init__(self)
 
+		if sys.version[0] == '3' and type(file_path) is bytes:
+			file_path = file_path.decode('utf-8')
+
 		self.running = True
 		self.closed = False
+		# has exclusive ownership of connection?
 		self.ownConnection = False
 		self.file_path = file_path
 		self.config_file_path = config_file_path
@@ -1195,22 +1191,16 @@ class SyncCommand(SyncObject):
 class SyncCommandTransfer(SyncCommand):
 
 	def __init__(self, file_path, config_file_path, progress=None, onSave=False, disregardIgnore=False, whitelistConnections=[], forcedSave=False):
-
-		self.progress = progress
-
-		if sys.version[0] == '3' and type(file_path) is bytes:
-			file_path = file_path.decode('utf-8')
-
 		SyncCommand.__init__(self, file_path, config_file_path)
 
+		self.progress = progress
 		self.onSave = onSave
 		self.disregardIgnore = False
-		self.local = True
 
 		# global ignore
-		if disregardIgnore is False and ignore is not None and re_ignore.search(file_path) is not None:
-			if self._handleIgnore():
-				printMessage("File globally ignored: {" + os.path.basename(file_path) + "}", onlyVerbose=True)
+		if disregardIgnore is False and ignore is not None and re_ignore.search(self.file_path) is not None:
+			if self._onPreConnectionRemoved():
+				printMessage("File globally ignored: {" + os.path.basename(self.file_path) + "}", onlyVerbose=True)
 				self.close()
 				return
 
@@ -1223,8 +1213,8 @@ class SyncCommandTransfer(SyncCommand):
 				continue
 
 			# ignore
-			if disregardIgnore is False and self.config['connections'][name]['ignore'] is not None and re.search(self.config['connections'][name]['ignore'], file_path):
-				if self._handleIgnore():
+			if disregardIgnore is False and self.config['connections'][name]['ignore'] is not None and re.search(self.config['connections'][name]['ignore'], self.file_path):
+				if self._onPreConnectionRemoved():
 					toBeRemoved.append(name)
 
 				printMessage("File ignored by rule: {" + self.basename + "}", name, True)
@@ -1238,39 +1228,68 @@ class SyncCommandTransfer(SyncCommand):
 		for name in toBeRemoved:
 			self.config['connections'].pop(name)
 
-	def _handleIgnore(self):
+	# Code that needs to run when a connection is removed (ignored) 
+	#
+	# @return bool: truly remove?
+	def _onPreConnectionRemoved(self):
 		if self.progress is not None:
 			self.progress.progress()
 
 		return True
 
-	def setRemote(self):
-		self.local = False
-		return self
-
+	# Get connections of this command that were not removed due to config, ignore etc.
 	def getConnectionsApplied(self):
 		return self.config['connections']
+
+	# Creates a message when transfer is finished and sends it to console / bar / system
+	def finishMessage(self, title, stored, wasFinished):
+		notify = title + "ing "
+		if self.progress is None or self.progress.getTotal() == 1:
+			notify += "{" + self.basename + "} "
+		else:
+			notify += str(self.progress.getTotal()) + " files "
+		notify += "finished!"
+
+		if self.progress is not None and self.progress.isFinished() and wasFinished is False:
+			dumpMessage(getProgressMessage(stored, self.progress, notify))
+		else:
+			dumpMessage(getProgressMessage(stored, self.progress, title + "ed ", self.basename))
+
+		if systemNotifications and self.progress is None or (self.progress.isFinished() and wasFinished is False):
+			systemNotify(notify)
 
 
 # Upload command
 class SyncCommandUpload(SyncCommandTransfer):
 
 	def __init__(self, file_path, config_file_path, progress=None, onSave=False, disregardIgnore=False, whitelistConnections=[], forcedSave=False):
+		self.delayed = False
 		self.skip = False
 
 		SyncCommandTransfer.__init__(self, file_path, config_file_path, progress, onSave, disregardIgnore, whitelistConnections, forcedSave)
 
+		self.watcher = FileWatcher(self.config_file_path, self.config['connections'])
 		if os.path.exists(file_path) is False:
 			printMessage("Cancelling " + str(self.__class__.__name__) + ": file_path: No such file")
 			self.close()
 			return
 
-		self.delayed = False
-		self.afterwatch = {
-			'before': {},
-			'after': {}
-		}
+	# Code that needs to run when a connection is removed (ignored)
+	#
+	# @return bool: truly remove?
+	def _onPreConnectionRemoved(self):
+		SyncCommandTransfer._onPreConnectionRemoved(self)
 
+		# when saving and has afterwatch, don't remove completely, only skip
+		# so that we at least upload those changed files
+		if self._hasAfterWatch() and self.onSave:
+			self.skip = True
+			return False
+
+		return True
+
+	# Returns whether any of the config entries has after_save_watch enabled
+	# Can't be in FileWatcher due to cycling dependency with config and _onPreConnectionRemoved
 	def _hasAfterWatch(self):
 		for name in self.config['connections']:
 			if self.config['connections'][name]['after_save_watch']:
@@ -1278,40 +1297,11 @@ class SyncCommandUpload(SyncCommandTransfer):
 
 		return False
 
-
-	def _handleIgnore(self):
-		SyncCommandTransfer._handleIgnore(self)
-
-		if self._hasAfterWatch() and self.onSave:
-			self.skip = True
-			return False
-
-		return True
-
-
+	# ???
 	def setScanned(self, event, name, data):
-		if type(self.afterwatch) is not dict:
-			self.afterwatch = {}
+		self.watcher.setScanned(event, name, data)
 
-		if event not in self.afterwatch or type(self.afterwatch[event]) is not dict:
-			self.afterwatch[event] = {}
-
-		self.afterwatch[event][name] = data
-
-
-	def scanWatched(self, event, name, properties):
-			if event is 'before' and name in self.afterwatch['before'] and len(self.afterwatch['before'][name]) > 0:
-				return
-
-			root = os.path.dirname(self.config_file_path)
-			watch = properties['after_save_watch']
-			self.afterwatch[event][name] = {}
-
-			if type(watch) is list and len(watch) > 0 and properties['upload_delay'] > 0:
-				for folder, filepattern in watch:
-					self.afterwatch[event][name].update(gatherMetafiles(filepattern, os.path.join(root, folder)).items())
-
-
+	# Executes command
 	def execute(self):
 		if self.closed is True:
 			printMessage("Cancelling " + str(self.__class__.__name__) + ": command is closed")
@@ -1328,13 +1318,7 @@ class SyncCommandUpload(SyncCommandTransfer):
 		# afterwatch
 		if self.onSave is True:
 			try:
-				for name in self.config['connections']:
-					if self.config['connections'][name]['after_save_watch']:
-						self.scanWatched('before', name, self.config['connections'][name])
-
-						if self.config['connections'][name]['debug_extras']['after_save_watch']:
-							printMessage("<debug> dumping pre-scan")
-							print (self.afterwatch['before'])
+				self.watcher.prepare()
 			except Exception as e:
 				printMessage("Watching failed: {" + self.basename + "} [Exception: " + stringifyException(e) + "]", "", False, True)
 
@@ -1376,20 +1360,7 @@ class SyncCommandUpload(SyncCommandTransfer):
 						scheduledUploads.pop(self.file_path)
 
 						if self.delayed is True:
-							# afterwatch
-							self.afterwatch['after'][name] = {}
-							self.scanWatched('after', name, self.config['connections'][name])
-							if self.config['connections'][name]['debug_extras']['after_save_watch']:
-								printMessage("<debug> dumping post-scan")
-								print (self.afterwatch['before'])
-							changed = getChangedFiles(self.afterwatch['before'][name], self.afterwatch['after'][name])
-							if self.config['connections'][name]['debug_extras']['after_save_watch']:
-								printMessage("<debug> dumping changed files")
-								print ("COUNT: " + str(len(changed)))
-								for change in changed:
-									print ("Path: " + change.getPath() + " | Name: " + change.getName())
-
-							for change in changed:
+							for change in self.watcher.getChangedFiles(name):
 								if change.isSameFilepath(self.file_path):
 									continue
 
@@ -1438,20 +1409,7 @@ class SyncCommandUpload(SyncCommandTransfer):
 			self.progress.progress()
 
 		if len(stored) > 0:
-			notify = "Uploading "
-			if self.progress is None or self.progress.getTotal() == 1:
-				notify += "{" + self.basename + "} "
-			else:
-				notify += str(self.progress.getTotal()) + " files "
-			notify += "finished!"
-
-			if self.progress is not None and self.progress.isFinished():
-				dumpMessage(getProgressMessage(stored, self.progress, notify))
-			else:
-				dumpMessage(getProgressMessage(stored, self.progress, "Uploaded ", self.basename))
-
-			if systemNotifications and self.progress is None or self.progress.isFinished():
-				systemNotify(notify)
+			self.finishMessage("Upload", stored, True)
 
 	def __del__(self):
 		if hasattr(self, 'delayed') and self.delayed is False:
@@ -1580,12 +1538,7 @@ class SyncCommandDownload(SyncCommandTransfer):
 			self.progress.progress()
 
 		if len(stored) > 0:
-			notify = "Downloading "
-			if self.progress is None or self.progress.getTotal() == 1:
-				notify += "{" + self.basename + "} "
-			else:
-				notify += str(self.progress.getTotal()) + " files "
-			notify += "finished!"
+			self.finishMessage("Download", stored, wasFinished)
 
 			file_path = self.file_path
 			def refresh():
@@ -1594,14 +1547,6 @@ class SyncCommandDownload(SyncCommandTransfer):
 					view.run_command("revert")
 
 			sublime.set_timeout(refresh, 1)
-
-			if self.progress is not None and self.progress.isFinished() and wasFinished is False:
-				dumpMessage(getProgressMessage(stored, self.progress, notify))
-			else:
-				dumpMessage(getProgressMessage(stored, self.progress, "Downloaded ", self.basename))
-
-			if systemNotifications and self.progress is None or (self.progress.isFinished() and wasFinished is False):
-				systemNotify(notify)
 
 
 # Rename command
@@ -1739,8 +1684,6 @@ class SyncCommandDelete(SyncCommandTransfer):
 			return
 
 		self._createConnection()
-
-		# afterwatch
 		usingConnections.append(self.config_hash)
 		deleted = []
 		index = -1
