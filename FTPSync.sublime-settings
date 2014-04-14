@@ -8,6 +8,8 @@
 	"max_threads": 4,
 	"debug_threads": false,
 	"debug_json": false,
+	"ftp_retry_limit": 4,
+	"ftp_retry_delay": 2.0,
 
 	"system_notifications": true,
 

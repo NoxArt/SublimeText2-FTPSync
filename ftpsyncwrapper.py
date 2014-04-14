@@ -69,6 +69,9 @@ else:
 
 # ==== Initialization and optimization =====================================================
 
+# storXX block size
+transferBlocksize = 8192
+
 # to extract data from FTP LIST http://stackoverflow.com/questions/2443007/ftp-list-format
 re_ftpListParse = re.compile("^([d-])([rxws-]{9})\s+\d+\s+\S+\s+\S+\s+(\d+)\s+(\w{1,3}\s+\d+\s+(?:\d+:\d+|\d{2,4}))\s+(.*?)$", re.M | re.I | re.U | re.L)
 
@@ -108,6 +111,7 @@ months = {
 
 # List of FTP errors of interest
 ftpError = {
+    'dataAccepted': 150,
     'fileNotAllowed': 553,
     'fileUnavailible': 550,
     'pendingInformation': 350,
@@ -254,12 +258,47 @@ class FTPSConnection(AbstractConnection):
             self.close()
 
 
+    # Calls a method on FTP driver
+    #
+    # @type self: FTPSConnection
+    # @type command: string
+    # @type args: list
+    def retryingCommand(self, command, args = []):
+        if hasattr(self.connection, command):
+            def call():
+                getattr(self.connection, command)(*args)
+
+            retries = self.generic_config['ftp_retry_limit']
+            exception = None
+            while retries > 0:
+                try:
+                    result = call()
+                    if retries < self.generic_config['ftp_retry_limit'] and self.generic_config['debug_verbose']:
+                        print ("FTPSync > Retry of " + command + " succeeded")
+                    return result
+                except Exception as e:
+                    if (sys.version >= '3' and type(e) is TimeoutError) or str(e).find('imeout') >= 0 or str(e).find('imed out') >= 0:
+                        print ("FTPSync > Command " + command + " timed out, retrying (" + str(retries) + " remaining)...")
+                        retries -= 1
+                        time.sleep(self.generic_config['ftp_retry_delay'])
+                        exception = e
+                        continue
+
+                    raise
+            
+            if retries == 0:
+                print ("FTPSync > Retrying failed: " + str(e))
+                raise e
+        else:
+            raise Exception("FTPSync: No command " + command + " available")
+
+
     # Connects to remote server
     #
     # @type self: FTPSConnection
     def connect(self):
-        self.connection.connect(self.config['host'], int(self.config['port']), int(self.config['timeout']))
-        self.connection.set_pasv(self.config['passive'])
+        self.retryingCommand('connect', [ self.config['host'], int(self.config['port']), int(self.config['timeout']) ])
+        self.retryingCommand('set_pasv', [ self.config['passive'] ])
 
 
     # Sets passive connection if configured to do so
@@ -267,7 +306,7 @@ class FTPSConnection(AbstractConnection):
     # @type self: FTPSConnection
     def _makePassive(self):
         if self.config['passive']:
-            self.connection.voidcmd("PASV")
+            self.retryingCommand('voidcmd', ["PASV"])
 
 
     # Authenticates if necessary
@@ -277,8 +316,8 @@ class FTPSConnection(AbstractConnection):
     # @return bool whether the authentication happened or not
     def authenticate(self):
         if self.config['tls'] is True:
-            self.connection.auth()
-            self.connection.prot_p()
+            self.retryingCommand('auth')
+            self.retryingCommand('prot_p')
             return True
 
         return False
@@ -288,14 +327,14 @@ class FTPSConnection(AbstractConnection):
     #
     # @type self: FTPSConnection
     def login(self):
-        self.connection.login(self.config['username'], self.config['password'])
+        self.retryingCommand('login', [ self.config['username'], self.config['password'] ])
 
 
     # Send an empty/keep-alive message to server
     #
     # @type self: FTPSConnection
     def keepAlive(self):
-        self.voidcmd("NOOP")
+        self.retryingCommand('voidcmd', ["NOOP"])
 
 
     # Returns whether the connection is active
@@ -369,7 +408,8 @@ class FTPSConnection(AbstractConnection):
                     blockCallback()
 
             try:
-                self.connection.storbinary(command, uploaded, callback = perBlock)
+                #self.connection.storbinary(command, uploaded, callback = perBlock)
+                self.retryingCommand('storbinary', [command, uploaded, transferBlocksize, perBlock])
 
                 if self.config['default_upload_permissions'] is not None:
                     try:
@@ -377,7 +417,7 @@ class FTPSConnection(AbstractConnection):
                     except Exception as e:
                         print("FTPSync > failed to set default permissions")
             except Exception as e:
-                if self.__isErrorCode(e, ['ok', 'passive']) is True:
+                if self.__isErrorCode(e, ['ok', 'passive', 'dataAccepted']) is True:
                     pass
                 elif self.__isErrorCode(e, 'fileUnavailible') and failed is False:
                     self.__ensurePath(path)
@@ -450,10 +490,10 @@ class FTPSConnection(AbstractConnection):
                         blockCallback()
 
                 try:
-                    getattr(self.connection, action)(command, perBlock)
+                    self.retryingCommand(action, [command, perBlock])
                 except Exception as e:
                     if self.__isErrorCode(e, ['ok', 'passive']):
-                        getattr(self.connection, action)(command, perBlock)
+                        self.retryingCommand(action, [command, perBlock])
                     elif self.__isErrorCode(e, 'fileUnavailible'):
                         raise FileNotFoundException
                     else:
@@ -626,7 +666,7 @@ class FTPSConnection(AbstractConnection):
     # @type command: string|None
     # @type args: mixed
     def abort(self, command = None, args = None):
-        self.connection.abort()
+        self.retryingCommand('abort')
 
         if command is None:
             return
@@ -642,7 +682,7 @@ class FTPSConnection(AbstractConnection):
     # @type path: string
     def cwd(self, path):
         self._makePassive()
-        self.connection.cwd((path))
+        self.retryingCommand('cwd', [path])
 
 
     # Returns whether it provides true last modified mechanism
@@ -658,7 +698,7 @@ class FTPSConnection(AbstractConnection):
     # @type path: string
     def voidcmd(self, command):
         self._makePassive()
-        self.connection.voidcmd(self.__encode(command))
+        self.retryingCommand('voidcmd', [self.__encode(command)])
 
 
     # Plain command with return
@@ -669,7 +709,7 @@ class FTPSConnection(AbstractConnection):
     # @type path: string
     def sendcmd(self, command):
         self._makePassive()
-        return self.connection.sendcmd(self.__encode(command))
+        return self.retryingCommand('sendcmd', [self.__encode(command)])
 
 
     # Returns whether file or folder info
@@ -679,7 +719,7 @@ class FTPSConnection(AbstractConnection):
     def fileExists(self, path):
         try:
             self._makePassive()
-            self.voidcmd("SIZE " + path)
+            self.retryingCommand('voidcmd', ["SIZE " + path])
 
             return True
         except Exception as e:
@@ -716,18 +756,18 @@ class FTPSConnection(AbstractConnection):
             result = []
 
             try:
-                self.connection.retrlines("LIST -a " + path, lambda data: contents.append(data))
+                self.retryingCommand('retrlines', ["LIST -a " + path, lambda data: contents.append(data)])
             except Exception as e:
                 if self.__isErrorCode(e, ['ok', 'passive']):
-                    self.connection.retrlines("LIST -a " + path, lambda data: contents.append(data))
+                    self.retryingCommand('retrlines', ["LIST -a " + path, lambda data: contents.append(data)])
                 elif str(e).find('No such file'):
                     raise FileNotFoundException
                 else:
                     try:
-                        self.connection.dir(path, lambda data: contents.append(data))
+                        self.retryingCommand('dir', [path, lambda data: contents.append(data)])
                     except Exception as e:
                         if self.__isErrorCode(e, ['ok', 'passive']):
-                            self.connection.retrlines("LIST -a " + path, lambda data: contents.append(data))
+                            self.retryingCommand('retrlines', ["LIST -a " + path, lambda data: contents.append(data)])
                         elif str(e).find('No such file'):
                             raise FileNotFoundException
                         else:
@@ -767,9 +807,9 @@ class FTPSConnection(AbstractConnection):
     # @type hash: string
     def close(self, connections=[], hash=None):
         try:
-            self.connection.quit()
+            self.retryingCommand('quit')
         except:
-            self.connection.close()
+            self.retryingCommand('close')
         finally:
             self.isClosed = True
 
@@ -846,7 +886,7 @@ class FTPSConnection(AbstractConnection):
     # @type self: FTPSConnection
     def __loadFeat(self):
         try:
-            feats = self.connection.sendcmd("FEAT").split("\n")
+            feats = self.retryingCommand('sendcmd', ["FEAT"]).split("\n")
             self.feat = []
             for feat in feats:
                 if feat[0] != '2':
@@ -1031,7 +1071,7 @@ class FTPSConnection(AbstractConnection):
     def __ensurePath(self, path, isFolder=False, root=None):
         if root is None:
             root = self.config['path']
-            self.connection.cwd(root)
+            self.retryingCommand('cwd', [root])
             relative = os.path.relpath(path, root)
         else:
             relative = root + '/' + path
@@ -1054,7 +1094,7 @@ class FTPSConnection(AbstractConnection):
 
                     try:
                         # create folder
-                        self.connection.mkd(self.__encode(folder))
+                        self.retryingCommand('mkd', [self.__encode(folder)])
                     except Exception as e:
                         if self.__isErrorCode(e, 'fileUnavailible'):
                             # not proper permissions

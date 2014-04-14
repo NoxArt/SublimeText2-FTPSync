@@ -219,6 +219,9 @@ def plugin_loaded():
 	# loaded project's config will be merged with this global one
 	coreConfig = {
 		'ignore': ignore,
+		'debug_verbose': settings.get('debug_verbose'),
+		'ftp_retry_limit': settings.get('ftp_retry_limit'),
+		'ftp_retry_delay': settings.get('ftp_retry_delay'),
 		'connection_timeout': settings.get('connection_timeout'),
 		'ascii_extensions': settings.get('ascii_extensions'),
 		'binary_extensions': settings.get('binary_extensions')
