@@ -2560,7 +2560,21 @@ class RemotePresave(RemoteThread):
 		index = 0
 
 		for entry in metadata:
-			if (entry['connection'] not in blacklistConnections and config['connections'][entry['connection']]['check_time'] is True and entry['metadata'].isNewerThan(self.metafile) and entry['metadata'].isDifferentSizeThan(file_path)) or file_path in overwriteCancelled:
+			properties = config['connections'][entry['connection']]
+
+			if properties['debug_extras']['debug_overwrite_prevention']:
+				printMessage("<debug> dumping overwrite prevention")
+				print ("Enabled: " + str(properties['check_time'] is True))
+				print ("Not in blacklist: " + str(entry['connection'] not in blacklistConnections))
+				print ("Is remote newer: " + str(entry['metadata'].isNewerThan(self.metafile)))
+				print ("Is size different: " + str(entry['metadata'].isDifferentSizeThan(file_path)))
+				print ("In overwrite cancelled: " + str(file_path in overwriteCancelled))
+				print ("+ [remote] last modified: " + str(entry['metadata'].getLastModified()))
+				print ("+ [local] last modified: " + str(self.metafile.getLastModified()))
+				print ("+ [remote] size: " + str(entry['metadata'].getFilesize()))
+				print ("+ [local] size: " + str(os.path.getsize(file_path)))
+
+			if (entry['connection'] not in blacklistConnections and properties['check_time'] is True and entry['metadata'].isNewerThan(self.metafile) and entry['metadata'].isDifferentSizeThan(file_path)) or file_path in overwriteCancelled:
 				newer.append(entry['connection'])
 
 				if newest is None or newest > entry['metadata'].getLastModified():
