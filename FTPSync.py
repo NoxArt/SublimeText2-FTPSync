@@ -2562,7 +2562,7 @@ class RemotePresave(RemoteThread):
 		for entry in metadata:
 			properties = config['connections'][entry['connection']]
 
-			if properties['debug_extras']['debug_overwrite_prevention']:
+			if 'debug_overwrite_prevention' in properties['debug_extras'] and properties['debug_extras']['debug_overwrite_prevention']:
 				printMessage("<debug> dumping overwrite prevention")
 				print ("Enabled: " + str(properties['check_time'] is True))
 				print ("Not in blacklist: " + str(entry['connection'] not in blacklistConnections))
