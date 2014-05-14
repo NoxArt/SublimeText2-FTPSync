@@ -2564,6 +2564,8 @@ class RemotePresave(RemoteThread):
 
 			if 'debug_overwrite_prevention' in properties['debug_extras'] and properties['debug_extras']['debug_overwrite_prevention']:
 				printMessage("<debug> dumping overwrite prevention")
+				print ("File [local]: " + str(file_path))
+				print ("File [remote]: " + str(entry['metadata'].getPath()))
 				print ("Enabled: " + str(properties['check_time'] is True))
 				print ("Not in blacklist: " + str(entry['connection'] not in blacklistConnections))
 				print ("Is remote newer: " + str(entry['metadata'].isNewerThan(self.metafile)))
