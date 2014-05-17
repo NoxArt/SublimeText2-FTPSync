@@ -2097,7 +2097,7 @@ class SyncNavigator(SyncCommand):
 				entry.append("Directory")
 			else:
 				entry.append(decode(meta.getName()))
-				entry.append("Size: " + str(meta.getFilesize()) + " kB")
+				entry.append("Size: " + meta.getHumanFilesize())
 
 			entry.append("Last modified: " + meta.getLastModifiedFormatted(displayTimestampFormat))
 

@@ -130,6 +130,19 @@ class Metafile:
 	def getFilesize(self):
 		return self.filesize
 
+	def getHumanFilesize(self):
+		if self.filesize < 1024:
+			return str(self.filesize) + " B"
+
+		if self.filesize < 1024 * 1024:
+			return str(round(self.filesize / 1024, 2)) + " kB"
+
+		if self.filesize < 1024 * 1024 * 1024:
+			return str(round(self.filesize / 1024 / 1024, 2)) + " MB"
+
+		return str(round(self.filesize / 1024 / 1024 / 1024, 2)) + " GB"
+
+
 	def isSameFilepath(self, filepath):
 		return os.path.realpath(self.getPath()) == os.path.realpath(filepath)
 
