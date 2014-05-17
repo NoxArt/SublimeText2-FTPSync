@@ -128,7 +128,8 @@ ftpErrors = {
     'rntoReady': '350 Ready for RNTO',
     'disconnected': 'An established connection was aborted by the software in your host machine',
     'timeout': 'timed out',
-    'typeIsNow': 'TYPE is now'
+    'typeIsNow': 'TYPE is now',
+    'switchingMode': 'Switching to'
 }
 
 # SSL issue
@@ -266,7 +267,7 @@ class FTPSConnection(AbstractConnection):
     def retryingCommand(self, command, args = []):
         if hasattr(self.connection, command):
             def call():
-                getattr(self.connection, command)(*args)
+                return getattr(self.connection, command)(*args)
 
             retries = self.generic_config['ftp_retry_limit']
             exception = None
@@ -492,7 +493,7 @@ class FTPSConnection(AbstractConnection):
                 try:
                     self.retryingCommand(action, [command, perBlock])
                 except Exception as e:
-                    if self.__isErrorCode(e, ['ok', 'passive']):
+                    if self.__isErrorCode(e, ['ok', 'passive']) or str(e).find(ftpErrors['typeIsNow']) != -1:
                         self.retryingCommand(action, [command, perBlock])
                     elif self.__isErrorCode(e, 'fileUnavailible'):
                         raise FileNotFoundException
@@ -758,7 +759,7 @@ class FTPSConnection(AbstractConnection):
             try:
                 self.retryingCommand('retrlines', ["LIST -a " + path, lambda data: contents.append(data)])
             except Exception as e:
-                if self.__isErrorCode(e, ['ok', 'passive']):
+                if self.__isErrorCode(e, ['ok', 'passive']) or str(e).find(ftpErrors['typeIsNow']) != -1:
                     self.retryingCommand('retrlines', ["LIST -a " + path, lambda data: contents.append(data)])
                 elif str(e).find('No such file'):
                     raise FileNotFoundException
@@ -766,7 +767,7 @@ class FTPSConnection(AbstractConnection):
                     try:
                         self.retryingCommand('dir', [path, lambda data: contents.append(data)])
                     except Exception as e:
-                        if self.__isErrorCode(e, ['ok', 'passive']):
+                        if self.__isErrorCode(e, ['ok', 'passive']) or str(e).find(ftpErrors['typeIsNow']) != -1:
                             self.retryingCommand('retrlines', ["LIST -a " + path, lambda data: contents.append(data)])
                         elif str(e).find('No such file'):
                             raise FileNotFoundException
@@ -924,8 +925,11 @@ class FTPSConnection(AbstractConnection):
             return result
         except Exception as e:
 
+            # type is now
+            if str(e).find(ftpErrors['typeIsNow']) != -1 or str(e).find(ftpErrors['switchingMode']) != -1:
+                return callback()
             # bad write - repeat command
-            if re_errorOk.search(str(e)) is not None:
+            elif re_errorOk.search(str(e)) is not None:
                 print ("FTPSync > " + str(e))
                 return result
             elif str(e).find(sslErrors['badWrite']) != -1:
