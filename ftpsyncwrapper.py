@@ -288,8 +288,11 @@ class FTPSConnection(AbstractConnection):
                     raise
             
             if retries == 0:
-                print ("FTPSync > Retrying failed: " + str(e))
-                raise e
+                if exception is not None:
+                    print ("FTPSync > Retrying " + command + " failed: " + str(e))
+                    raise exception
+                else:
+                    print ("FTPSync > Retrying " + command + " failed")
         else:
             raise Exception("FTPSync: No command " + command + " available")
 
