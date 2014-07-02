@@ -50,6 +50,8 @@ import webbrowser
 
 # FTPSync libraries
 if sys.version < '3':
+	from lib2.minify_json import json_minify
+
 	from ftpsynccommon import Types
 	from ftpsyncwrapper import CreateConnection, TargetAlreadyExists
 	from ftpsyncprogress import Progress
@@ -59,6 +61,8 @@ if sys.version < '3':
 	# exceptions
 	from ftpsyncexceptions import FileNotFoundException
 else:
+	from FTPSync.lib3.minify_json import json_minify
+
 	from FTPSync.ftpsynccommon import Types
 	from FTPSync.ftpsyncwrapper import CreateConnection, TargetAlreadyExists
 	from FTPSync.ftpsyncprogress import Progress
@@ -331,13 +335,13 @@ def systemNotify(text):
 		text = "FTPSync > " + text
 
 		if sys.platform == "darwin":
-		    """ Run Grown Notification """
-		    cmd = '/usr/local/bin/growlnotify -a "Sublime Text 2" -t "FTPSync message" -m "'+text+'"'
-		    subprocess.call(cmd,shell=True)
+			""" Run Grown Notification """
+			cmd = '/usr/local/bin/growlnotify -a "Sublime Text 2" -t "FTPSync message" -m "'+text+'"'
+			subprocess.call(cmd,shell=True)
 		elif sys.platform == "linux2":
-		    subprocess.call('/usr/bin/notify-send "Sublime Text 2" "'+text+'"',shell=True)
+			subprocess.call('/usr/bin/notify-send "Sublime Text 2" "'+text+'"',shell=True)
 		elif sys.platform == "win32":
-		    """ Find the notifaction platform for windows if there is one"""
+			""" Find the notifaction platform for windows if there is one"""
 
 	except Exception as e:
 		printMessage("Notification failed")
@@ -676,15 +680,15 @@ def verifyConfig(config):
 #
 # @global removeLineComment
 def parseJson(file_path):
-	contents = ""
+	contents = None
+	with open(file_path) as f:
+		contents = f.read()
 
-	try:
-		file = open(file_path, 'r')
+	if contents is None:
+		printMessage("Error opening settings file: " + file_path)
+		return
 
-		for line in file:
-			contents += removeLineComment.sub('', line)
-	finally:
-		file.close()
+	contents = json_minify(contents, False)
 
 	if debugJson:
 		printMessage("Debug JSON:")
