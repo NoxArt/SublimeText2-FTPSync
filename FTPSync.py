@@ -833,7 +833,7 @@ def loadConfig(file_path):
 			result[name][list(projectDefaults.items())[index][0]] = dict(list1 + list2)
 		try:
 			if result[name]['debug_extras']['dump_config_load'] is True:
-				printMessage(result[name])
+				print(result[name])
 		except KeyError:
 			pass
 
