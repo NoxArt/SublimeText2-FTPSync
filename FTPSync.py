@@ -680,15 +680,15 @@ def verifyConfig(config):
 #
 # @global removeLineComment
 def parseJson(file_path):
-	contents = None
-	with open(file_path) as f:
-		contents = f.read()
+	contents = ""
 
-	if contents is None:
-		printMessage("Error opening settings file: " + file_path)
-		return
+	try:
+		file = open(file_path, 'r')
 
-	contents = json_minify(contents, False)
+		for line in file:
+			contents += removeLineComment.sub('', line)
+	finally:
+		file.close()
 
 	if debugJson:
 		printMessage("Debug JSON:")
