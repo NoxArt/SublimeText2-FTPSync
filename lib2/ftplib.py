@@ -42,7 +42,10 @@ import sys
 try:
     import encodings.idna
 except ImportError:
-    print("Failed to import encodings.idna")
+    try:
+        import idna
+    except ImportError:
+        print("Failed to import encodings.idna")
 
 # Import SOCKS module if it exists, else standard socket module socket
 try:

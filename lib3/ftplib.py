@@ -43,7 +43,10 @@ import sys
 try:
     import encodings.idna
 except ImportError:
-    print("Failed to import encodings.idna")
+    try:
+        import idna
+    except ImportError:
+        print("Failed to import encodings.idna")
 
 import socket
 from socket import _GLOBAL_DEFAULT_TIMEOUT

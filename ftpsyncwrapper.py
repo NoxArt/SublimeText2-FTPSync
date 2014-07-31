@@ -40,13 +40,26 @@ import time
 # import FTP library
 if sys.version < '3':
     import lib2.ftplib as ftplib
+
+    # load .idna encoding
+    try:
+        import encodings.idna
+    except ImportError:
+        try:
+            import lib2.idna
+        except ImportError:
+            print("Failed to import encodings.idna")
 else:
     import FTPSync.lib3.ftplib as ftplib
 
-try:
-    import encodings.idna
-except ImportError:
-    print("FTPSync > Failed to import encodings.idna")
+    # load .idna encoding
+    try:
+        import encodings.idna
+    except ImportError:
+        try:
+            import FTPSync.lib3.idna
+        except ImportError:
+            print("Failed to import encodings.idna")
 
 # workaround for http://www.gossamer-threads.com/lists/python/dev/755427
 try:
