@@ -1136,7 +1136,7 @@ class SyncCommand(SyncObject):
 		self.worker = None
 
 	def getIdentification(self):
-		return str(self.__class__.__name__) + " [" + self.file_path + "]"
+		return str(self.__class__.__name__) + " [" + str(self.file_path) + "]"
 
 	def setWorker(self, worker):
 		self.worker = worker
