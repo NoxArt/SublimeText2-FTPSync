@@ -38,6 +38,13 @@ python ftplib.py -d localhost -l -p -l
 
 import os
 import sys
+
+
+try:
+    import encodings.idna
+except ImportError:
+    print("Failed to import encodings.idna")
+
 import socket
 from socket import _GLOBAL_DEFAULT_TIMEOUT
 
