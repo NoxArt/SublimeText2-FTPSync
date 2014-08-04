@@ -3040,7 +3040,7 @@ class FtpSyncDelete(sublime_plugin.WindowCommand):
 
 # Remote ftp navigation
 class FtpSyncBrowse(sublime_plugin.WindowCommand):
-	def run(self, edit):
+	def run(self, edit = None):
 		file_path = os.path.dirname(sublime.active_window().active_view().file_name())
 
 		def execute(files):
@@ -3053,7 +3053,7 @@ class FtpSyncBrowse(sublime_plugin.WindowCommand):
 
 # Remote ftp navigation
 class FtpSyncBrowsePlace(sublime_plugin.WindowCommand):
-	def run(self, edit, paths):
+	def run(self, edit = None, paths = None):
 		if os.path.isdir(paths[0]):
 			file_path = paths[0]
 		else:
@@ -3069,7 +3069,7 @@ class FtpSyncBrowsePlace(sublime_plugin.WindowCommand):
 
 # Remote ftp navigation from current file
 class FtpSyncBrowseCurrent(sublime_plugin.TextCommand):
-	def run(self, edit):
+	def run(self, edit = None):
 		file_path = sublime.active_window().active_view().file_name()
 
 		def execute(files):
@@ -3082,7 +3082,7 @@ class FtpSyncBrowseCurrent(sublime_plugin.TextCommand):
 
 # Remote ftp navigation from last point
 class FtpSyncBrowseLast(sublime_plugin.WindowCommand):
-	def run(self, edit):
+	def run(self, edit = None):
 		if navigateLast['config_file'] is None:
 			file_path = sublime.active_window().active_view().file_name()
 
