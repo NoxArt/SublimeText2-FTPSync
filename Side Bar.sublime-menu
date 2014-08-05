@@ -12,11 +12,12 @@
 			{ "caption": "-" },
 			{ "caption": "Browse here", "command": "ftp_sync_browse_place", "args": { "edit": null, "paths": []} },
             { "caption": "Show info", "command": "ftp_sync_show_info", "args": { "edit": null, "paths": []} },
-            { "caption": "Cleanup temporary files", "command": "ftp_sync_cleanup", "args": { "edit": null, "paths": []} },
 			{ "caption": "-" },
 			{ "caption": "Setup FTPSync in this folder", "command": "ftp_sync_new_settings", "args": { "edit": null, "dirs": []} },
             { "caption": "Open README (Github)", "command": "ftp_sync_url_readme" },
-            { "caption": "Report issue / suggestion (Github)", "command": "ftp_sync_url_report" }
+            { "caption": "Report issue / suggestion (Github)", "command": "ftp_sync_url_report" },
+            { "caption": "-" },
+            { "caption": "Cleanup temporary files", "command": "ftp_sync_cleanup", "args": { "edit": null, "paths": []} }
 		]
 	}
 ]
