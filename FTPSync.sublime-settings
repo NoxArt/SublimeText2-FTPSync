@@ -13,6 +13,7 @@
 
 	"system_notifications": true,
 
+	"browse_display_details": false,
 	"browse_open_on_download": true,
 	"browse_display_permission": false,
 	"browse_timestamp_format": "%Y-%m-%d %H:%M",

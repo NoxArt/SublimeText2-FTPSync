@@ -136,8 +136,9 @@ navigateLast = {
 	'connection_name': None,
 	'path': None
 }
-displayPermissions = ''
-displayTimestampFormat = ''
+displayDetails = False
+displayPermissions = False
+displayTimestampFormat = False
 
 # last folder
 re_thisFolder = re.compile("/([^/]*?)/?$", re.I)
@@ -166,6 +167,7 @@ def plugin_loaded():
 	global coreConfig
 	global debugJson
 	global debugWorkers
+	global displayDetails
 	global displayPermissions
 	global displayTimestampFormat
 	global downloadOnOpenDelay
@@ -238,6 +240,7 @@ def plugin_loaded():
 	# debug json?
 	debugJson = settings.get('debug_json')
 
+	displayDetails = settings.get('browse_display_details')
 	displayPermissions = settings.get('browse_display_permission')
 	displayTimestampFormat = settings.get('browse_timestamp_format')
 
@@ -2098,17 +2101,22 @@ class SyncNavigator(SyncCommand):
 					continue
 
 				entry.append("[ " + decode(meta.getName()) + " ]")
-				entry.append("Directory")
+				if displayDetails:
+					entry.append("Directory")
 			else:
 				entry.append(decode(meta.getName()))
-				entry.append("Size: " + meta.getHumanFilesize())
+				if displayDetails:
+					entry.append("Size: " + meta.getHumanFilesize())
 
-			entry.append("Last modified: " + meta.getLastModifiedFormatted(displayTimestampFormat))
 
-			if displayPermissions:
-				entry.append("Permissions: " + meta.getPermissions())
+			if displayDetails:
+				entry.append("Last modified: " + meta.getLastModifiedFormatted(displayTimestampFormat))
 
-			entry.append("Path: " + meta.getPath())
+				if displayPermissions:
+					entry.append("Permissions: " + meta.getPermissions())
+
+				entry.append("Path: " + meta.getPath())
+
 			content.append(entry)
 			self.files.append(meta)
 		if len(contents) == 0:
@@ -2128,7 +2136,7 @@ class SyncNavigator(SyncCommand):
 
 		sublime.set_timeout(lambda: sublime.active_window().show_quick_panel(content, handleMetaSelection), 1)
 
-	def listFolderActions(self, meta, action = None):
+	def listFolderActions(self, meta, action = None):	
 		if self.closed is True:
 			printMessage("Cancelling " + self.getIdentification() + ": command is closed")
 			return
@@ -2152,7 +2160,7 @@ class SyncNavigator(SyncCommand):
 				name = '/'
 
 		actions = []
-		actions.append("Open " + decode(name))
+		actions.append("Open [" + decode(name) + "]")
 		actions.append("Back")
 		actions.append("Download folder")
 
