@@ -2159,6 +2159,9 @@ class SyncNavigator(SyncCommand):
 			else:
 				name = '/'
 
+			self.listFiles(meta.getPath() + '/' + meta.getName())
+			return
+
 		actions = []
 		actions.append("Open [" + decode(name) + "]")
 		actions.append("Back")
