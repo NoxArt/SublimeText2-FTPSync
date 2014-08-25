@@ -2406,6 +2406,11 @@ class RemoteSync(sublime_plugin.EventListener):
 
 		fillPasswords([[ None, config_file_path ]], pre_save, sublime.active_window())
 
+	def on_post_save(self, view):
+		fileName = os.path.basename(view.file_name())
+		if fileName == 'FTPSync.sublime-settings':
+			sublime.set_timeout(plugin_loaded, 1000)
+
 	def manual_on_post_save(self, file_path):
 		config_file_path = getConfigFile(file_path)
 
