@@ -443,6 +443,21 @@ def findConfigFile(folders):
 	return findFile(folders, configName)
 
 
+# Returns first found config file from folders
+#
+# @type  folders: list<string>
+# @param folders: list of paths to folders to search in
+#
+# @return config filepath
+def guessConfigFile(folders):
+	for folder in folders:
+		config = getConfigFile(folder)
+		if config is not None:
+			return config
+
+	return None
+
+
 # Returns configuration file for a given file
 #
 # @type  file_path: string
@@ -3057,7 +3072,10 @@ class FtpSyncDelete(sublime_plugin.WindowCommand):
 # Remote ftp navigation
 class FtpSyncBrowse(sublime_plugin.WindowCommand):
 	def run(self, edit = None):
-		file_path = os.path.dirname(sublime.active_window().active_view().file_name())
+		if sublime.active_window().active_view() is None:
+			file_path = os.path.dirname(guessConfigFile(sublime.active_window().folders()))
+		else:
+			file_path = os.path.dirname(sublime.active_window().active_view().file_name())
 
 		def execute(files):
 			command = SyncNavigator(None, getConfigFile(file_path), None, file_path)
@@ -3086,7 +3104,10 @@ class FtpSyncBrowsePlace(sublime_plugin.WindowCommand):
 # Remote ftp navigation from current file
 class FtpSyncBrowseCurrent(sublime_plugin.TextCommand):
 	def run(self, edit = None):
-		file_path = sublime.active_window().active_view().file_name()
+		if sublime.active_window().active_view() is None:
+			file_path = os.path.dirname(guessConfigFile(sublime.active_window().folders()))
+		else:
+			file_path = sublime.active_window().active_view().file_name()
 
 		def execute(files):
 			command = SyncNavigator(os.path.dirname(file_path), getConfigFile(file_path), None, os.path.dirname(file_path))
@@ -3100,7 +3121,10 @@ class FtpSyncBrowseCurrent(sublime_plugin.TextCommand):
 class FtpSyncBrowseLast(sublime_plugin.WindowCommand):
 	def run(self, edit = None):
 		if navigateLast['config_file'] is None:
-			file_path = sublime.active_window().active_view().file_name()
+			if sublime.active_window().active_view() is None:
+				file_path = os.path.dirname(guessConfigFile(sublime.active_window().folders()))
+			else:
+				file_path = sublime.active_window().active_view().file_name()
 
 			def execute(files):
 				command = SyncNavigator(None, getConfigFile(file_path), None, file_path)
