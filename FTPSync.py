@@ -240,9 +240,12 @@ def plugin_loaded():
 	# debug json?
 	debugJson = settings.get('debug_json')
 
+	# browsing
 	displayDetails = settings.get('browse_display_details')
 	displayPermissions = settings.get('browse_display_permission')
 	displayTimestampFormat = settings.get('browse_timestamp_format')
+
+
 
 	isLoaded = True
 	if isDebug:
@@ -252,6 +255,13 @@ if int(sublime.version()) < 3000:
 	plugin_loaded()
 
 # ==== Generic =============================================================================
+
+# Returns file with syntax for settings file
+def getConfigSyntax():
+	if packageExists('AAAPackageDev/Syntax Definitions/Sublime Settings.tmLanguage'):
+		return 'Packages/AAAPackageDev/Syntax Definitions/Sublime Settings.tmLanguage'
+	else:
+		return 'Packages/JavaScript/JSON.tmLanguage'
 
 # Returns if Sublime has currently active View
 #
@@ -2531,6 +2541,9 @@ class RemoteSync(sublime_plugin.EventListener):
 	# it will check those enabled if the remote version is newer and offers the newest to download
 	def on_load(self, view):
 		file_path = getFileName(view)
+
+		if file_path and os.path.basename(file_path) == configName:
+			view.set_syntax_file(getConfigSyntax())
 
 		if ignore is not None and re_ignore is not None and re_ignore.search(file_path) is not None:
 			return
