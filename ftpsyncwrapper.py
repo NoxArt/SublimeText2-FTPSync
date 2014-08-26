@@ -254,6 +254,7 @@ class FTPSConnection(AbstractConnection):
         self.name = name
         self.isClosed = False
         self.feat = None
+        self.currentPath = "/"
 
         if self.config['tls'] is True:
             self.connection = ftplib.FTP_TLS()
@@ -700,6 +701,7 @@ class FTPSConnection(AbstractConnection):
     def cwd(self, path):
         self._makePassive()
         self.retryingCommand('cwd', [path])
+        self.path = self.getNormpath(path)
 
 
     # Returns whether it provides true last modified mechanism
@@ -869,6 +871,14 @@ class FTPSConnection(AbstractConnection):
             print("</debug>")
 
         return normpath
+
+
+    # Returns remote matted path
+    def getMappedPath(self, path, isRemote):
+        if isRemote:
+            return path
+        else:
+            return self._getMappedPath(path)
 
 
     # Returns normalized path in unix style

@@ -105,6 +105,9 @@ class Metafile:
 	def getPath(self):
 		return self.path
 
+	def getFilepath(self):
+		return self.path + "/" + self.name
+
 	def getPermissions(self):
 		return self.permissions
 
@@ -438,9 +441,10 @@ def isTextFile(file_path, asciiWhitelist):
 # Adds . and .. entries if missing in the collection
 #
 # @type contents: list<Metadata>
+# @type parentPath: string
 #
 # @return list<metadata>
-def addLinks(contents):
+def addLinks(contents, parentPath):
 	hasSelf = False
 	hasUp = False
 	single = None
@@ -456,14 +460,17 @@ def addLinks(contents):
 		else:
 			single = entry
 
+	path = parentPath
 	if single is not None:
-		if hasSelf == False:
-			entrySelf = Metafile('.', True, None, None, single.getPath(), None)
-			contents.append(entrySelf)
+		path = single.getPath()
 
-		if hasUp == False:
-			entryUp = Metafile('..', True, None, None, single.getPath(), None)
-			contents.append(entryUp)
+	if hasSelf == False:
+		entrySelf = Metafile('.', True, None, None, path, None)
+		contents.append(entrySelf)
+
+	if hasUp == False:
+		entryUp = Metafile('..', True, None, None, path, None)
+		contents.append(entryUp)
 
 	return contents
 

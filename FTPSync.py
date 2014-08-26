@@ -2093,6 +2093,7 @@ class SyncNavigator(SyncCommand):
 		self._createConnection()
 		connection = self.connections[0]
 
+		# figure out path
 		remote = True
 		if path is None or path == self.defaultPath or self.defaultPath is None:
 			remote = False
@@ -2103,37 +2104,43 @@ class SyncNavigator(SyncCommand):
 
 		self.updateNavigateLast(path)
 
+		# get contents
 		contents = connection.list(path, remote, True)
-		contents = addLinks(contents)
+		contents = addLinks(contents, connection.getMappedPath(path, remote))
 		contents = sorted(contents, key = lambda entry: (entry.getName() != "..", entry.isDirectory() is False, entry.getName().lower()))
-
 		content = []
+
+		# add header
+		currentFolder = os.path.basename(connection.getNormpath(path))
+		if currentFolder == '..':
+			currentFolder = '/'
+
+		if displayDetails:
+			header = self.getDetailedCurrentFolder(currentFolder)
+		else:
+			header = self.getSimpleCurrentFolder(currentFolder)
+
+		content.extend(header)
+
+		# find current folder
+		currentMeta = None
 		for meta in contents:
-			entry = []
+			if meta.getName() == '.':
+				for i in range(len(header)):
+					self.files.append(meta)
+				break
 
-			if meta.isDirectory():
-				if meta.getName() == '..' and connection.getNormpath(path) == '/':
-					continue
-
-				entry.append("[ " + decode(meta.getName()) + " ]")
-				if displayDetails:
-					entry.append("Directory")
-			else:
-				entry.append(decode(meta.getName()))
-				if displayDetails:
-					entry.append("Size: " + meta.getHumanFilesize())
-
-
+		# add contents
+		for meta in contents:
 			if displayDetails:
-				entry.append("Last modified: " + meta.getLastModifiedFormatted(displayTimestampFormat))
+				entry = self.getDetailedEntry(meta, path, connection)
+			else:
+				entry = self.getSimpleEntry(meta, path, connection)
 
-				if displayPermissions:
-					entry.append("Permissions: " + meta.getPermissions())
+			if entry:
+				content.append(entry)
+				self.files.append(meta)
 
-				entry.append("Path: " + meta.getPath())
-
-			content.append(entry)
-			self.files.append(meta)
 		if len(contents) == 0:
 			printMessage("No files found in remote path for local {" + str(path) + "}", status=True)
 
@@ -2145,11 +2152,61 @@ class SyncNavigator(SyncCommand):
 			self.files = []
 
 			if meta.isDirectory():
-				self.listFolderActions(meta)
+				if index >= len(header):
+					self.listFiles(meta.getFilepath())
+				else:
+					self.listFolderActions(meta)
 			else:
 				self.listFileActions(meta)
 
 		sublime.set_timeout(lambda: sublime.active_window().show_quick_panel(content, handleMetaSelection), 1)
+
+	def getSimpleCurrentFolder(self, currentFolder):
+		return [ currentFolder + "/" ]
+
+	def getDetailedCurrentFolder(self, currentFolder):
+		entry = [currentFolder, "• Current folder", "• Click to list actions"]
+		if displayPermissions:
+			entry.append("")
+		return [entry]
+
+	def getSimpleEntry(self, meta, path, connection):
+		entry = []
+		if meta.isDirectory():
+			if meta.getName() == '.' or (meta.getName() == '..' and connection.getNormpath(path) == '/'):
+				return None
+
+			if meta.getName() == '..':
+				entry.append("\t" + decode("▴ .."))
+			else:
+				entry.append("\t" + decode("▾ ") + decode(meta.getName()))
+		else:
+			entry.append("\t\t" + decode(meta.getName()))
+
+		return entry
+
+	def getDetailedEntry(self, meta, path, connection):
+		entry = []
+		if meta.isDirectory():
+			if meta.getName() == '.' or (meta.getName() == '..' and connection.getNormpath(path) == '/'):
+				return None
+
+			entry.append("[" + decode(meta.getName()) + "]")
+			entry.append("Directory")
+		else:
+			entry.append(decode(meta.getName()))
+			entry.append("Size: " + meta.getHumanFilesize())
+
+
+		if displayDetails:
+			entry.append("Last modified: " + meta.getLastModifiedFormatted(displayTimestampFormat))
+
+			if displayPermissions:
+				entry.append("Permissions: " + meta.getPermissions())
+
+			entry.append("Path: " + meta.getPath())
+
+		return entry
 
 	def listFolderActions(self, meta, action = None):	
 		if self.closed is True:
@@ -2178,7 +2235,7 @@ class SyncNavigator(SyncCommand):
 			return
 
 		actions = []
-		actions.append("Open [" + decode(name) + "]")
+		actions.append("Open " + decode(name) + " folder")
 		actions.append("Back")
 		actions.append("Download folder")
 
