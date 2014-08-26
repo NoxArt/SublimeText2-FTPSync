@@ -253,6 +253,21 @@ if int(sublime.version()) < 3000:
 
 # ==== Generic =============================================================================
 
+# Returns if Sublime has currently active View
+#
+# ST3 on no opened view returns a View with empty file_name (wtf)
+#
+# @return boolean
+def hasActiveView():
+	window = sublime.active_window()
+	if window is None:
+		return False
+
+	view = window.active_view()
+	if view is None or view.file_name() is None:
+		return False
+	return True
+
 # Dumps the exception to console
 def handleException(exception):
 	print ("FTPSync > Exception in user code:")
@@ -454,6 +469,11 @@ def guessConfigFile(folders):
 		config = getConfigFile(folder)
 		if config is not None:
 			return config
+
+		for folder in os.walk(folder):
+			config = getConfigFile(folder[0])
+			if config is not None:
+				return config
 
 	return None
 
@@ -2162,7 +2182,7 @@ class SyncNavigator(SyncCommand):
 		sublime.set_timeout(lambda: sublime.active_window().show_quick_panel(content, handleMetaSelection), 1)
 
 	def getSimpleCurrentFolder(self, currentFolder):
-		return [ currentFolder + "/" ]
+		return [[ currentFolder + "/" ]]
 
 	def getDetailedCurrentFolder(self, currentFolder):
 		entry = [currentFolder, "• Current folder", "• Click to list actions"]
@@ -3129,7 +3149,7 @@ class FtpSyncDelete(sublime_plugin.WindowCommand):
 # Remote ftp navigation
 class FtpSyncBrowse(sublime_plugin.WindowCommand):
 	def run(self, edit = None):
-		if sublime.active_window().active_view() is None:
+		if hasActiveView() is False:
 			file_path = os.path.dirname(guessConfigFile(sublime.active_window().folders()))
 		else:
 			file_path = os.path.dirname(sublime.active_window().active_view().file_name())
@@ -3161,7 +3181,7 @@ class FtpSyncBrowsePlace(sublime_plugin.WindowCommand):
 # Remote ftp navigation from current file
 class FtpSyncBrowseCurrent(sublime_plugin.TextCommand):
 	def run(self, edit = None):
-		if sublime.active_window().active_view() is None:
+		if hasActiveView() is False:
 			file_path = os.path.dirname(guessConfigFile(sublime.active_window().folders()))
 		else:
 			file_path = sublime.active_window().active_view().file_name()
@@ -3178,7 +3198,7 @@ class FtpSyncBrowseCurrent(sublime_plugin.TextCommand):
 class FtpSyncBrowseLast(sublime_plugin.WindowCommand):
 	def run(self, edit = None):
 		if navigateLast['config_file'] is None:
-			if sublime.active_window().active_view() is None:
+			if hasActiveView() is False:
 				file_path = os.path.dirname(guessConfigFile(sublime.active_window().folders()))
 			else:
 				file_path = sublime.active_window().active_view().file_name()
