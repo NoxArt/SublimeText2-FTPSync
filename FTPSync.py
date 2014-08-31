@@ -92,7 +92,7 @@ timeFormat = ""
 downloadOnOpenDelay = 0
 
 coreConfig = {}
-
+browseConfig = {}
 
 # name of a file to be detected in the project
 configName = 'ftpsync.settings'
@@ -163,6 +163,7 @@ def isString(var):
 		return var_type is str or var_type is unicode
 
 def plugin_loaded():
+	global browseConfig
 	global coreConfig
 	global debugJson
 	global debugWorkers
@@ -227,9 +228,23 @@ def plugin_loaded():
 		'debug_verbose': settings.get('debug_verbose'),
 		'ftp_retry_limit': settings.get('ftp_retry_limit'),
 		'ftp_retry_delay': settings.get('ftp_retry_delay'),
+
 		'connection_timeout': settings.get('connection_timeout'),
 		'ascii_extensions': settings.get('ascii_extensions'),
 		'binary_extensions': settings.get('binary_extensions')
+	}
+
+	browseConfig = {
+		'browse_display_details': settings.get('browse_display_details'),
+		'browse_open_on_download': settings.get('browse_open_on_download'),
+		'browse_display_permission': settings.get('browse_display_permission'),
+		'browse_timestamp_format': settings.get('browse_timestamp_format'),
+		'browse_folder_prefix': settings.get('browse_folder_prefix'),
+		'browse_folder_suffix': settings.get('browse_folder_suffix'),
+		'browse_file_prefix': settings.get('browse_file_prefix'),
+		'browse_file_suffix': settings.get('browse_file_suffix'),
+		'browse_up': settings.get('browse_up'),
+		'browse_action_prefix': settings.get('browse_action_prefix')
 	}
 
 	# limit of workers
@@ -2131,23 +2146,16 @@ class SyncNavigator(SyncCommand):
 			remote = True
 
 		self.updateNavigateLast(path)
+		mappedPath = connection.getMappedPath(path, remote)
 
 		# get contents
 		contents = connection.list(path, remote, True)
-		contents = addLinks(contents, connection.getMappedPath(path, remote))
+		contents = addLinks(contents, mappedPath)
 		contents = sorted(contents, key = lambda entry: (entry.getName() != "..", entry.isDirectory() is False, entry.getName().lower()))
 		content = []
 
 		# add header
-		currentFolder = os.path.basename(connection.getNormpath(path))
-		if currentFolder == '..':
-			currentFolder = '/'
-
-		if displayDetails:
-			header = self.getDetailedCurrentFolder(currentFolder)
-		else:
-			header = self.getSimpleCurrentFolder(currentFolder)
-
+		header = self.getHeader(mappedPath)
 		content.extend(header)
 
 		# find current folder
@@ -2189,11 +2197,21 @@ class SyncNavigator(SyncCommand):
 
 		sublime.set_timeout(lambda: sublime.active_window().show_quick_panel(content, handleMetaSelection), 1)
 
+	def getHeader(self, mappedPath):
+		currentFolder = self.configConnection['host'] + ':' + self.connections[0].getNormpath(mappedPath)
+		if currentFolder == '..':
+			currentFolder = '/'
+
+		if displayDetails:
+			return self.getDetailedCurrentFolder(currentFolder)
+		else:
+			return self.getSimpleCurrentFolder(currentFolder)
+
 	def getSimpleCurrentFolder(self, currentFolder):
-		return [[ currentFolder + "/" ]]
+		return [[ currentFolder + "/" ], [decode("• Folder actions")]]
 
 	def getDetailedCurrentFolder(self, currentFolder):
-		entry = [currentFolder, "• Current folder", "• Click to list actions"]
+		entry = [currentFolder, decode("• Current folder"), decode("• Click to list actions")]
 		if displayPermissions:
 			entry.append("")
 		return [entry]
@@ -2205,11 +2223,11 @@ class SyncNavigator(SyncCommand):
 				return None
 
 			if meta.getName() == '..':
-				entry.append("\t" + decode("▴ .."))
+				entry.append(browseConfig['browse_up'])
 			else:
-				entry.append("\t" + decode("▾ ") + decode(meta.getName()))
+				entry.append("\t" + browseConfig['browse_folder_prefix'] + decode(meta.getName()) + browseConfig['browse_folder_suffix'])
 		else:
-			entry.append("\t\t" + decode(meta.getName()))
+			entry.append("\t" + browseConfig['browse_file_prefix'] + decode(meta.getName()) + browseConfig['browse_file_suffix'])
 
 		return entry
 
@@ -2262,20 +2280,21 @@ class SyncNavigator(SyncCommand):
 			self.listFiles(meta.getPath() + '/' + meta.getName())
 			return
 
+		prefix = browseConfig['browse_action_prefix']
+
 		actions = []
-		actions.append("Open " + decode(name) + " folder")
-		actions.append("Back")
-		actions.append("Download folder")
+		actions.append("Folder: " + connection.getNormpath(path) + "/")
+		actions.append(prefix + "Download folder")
 
 		if os.path.exists(localFile):
-			actions.append("Upload folder")
+			actions.append(prefix + "Upload folder")
 			exists = 1
 
-		actions.append("Remove folder")
-		actions.append("Rename folder")
-		actions.append("Change permissions")
-		actions.append("Show details")
-		actions.append("Copy path")
+		actions.append(prefix + "Remove folder")
+		actions.append(prefix + "Rename folder")
+		actions.append(prefix + "Change permissions")
+		actions.append(prefix + "Show details")
+		actions.append(prefix + "Copy path")
 
 		def handleAction(index):
 			if index == -1:
@@ -2286,31 +2305,27 @@ class SyncNavigator(SyncCommand):
 				return
 
 			if index == 1:
-				self.listFiles(meta.getPath())
-				return
-
-			if index == 2:
 				call = RemoteSyncDownCall([[localFile, getConfigFile(localFile)]], None, False, True)
 				call.setIsDir()
 				call.start()
 				return
 
-			if exists and index == 3:
+			if exists and index == 2:
 				RemoteSyncCall(gatherFiles([localFile]), None, False, True).start()
 				return
 
-			if index == 3 + exists:
+			if index == 2 + exists:
 				RemoteSyncDelete(localFile).start()
 				return
 
-			if index == 4 + exists:
+			if index == 3 + exists:
 				try:
 					sublime.active_window().run_command("ftp_sync_rename", { "paths": [ localFile ] })
 				except Exception as e:
 					handleException(e)
 				return
 
-			if index == 5 + exists:
+			if index == 4 + exists:
 				def permissions(newPermissions):
 					self._createConnection()
 					connection = self.connections[0]
@@ -2321,7 +2336,7 @@ class SyncNavigator(SyncCommand):
 
 				sublime.active_window().show_input_panel('Change permissions to:', self.configConnection['default_folder_permissions'], permissions, None, None)
 
-			if index == 6 + exists:
+			if index == 5 + exists:
 				info = []
 				info.append(meta.getName())
 				info.append("[Directory]")
@@ -2344,7 +2359,7 @@ class SyncNavigator(SyncCommand):
 				sublime.set_timeout(lambda: sublime.active_window().show_quick_panel([info], None), 1)
 				return
 
-			if index == 7 + exists:
+			if index == 6 + exists:
 				get_path = meta.getPath()
 				sublime.set_clipboard(get_path)
 				return
@@ -2368,32 +2383,35 @@ class SyncNavigator(SyncCommand):
 		exists = 0
 		hasSidebar = packageExists("SideBarEnhancements")
 
+		prefix = browseConfig['browse_action_prefix']
+
 		actions = []
-		actions.append("Back")
-		actions.append("Download file")
+		actions.append("File: " + connection.getNormpath(path) + "/")
+		actions.append(prefix + "Back")
+		actions.append(prefix + "Download file")
 
 		if os.path.exists(localFile):
-			actions.append("Upload file")
+			actions.append(prefix + "Upload file")
 			exists = 1
 
-		actions.append("Remove file")
-		actions.append("Rename file")
+		actions.append(prefix + "Remove file")
+		actions.append(prefix + "Rename file")
 
 		if hasSidebar:
-			actions.append("Open / run")
+			actions.append(prefix + "Open / run")
 
-		actions.append("Change permissions")
-		actions.append("Show details")
+		actions.append(prefix + "Change permissions")
+		actions.append(prefix + "Show details")
 
 		def handleAction(index):
 			if index == -1:
 				return
 
-			if index == 0:
+			if index == 0 or index == 1:
 				self.listFiles(meta.getPath())
 				return
 
-			if index == 1:
+			if index == 2:
 				def dopen(args):
 					try:
 						sublime.set_timeout(lambda: sublime.active_window().open_file(args), 1)
@@ -2406,22 +2424,22 @@ class SyncNavigator(SyncCommand):
 				call.start()
 				return
 
-			if exists and index == 2:
+			if exists and index == 3:
 				RemoteSyncCall(gatherFiles([localFile]), None, True, True).start()
 				return
 
-			if index == 2 + exists:
+			if index == 4 + exists:
 				RemoteSyncDelete(localFile).start()
 				return
 
-			if index == 3 + exists:
+			if index == 5 + exists:
 				try:
 					sublime.active_window().run_command("ftp_sync_rename", { "paths": [ localFile ] })
 				except Exception as e:
 					handleException(e)
 				return
 
-			if hasSidebar and index == 4 + exists:
+			if hasSidebar and index == 5 + exists:
 				def openRun(args):
 					sublime.set_timeout(lambda: sublime.active_window().run_command("side_bar_open", {"paths": [ args ]}), 1)
 
@@ -2431,7 +2449,7 @@ class SyncNavigator(SyncCommand):
 				call.start()
 				return
 
-			if index == 4 + exists + int(hasSidebar):
+			if index == 5 + exists + int(hasSidebar):
 				def permissions(newPermissions):
 					self._createConnection()
 					connection = self.connections[0]
@@ -2443,7 +2461,7 @@ class SyncNavigator(SyncCommand):
 				sublime.active_window().show_input_panel('Change permissions to:', self.configConnection['default_folder_permissions'], permissions, None, None)
 				return
 
-			if index == 5 + exists + int(hasSidebar):
+			if index == 6 + exists + int(hasSidebar):
 				info = []
 				info.append(meta.getName())
 				info.append("[File]")
@@ -2468,7 +2486,7 @@ class SyncNavigator(SyncCommand):
 				sublime.set_timeout(lambda: sublime.active_window().show_quick_panel([info], None), 1)
 				return
 
-			if index == 6 + exists + int(hasSidebar):
+			if index == 7 + exists + int(hasSidebar):
 				get_path = meta.getPath()
 				sublime.set_clipboard(get_path)
 				return
