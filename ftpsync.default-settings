@@ -9,7 +9,7 @@
 		"password": "your_password",
 		"path": "/",
 
-		"upload_on_save": true // set *false* if you do not want to upload on save!
+		"upload_on_save": true, // set *false* if you do not want to upload on save!
 
 		// "port": 21,
 		// "tls": false,
@@ -48,7 +48,7 @@
 		//   example: after_save_watch: [ [ "code/assets/css", "*.css" ], [ "code/assets/", "*.jpg, *.png, *.gif" ] ]
 		//   used only in conjunction with upload_on_save and upload_delay **
 		// For more info see https://github.com/NoxArt/SublimeText2-FTPSync/wiki/Why-and-how-to-use-afterwatch
-		// "after_save_watch": []
+		// "after_save_watch": [],
 
 	}
 
@@ -69,10 +69,7 @@
 
 	// ** Commas **
 
-	// Don't forget about commas -> each entry needs a comma at the end of line EXCEPT the last (uncommented) entry
-	// For precise info see http://www.json.org
-	// Also try http://jsonlint.com
-
+	// from now on extra commas are allowed and recommended
 
 	// ** Comments **
 
