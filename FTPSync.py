@@ -258,10 +258,7 @@ if int(sublime.version()) < 3000:
 
 # Returns file with syntax for settings file
 def getConfigSyntax():
-	if packageExists('AAAPackageDev/Syntax Definitions/Sublime Settings.tmLanguage'):
-		return 'Packages/AAAPackageDev/Syntax Definitions/Sublime Settings.tmLanguage'
-	else:
-		return 'Packages/JavaScript/JSON.tmLanguage'
+	return 'Packages/FTPSync/Settings.tmLanguage'
 
 # Returns if Sublime has currently active View
 #
