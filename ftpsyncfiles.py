@@ -34,6 +34,7 @@ import datetime
 import fnmatch
 import os
 import re
+import sublime
 import sys
 import tempfile
 
@@ -145,7 +146,6 @@ class Metafile:
 
 		return str(round(self.filesize / 1024 / 1024 / 1024, 2)) + " GB"
 
-
 	def isSameFilepath(self, filepath):
 		return os.path.realpath(self.getPath()) == os.path.realpath(filepath)
 
@@ -180,7 +180,6 @@ class Metafile:
 			raise TypeError("Compared_file must be either string (file_path) or Metafile instance")
 
 		return self.filesize != os.path.getsize(compared_file)
-
 
 
 # Detects if object is a string and if so converts to unicode, if not already

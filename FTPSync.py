@@ -2396,10 +2396,7 @@ class SyncNavigator(SyncCommand):
 
 		actions.append(prefix + "Remove file")
 		actions.append(prefix + "Rename file")
-
-		if hasSidebar:
-			actions.append(prefix + "Open / run")
-
+		actions.append(prefix + "Open / run")
 		actions.append(prefix + "Change permissions")
 		actions.append(prefix + "Show details")
 		actions.append(prefix + "Copy path")
@@ -2425,32 +2422,22 @@ class SyncNavigator(SyncCommand):
 				call.start()
 				return
 
-			if exists and index == 3:
+			if exists and index == 2:
 				RemoteSyncCall(gatherFiles([localFile]), None, True, True).start()
 				return
 
-			if index == 4 + exists:
+			if index == 3 + exists:
 				RemoteSyncDelete(localFile).start()
 				return
 
-			if index == 5 + exists:
+			if index == 4 + exists:
 				try:
 					sublime.active_window().run_command("ftp_sync_rename", { "paths": [ localFile ] })
 				except Exception as e:
 					handleException(e)
 				return
 
-			if hasSidebar and index == 5 + exists:
-				def openRun(args):
-					sublime.set_timeout(lambda: sublime.active_window().run_command("side_bar_open", {"paths": [ args ]}), 1)
-
-				# download
-				call = RemoteSyncCall(gatherFiles([localFile]), None, False, True)
-				call.onFinish(openRun)
-				call.start()
-				return
-
-			if index == 5 + exists + int(hasSidebar):
+			if index == 4 + exists + int(hasSidebar):
 				def permissions(newPermissions):
 					self._createConnection()
 					connection = self.connections[0]
@@ -2462,7 +2449,7 @@ class SyncNavigator(SyncCommand):
 				sublime.active_window().show_input_panel('Change permissions to:', self.configConnection['default_folder_permissions'], permissions, None, None)
 				return
 
-			if index == 6 + exists + int(hasSidebar):
+			if index == 5 + exists + int(hasSidebar):
 				info = []
 				info.append(meta.getName())
 				info.append("[File]")
@@ -2490,7 +2477,7 @@ class SyncNavigator(SyncCommand):
 				sublime.set_timeout(lambda: sublime.active_window().show_quick_panel([info], back), 1)
 				return
 
-			if index == 7 + exists + int(hasSidebar):
+			if index == 6 + exists + int(hasSidebar):
 				sublime.set_clipboard(meta.getFilepath())
 				return
 
