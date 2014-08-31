@@ -2402,6 +2402,7 @@ class SyncNavigator(SyncCommand):
 
 		actions.append(prefix + "Change permissions")
 		actions.append(prefix + "Show details")
+		actions.append(prefix + "Copy path")
 
 		def handleAction(index):
 			if index == -1:
@@ -2490,8 +2491,7 @@ class SyncNavigator(SyncCommand):
 				return
 
 			if index == 7 + exists + int(hasSidebar):
-				get_path = meta.getPath()
-				sublime.set_clipboard(get_path)
+				sublime.set_clipboard(meta.getFilepath())
 				return
 
 		if action is None:
