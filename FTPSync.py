@@ -2483,7 +2483,10 @@ class SyncNavigator(SyncCommand):
 				else:
 					info.append("[No local version]")
 
-				sublime.set_timeout(lambda: sublime.active_window().show_quick_panel([info], None), 1)
+				def back(index):
+					self.listFileActions(meta, action)
+
+				sublime.set_timeout(lambda: sublime.active_window().show_quick_panel([info], back), 1)
 				return
 
 			if index == 7 + exists + int(hasSidebar):
