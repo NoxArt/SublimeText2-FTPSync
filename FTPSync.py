@@ -39,7 +39,6 @@ import sublime_plugin
 # Python's built-in libraries
 import copy
 import hashlib
-import json
 import os
 import re
 import shutil
@@ -50,7 +49,7 @@ import webbrowser
 
 # FTPSync libraries
 if sys.version < '3':
-	from lib2.minify_json import json_minify
+	import lib2.simplejson as json
 
 	from ftpsynccommon import Types
 	from ftpsyncwrapper import CreateConnection, TargetAlreadyExists
@@ -61,7 +60,7 @@ if sys.version < '3':
 	# exceptions
 	from ftpsyncexceptions import FileNotFoundException
 else:
-	from FTPSync.lib3.minify_json import json_minify
+	import FTPSync.lib3.simplejson as json
 
 	from FTPSync.ftpsynccommon import Types
 	from FTPSync.ftpsyncwrapper import CreateConnection, TargetAlreadyExists
@@ -735,13 +734,15 @@ def parseJson(file_path):
 	finally:
 		file.close()
 
+	decoder = json.JSONDecoder()
+
 	if debugJson:
 		printMessage("Debug JSON:")
 		print ("="*86)
 		print (contents)
 		print ("="*86)
 
-	return json.loads(contents)
+	return decoder.decode(contents)
 
 
 # Asks for passwords if missing in configuration
