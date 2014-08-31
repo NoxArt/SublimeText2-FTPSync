@@ -2396,7 +2396,6 @@ class SyncNavigator(SyncCommand):
 
 		actions.append(prefix + "Remove file")
 		actions.append(prefix + "Rename file")
-		actions.append(prefix + "Open / run")
 		actions.append(prefix + "Change permissions")
 		actions.append(prefix + "Show details")
 		actions.append(prefix + "Copy path")
