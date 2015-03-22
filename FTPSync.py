@@ -1299,7 +1299,7 @@ class SyncCommandTransfer(SyncCommand):
 		for name in toBeRemoved:
 			self.config['connections'].pop(name)
 
-	# Code that needs to run when a connection is removed (ignored) 
+	# Code that needs to run when a connection is removed (ignored)
 	#
 	# @return bool: truly remove?
 	def _onPreConnectionRemoved(self):
@@ -2254,7 +2254,7 @@ class SyncNavigator(SyncCommand):
 
 		return entry
 
-	def listFolderActions(self, meta, action = None):	
+	def listFolderActions(self, meta, action = None):
 		if self.closed is True:
 			printMessage("Cancelling " + self.getIdentification() + ": command is closed")
 			return
@@ -2571,7 +2571,8 @@ class RemoteSync(sublime_plugin.EventListener):
 							if config['connections'][name]['download_on_open'] is True:
 								whitelistConnections.append(name)
 
-						RemoteSyncCheck(file_path, view.window(), forced=False, whitelistConnections=whitelistConnections).start()
+						if len(whitelistConnections):
+							RemoteSyncCheck(file_path, view.window(), forced=False, whitelistConnections=whitelistConnections).start()
 
 					fillPasswords([[ file_path, getConfigFile(file_path) ]], execute, sublime.active_window())
 
