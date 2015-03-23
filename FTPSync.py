@@ -2497,7 +2497,6 @@ preventUpload = []
 
 # File watching
 class RemoteSync(sublime_plugin.EventListener):
-
 	def on_pre_save(self, view):
 		file_path = getFileName(view)
 		config_file_path = getConfigFile(file_path)
@@ -3280,6 +3279,8 @@ class FTPSyncToggleSettings(sublime_plugin.TextCommand):
 			return False
 
 		config = loadConfig(config_file_path)
+		if type(config) is not dict:
+			return False
 
 		for name in config['connections']:
 			if config['connections'][name]['upload_on_save'] is self.property_value_to:
