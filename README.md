@@ -16,22 +16,6 @@ What's there for you?
 * Progress bar for multiple up/download
 * Remote browsing and manipulating via file list
 
-**What's new**
-* Improved GUI of remote browser
-* Global config now updates on-the-fly
-* Settings file now syntax highlighted
-* Settings file now handle trailing commas
-
-**In progress**
-* Handling connections limit per host
-* Feature to be able to stop running upload/download
-* Extension of FTPS capabilities
-
-**Planned**
-* Improve file change time detection
-* Case sensitivity handling
-
-
 For more info look into [Wiki](https://github.com/NoxArt/SublimeText2-FTPSync/wiki/_pages)
 
 
@@ -80,11 +64,7 @@ Done by **Jiří @NoxArt Petruželka** ~ [Twitter](https://twitter.com/NoxArt)
 
 Released under **MIT licence**.
 
-You can buy me a snack so I have energy for further improvements :)
-
-**[Support FTPSync page](http://ftpsync.noxart.cz/donate.html)**
-
-Supported by: **Yang Guo Jun**, **Winfried van Loon**, **Pedro-Martir Estrada** ... thank you!
+Thank you for the financial support!
 
 Feel free to add [issues, ideas](https://github.com/NoxArt/SublimeText2-FTPSync/issues), pull requests...
 
@@ -110,16 +90,16 @@ Please keep in mind that for deleting and renaming on server you need to use `FT
 
 You can either use *download_on_open=true* to check files upon openning or *FTPSync: Check current file* command to see whether you have the same version as is on all servers. Using *overwrite_newer_prevention* is also recommended (it's actually enabled by default).
 
-* **Upload different language versions to different servers of paths**
+* **Upload different language versions to different servers of paths** e.g.
 
         {
-            <connection_name>: {
-                host: "ftp.host.en.com",
-                ignore: "/locale/(?!fr)\\w+/.*"
+            "<connection_name>": {
+                "host": "ftp.host.en.com",
+                "ignore": "/locale/(?!fr)\\w+/.*"
             },
-            <connection2_name>: {
-                host: "ftp.host.cz.com",
-                ignore: "/locale/(?!cz)\\w+/.*"
+            "<connection2_name>": {
+                "host": "ftp.host.cz.com",
+                "ignore": "/locale/(?!cz)\\w+/.*"
             }
         }
 
