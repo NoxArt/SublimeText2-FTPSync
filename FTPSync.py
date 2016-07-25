@@ -46,6 +46,7 @@ import sys
 import threading
 import traceback
 import webbrowser
+from time import sleep
 
 # FTPSync libraries
 if sys.version < '3':
@@ -514,10 +515,12 @@ def getConfigFile(file_path):
 
 	# try cached
 	try:
-		if configs[cacheKey]:
+		if configs[cacheKey] and os.path.exists(configs[cacheKey]) and os.path.getsize(configs[cacheKey]) > 0:
 			printMessage("Loading config: cache hit (key: " + cacheKey + ")")
 
-		return configs[cacheKey]
+			return configs[cacheKey]
+		else:
+			raise KeyError
 
 	# cache miss
 	except KeyError:
@@ -735,17 +738,58 @@ def verifyConfig(config):
 #
 # @type  file_path: string
 #
-# @return dict
+# @return dict|None
 #
 # @global removeLineComment
 def parseJson(file_path):
+	attempts = 3
+	succeeded = False
+
+	while attempts > 0:
+		attempts = attempts - 1
+		try:
+			json = parseJsonInternal(file_path)
+			if debugJson:
+				printMessage("Type returned: " + str(type(json)))
+				printMessage("Is empty: " + str(bool(json)))
+
+			succeeded = type(json) is dict and bool(json) is True
+			break
+		except Exception as e:
+			handleException(e)
+			printMessage("Retrying reading config... (remaining " + str(attempts) + ")")
+			sleep(0.1)
+
+	if succeeded:
+		return json
+	else:
+		printMessage("Failed to read settings from file: " + str(file_path))
+		return {}
+
+# Parses JSON-type file with comments stripped out (not part of a proper JSON, see http://json.org/)
+#
+# @type  file_path: string
+#
+# @return dict
+#
+# @global removeLineComment
+def parseJsonInternal(file_path):
+	if isString(file_path) is False:
+		raise Exception("Expected filepath as string, " + str(type(file_path)) + " given")
+
+	if os.path.exists(file_path) is False:
+		raise IOError("File " + str(file_path) + " does not exist")
+
+	if os.path.getsize(file_path) == 0:
+		raise IOError("File " + str(file_path) + " is empty")
+
 	contents = ""
 
 	try:
 		file = open(file_path, 'r')
 
 		for line in file:
-			contents += removeLineComment.sub('', line)
+			contents += removeLineComment.sub('', line).strip()
 	finally:
 		file.close()
 
@@ -757,7 +801,10 @@ def parseJson(file_path):
 		print (contents)
 		print ("="*86)
 
-	return decoder.decode(contents)
+	if len(contents) > 0:
+		return decoder.decode(contents)
+	else:
+		raise IOError('Content read from ' + str(file_path) + ' is empty')
 
 
 # Asks for passwords if missing in configuration
@@ -853,7 +900,7 @@ def fillPasswords(fileList, callback, window, index = 0):
 def loadConfig(file_path):
 
 	if isLoaded is False:
-		printMessage("Settings not loaded (just installed?), please restart Sublime Text")
+		printMessage("FTPSync is not loaded (just installed?), please restart Sublime Text")
 		return None
 
 	if isString(file_path) is False:
@@ -2675,8 +2722,6 @@ class RemotePresave(RemoteThread):
 
 		try:
 			metadata = SyncCommandGetMetadata(file_path, config_file_path).execute()
-		except FileNotFoundException:
-			return
 		except Exception as e:
 			if str(e).find('No such file'):
 				printMessage("No version of {" + os.path.basename(file_path) + "} found on any server", status=True)
