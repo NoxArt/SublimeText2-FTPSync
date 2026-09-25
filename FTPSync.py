@@ -385,7 +385,7 @@ def systemNotify(text):
 
 	except Exception as e:
 		printMessage("Notification failed")
-		handleExceptions(e)
+		handleException(e)
 
 
 # Creates a process message with progress bar (to be used in status bar)
@@ -1632,7 +1632,7 @@ class SyncCommandDownload(SyncCommandTransfer):
 			except IndexError:
 				continue
 
-			except FileNotFoundException:
+			except FileNotFoundException as e:
 				printMessage("Remote file not found", name, False, True)
 				handleException(e)
 
